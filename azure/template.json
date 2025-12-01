@@ -84,7 +84,7 @@
         "functionAppName": "[concat(variables('resourceNamePrefix'), '-fa')]",
         "appServicePlanName": "[concat(variables('resourceNamePrefix'), '-asp')]",
         "privateLinkScopeName": "[toLower(concat('das-', parameters('resourceEnvironmentName'),'-shared-ampls'))]",
-        "configNames": "__SolutionBaseName__" //PLACEHOLDER
+        "configNames": "DAS.DigitalEngagement.EmailIntegration"
     },
     "resources": [
         {

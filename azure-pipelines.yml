@@ -6,7 +6,7 @@ trigger:
 
 variables:
 - name: SolutionBaseName
-  value: DAS
+  value: DAS.DigitalEngagement.EmailIntegration
 - name: BuildConfiguration
   value: release
 - name: BuildPlatform
