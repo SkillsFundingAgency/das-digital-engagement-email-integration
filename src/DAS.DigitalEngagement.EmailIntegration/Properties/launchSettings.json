@@ -1,0 +1,9 @@
+{
+  "profiles": {
+    "DAS.DigitalEngagement.EmailIntegration": {
+      "commandName": "Project",
+      "commandLineArgs": "--port 7006",
+      "launchBrowser": false
+    }
+  }
+}
