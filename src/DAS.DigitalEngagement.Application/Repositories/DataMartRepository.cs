@@ -15,52 +15,95 @@ using System.Text;
 
 namespace DAS.DigitalEngagement.Application.Repositories
 {
-    public class DataMartRepository(IOptions<ConnectionStrings> connectionStrings) : IDataMartRepository
+
+    public class DataMartRepository(IOptions<ConnectionString> connectionStrings) : IDataMartRepository
     {
         private readonly string _connectionString = connectionStrings.Value.DataMart ?? "";
 
         public async Task<IList<dynamic>> RetrieveEmployeeRegistrationData(string viewName)
         {
 
-            if (string.IsNullOrWhiteSpace(viewName))
-                throw new ArgumentException("View name cannot be empty.");
-
-            var credential = new DefaultAzureCredential();
-
-            // Get an access token for Azure SQL
-            var token = await credential.GetTokenAsync(
-                new TokenRequestContext(new[] { "https://database.windows.net/" }));
-
-            await using var connection = new SqlConnection(_connectionString)
-            {
-                AccessToken = token.Token
-            };
-
-            await connection.OpenAsync();
-
-            var sql = $"SELECT * FROM [{viewName}]"; // Validate viewName or whitelist it!
-            await using var command = new SqlCommand(sql, connection);
-            await using var reader = await command.ExecuteReaderAsync();
+            string query = $"SELECT * FROM  [{viewName}]";
 
             var results = new List<dynamic>();
 
-            while (await reader.ReadAsync())
+            // Acquire Azure AD token for Azure SQL
+            var credential = new DefaultAzureCredential();
+            var tokenRequest = new TokenRequestContext(new[] { "https://database.windows.net/.default" });
+            var token = await credential.GetTokenAsync(tokenRequest);
+
+            using (var conn = new SqlConnection(_connectionString))
+            using (var cmd = new SqlCommand(query, conn))
             {
-                dynamic row = new ExpandoObject();
-                var dict = (IDictionary<string, object>)row;
+                // Assign AAD access token (no User ID/Password in connection string)
+                conn.AccessToken = token.Token;
+                await conn.OpenAsync();
 
-                for (int i = 0; i < reader.FieldCount; i++)
+                using (var reader = await cmd.ExecuteReaderAsync())
                 {
-                    dict[reader.GetName(i)] = reader.GetValue(i);
-                }
+                    while (await reader.ReadAsync())
+                    {
+                        // Each row -> ExpandoObject (dynamic)
+                        IDictionary<string, object?> row = new ExpandoObject();
 
-                results.Add(row);
+                        for (int i = 0; i < reader.FieldCount; i++)
+                        {
+                            object? value = await reader.IsDBNullAsync(i) ? null : reader.GetValue(i);
+                            row[reader.GetName(i)] = value;
+                        }
+
+                        results.Add((ExpandoObject)row);
+                    }
+                }
             }
 
             return results;
 
+
         }
 
-     
+        //public async Task<IList<dynamic>> RetrieveEmployeeRegistrationData(string viewName)
+        //{
+
+        //    if (string.IsNullOrWhiteSpace(viewName))
+        //        throw new ArgumentException("View name cannot be empty.");
+
+        //    var credential = new DefaultAzureCredential();
+
+        //    // Get an access token for Azure SQL
+        //    var token = await credential.GetTokenAsync(
+        //        new TokenRequestContext(new[] { "https://database.windows.net/.default" }));
+
+        //    await using var connection = new SqlConnection(_connectionString)
+        //    {
+        //        AccessToken = token.Token
+        //    };
+
+        //    await connection.OpenAsync();
+
+        //    var sql = $"SELECT * FROM [{viewName}]"; // Validate viewName or whitelist it!
+        //    await using var command = new SqlCommand(sql, connection);
+        //    await using var reader = await command.ExecuteReaderAsync();
+
+        //    var results = new List<dynamic>();
+
+        //    while (await reader.ReadAsync())
+        //    {
+        //        dynamic row = new ExpandoObject();
+        //        var dict = (IDictionary<string, object>)row;
+
+        //        for (int i = 0; i < reader.FieldCount; i++)
+        //        {
+        //            dict[reader.GetName(i)] = reader.GetValue(i);
+        //        }
+
+        //        results.Add(row);
+        //    }
+
+        //    return results;
+
+        //}
+
+
     }
 }

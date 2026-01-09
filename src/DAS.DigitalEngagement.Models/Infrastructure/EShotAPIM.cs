@@ -6,8 +6,12 @@ using System.Threading.Tasks;
 
 namespace DAS.DigitalEngagement.Models.Infrastructure
 {
-    public class ConnectionStrings
+
+    public class EShotAPIM
     {
-        public string? DataMart { get; set; }
+        public string? ApiBaseUrl { get; set; }
+        public string? ApiClientId { get; set; }
+        public int ApiRetryCount { get; set; }
     }
+
 }
