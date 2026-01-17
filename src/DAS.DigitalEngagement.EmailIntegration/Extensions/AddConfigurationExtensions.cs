@@ -6,6 +6,7 @@ using SFA.DAS.Configuration.AzureTableStorage;
 using SFA.DAS.Encoding;
 using System;
 using System.Collections.Generic;
+using System.Configuration;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -61,13 +62,5 @@ namespace DAS.DigitalEngagement.EmailIntegration.Extensions
             return services;
         }
 
-        //public static IServiceCollection ConfigureFromOptions<TOptions>(this IServiceCollection services, Func<ApplicationConfiguration, TOptions> func)
-        //  where TOptions : class, new()
-        //{
-        //    services.AddSingleton(s =>
-        //        func(s.GetRequiredService<IOptions<ApplicationConfiguration>>().Value));
-
-        //    return services;
-        //}
     }
 }

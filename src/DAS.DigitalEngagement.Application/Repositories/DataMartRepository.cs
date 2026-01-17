@@ -4,6 +4,7 @@ using Azure.Identity;
 using DAS.DigitalEngagement.Application.Repositories.Interfaces;
 using DAS.DigitalEngagement.Models.Infrastructure;
 using Microsoft.Data.SqlClient;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System;
 using System.Collections.Generic;
@@ -15,35 +16,52 @@ using System.Text;
 
 namespace DAS.DigitalEngagement.Application.Repositories
 {
-
-    public class DataMartRepository(IOptions<ConnectionString> connectionStrings) : IDataMartRepository
+    public class DataMartRepository : IDataMartRepository
     {
-        private readonly string _connectionString = connectionStrings.Value.DataMart ?? "";
+
+        private readonly string _connectionString;
+        private readonly TokenCredential _tokenCredential;
+        private readonly ILogger<DataMartRepository> _logger;
+
+        public DataMartRepository(
+            TokenCredential tokenCredential,
+            IOptions<ConnectionString> connectionStrings,
+            ILogger<DataMartRepository> logger)
+        {
+            _connectionString = connectionStrings.Value.DataMart ?? "";
+            _tokenCredential = tokenCredential;
+            _logger = logger;
+        }
+
 
         public async Task<IList<dynamic>> RetrieveEmployeeRegistrationData(string viewName)
         {
+            if (string.IsNullOrWhiteSpace(viewName))
+                throw new ArgumentException("View name cannot be empty.", nameof(viewName));
 
-            string query = $"SELECT * FROM  [{viewName}]";
+            string query = $"SELECT TOP 10 * FROM {viewName}";
+            _logger.LogInformation($"Executing query: {query}");
 
             var results = new List<dynamic>();
 
-            // Acquire Azure AD token for Azure SQL
-            var credential = new DefaultAzureCredential();
+            // Acquire Azure AD token for Azure SQL (use .default scope)
             var tokenRequest = new TokenRequestContext(new[] { "https://database.windows.net/.default" });
-            var token = await credential.GetTokenAsync(tokenRequest);
+            var accessToken = await _tokenCredential.GetTokenAsync(tokenRequest, CancellationToken.None);
 
-            using (var conn = new SqlConnection(_connectionString))
+            await using (var conn = new SqlConnection(_connectionString))
             using (var cmd = new SqlCommand(query, conn))
             {
                 // Assign AAD access token (no User ID/Password in connection string)
-                conn.AccessToken = token.Token;
+                conn.AccessToken = accessToken.Token;
                 await conn.OpenAsync();
+                _logger.LogInformation("Database connection opened successfully.");
 
                 using (var reader = await cmd.ExecuteReaderAsync())
                 {
                     while (await reader.ReadAsync())
                     {
-                        // Each row -> ExpandoObject (dynamic)
+                        _logger.LogInformation("Reading a new row from the result set.");
+
                         IDictionary<string, object?> row = new ExpandoObject();
 
                         for (int i = 0; i < reader.FieldCount; i++)
@@ -53,57 +71,13 @@ namespace DAS.DigitalEngagement.Application.Repositories
                         }
 
                         results.Add((ExpandoObject)row);
+                        _logger.LogInformation($"Retrieved row: {string.Join(", ", row.Select(kv => $"{kv.Key}={kv.Value}"))}"); 
                     }
                 }
             }
 
             return results;
-
-
         }
-
-        //public async Task<IList<dynamic>> RetrieveEmployeeRegistrationData(string viewName)
-        //{
-
-        //    if (string.IsNullOrWhiteSpace(viewName))
-        //        throw new ArgumentException("View name cannot be empty.");
-
-        //    var credential = new DefaultAzureCredential();
-
-        //    // Get an access token for Azure SQL
-        //    var token = await credential.GetTokenAsync(
-        //        new TokenRequestContext(new[] { "https://database.windows.net/.default" }));
-
-        //    await using var connection = new SqlConnection(_connectionString)
-        //    {
-        //        AccessToken = token.Token
-        //    };
-
-        //    await connection.OpenAsync();
-
-        //    var sql = $"SELECT * FROM [{viewName}]"; // Validate viewName or whitelist it!
-        //    await using var command = new SqlCommand(sql, connection);
-        //    await using var reader = await command.ExecuteReaderAsync();
-
-        //    var results = new List<dynamic>();
-
-        //    while (await reader.ReadAsync())
-        //    {
-        //        dynamic row = new ExpandoObject();
-        //        var dict = (IDictionary<string, object>)row;
-
-        //        for (int i = 0; i < reader.FieldCount; i++)
-        //        {
-        //            dict[reader.GetName(i)] = reader.GetValue(i);
-        //        }
-
-        //        results.Add(row);
-        //    }
-
-        //    return results;
-
-        //}
-
 
     }
 }

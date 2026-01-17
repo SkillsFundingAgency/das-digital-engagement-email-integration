@@ -18,10 +18,9 @@ static class Program
             .ConfigureServices((context, services) =>
             {
                 services.AddApplicationOptions();
-                //services.ConfigureFromOptions(f => f.EmployerFeedbackOuterApiConfiguration);
-
+            
                 //services.AddOuterApi();
-                services.AddApplicationServices();
+                services.AddApplicationServices(context.Configuration["TenantId"]!);
                 services.AddOpenTelemetryRegistration(context.Configuration["APPLICATIONINSIGHTS_CONNECTION_STRING"]!);
 
             })
