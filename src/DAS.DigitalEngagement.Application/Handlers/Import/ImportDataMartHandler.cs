@@ -33,9 +33,10 @@ namespace DAS.DigitalEngagement.Application.Import.Handlers
 
             if (config.ObjectName == "Lead")
             {
-                var status = await _importService.ImportEmployeeRegistration(data);
+                //var status = await _importService.ImportEmployeeRegistration(data);
 
-                return status;
+                //return status;
+                return null;
             }
             else
             {
