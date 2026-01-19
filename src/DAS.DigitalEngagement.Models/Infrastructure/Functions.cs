@@ -6,8 +6,10 @@ using System.Threading.Tasks;
 
 namespace DAS.DigitalEngagement.Models.Infrastructure
 {
-    //public class DataMartConfig
-    //{
-    //    public IList<DataMartSettings>? DataMart { get; set; }
-    //}
+
+    public class Functions
+    {
+        public string? EmailIntegrationSchedule { get; set; }
+    }
+
 }

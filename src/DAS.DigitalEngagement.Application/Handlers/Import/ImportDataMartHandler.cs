@@ -24,25 +24,23 @@ namespace DAS.DigitalEngagement.Application.Import.Handlers
             _importService = importService;
         }
 
-        public async Task<BulkImportStatus> Handle(DataMartSettings config)
+        public async Task<BulkImportStatus?> Handle(DataMartSettings config)
         {
             _logger.LogInformation($"about to handle employer lead import");
 
 
             var data = await _dataMartRepository.RetrieveEmployeeRegistrationData(config.ViewName ?? "");
 
-            if (config.ObjectName == "Main")
+            if (config.ObjectName == "Lead")
             {
-                var status = await _importService.ImportEmployeeRegistration(data);
+                //var status = await _importService.ImportEmployeeRegistration(data);
 
-                return status;
+                //return status;
+                return null;
             }
             else
             {
-                //  var status = await _bulkImportService.ImportCustomObject(data, config.ObjectName);
-
-                //  return status;
-                // To Do
+                _logger.LogInformation($"No Object name is configured in the Configuration");
                 return null;
 
 
