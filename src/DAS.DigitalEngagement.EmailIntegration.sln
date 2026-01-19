@@ -1,9 +1,13 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
-VisualStudioVersion = 17.14.36623.8 d17.14
+VisualStudioVersion = 17.14.36623.8
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DAS.DigitalEngagement.EmailIntegration", "DAS.DigitalEngagement.EmailIntegration\DAS.DigitalEngagement.EmailIntegration.csproj", "{8CA767AD-283D-41E9-9FFA-063B5CE8519E}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DAS.DigitalEngagement.Models", "DAS.DigitalEngagement.Models\DAS.DigitalEngagement.Models.csproj", "{E5E16B68-FECB-981C-64FC-E19442306C47}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DAS.DigitalEngagement.Application", "DAS.DigitalEngagement.Application\DAS.DigitalEngagement.Application.csproj", "{4B53D496-D1B0-06F8-FE75-EB63FE260476}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -15,6 +19,14 @@ Global
 		{8CA767AD-283D-41E9-9FFA-063B5CE8519E}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{8CA767AD-283D-41E9-9FFA-063B5CE8519E}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{8CA767AD-283D-41E9-9FFA-063B5CE8519E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E5E16B68-FECB-981C-64FC-E19442306C47}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E5E16B68-FECB-981C-64FC-E19442306C47}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E5E16B68-FECB-981C-64FC-E19442306C47}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E5E16B68-FECB-981C-64FC-E19442306C47}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4B53D496-D1B0-06F8-FE75-EB63FE260476}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4B53D496-D1B0-06F8-FE75-EB63FE260476}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4B53D496-D1B0-06F8-FE75-EB63FE260476}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4B53D496-D1B0-06F8-FE75-EB63FE260476}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
