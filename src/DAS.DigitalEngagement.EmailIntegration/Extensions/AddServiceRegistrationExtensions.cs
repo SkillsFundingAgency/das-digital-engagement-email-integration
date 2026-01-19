@@ -6,7 +6,9 @@ using DAS.DigitalEngagement.Application.Repositories;
 using DAS.DigitalEngagement.Application.Repositories.Interfaces;
 using DAS.DigitalEngagement.Application.Services;
 using DAS.DigitalEngagement.Application.Services.Interfaces;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using System.Configuration;
 using System.Diagnostics.CodeAnalysis;
 
 namespace DAS.DigitalEngagement.EmailIntegration.Extensions
@@ -35,12 +37,13 @@ namespace DAS.DigitalEngagement.EmailIntegration.Extensions
             return services;
         }
 
-        public static IServiceCollection AddApplicationServices(this IServiceCollection services, string? tenantId)
+        public static IServiceCollection AddApplicationServices(this IServiceCollection services, IConfiguration configuration)
         {
             services.AddTransient<IImportDataMartHandler, ImportDataMartHandler>();
             services.AddTransient<IImportService, ImportService>();
 
             services.AddTransient<IDataMartRepository, DataMartRepository>();
+            string? tenantId = configuration.GetSection("TenantId").Value ?? throw new ConfigurationErrorsException("TenantId is not configured");
             services.AddSingleton<TokenCredential>(sp =>
                                                     new ChainedTokenCredential(
                                                         new ManagedIdentityCredential(),
@@ -49,6 +52,7 @@ namespace DAS.DigitalEngagement.EmailIntegration.Extensions
                                                         new VisualStudioCredential(new VisualStudioCredentialOptions { TenantId = tenantId })
 
                                                     ));
+            services.AddHttpClient<IExternalApiService,ExternalApiService>();
             return services;
         }
     }

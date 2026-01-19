@@ -31,7 +31,7 @@ namespace DAS.DigitalEngagement.Application.Import.Handlers
 
             var data = await _dataMartRepository.RetrieveEmployeeRegistrationData(config.ViewName ?? "");
 
-            if (config.ObjectName == "Main")
+            if (config.ObjectName == "Lead")
             {
                 var status = await _importService.ImportEmployeeRegistration(data);
 

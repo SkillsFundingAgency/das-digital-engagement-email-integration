@@ -4,12 +4,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using SFA.DAS.Configuration.AzureTableStorage;
 using SFA.DAS.Encoding;
-using System;
-using System.Collections.Generic;
-using System.Configuration;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace DAS.DigitalEngagement.EmailIntegration.Extensions
 {
@@ -57,6 +51,13 @@ namespace DAS.DigitalEngagement.EmailIntegration.Extensions
                 var appConfig = s.GetRequiredService<IOptions<ApplicationConfiguration>>().Value;
                 var conn = appConfig?.ConnectionString ?? new ConnectionString();
                 return Options.Create(conn);
+            });
+
+            services.AddSingleton<IOptions<EShotAPIM>>(s =>
+            {
+                var appConfig = s.GetRequiredService<IOptions<ApplicationConfiguration>>().Value;
+                var eShotAPIM = appConfig?.EShotAPIM ?? new EShotAPIM();
+                return Options.Create(eShotAPIM);
             });
 
             return services;

@@ -20,7 +20,7 @@ static class Program
                 services.AddApplicationOptions();
             
                 //services.AddOuterApi();
-                services.AddApplicationServices(context.Configuration["TenantId"]!);
+                services.AddApplicationServices(context.Configuration);
                 services.AddOpenTelemetryRegistration(context.Configuration["APPLICATIONINSIGHTS_CONNECTION_STRING"]!);
 
             })
