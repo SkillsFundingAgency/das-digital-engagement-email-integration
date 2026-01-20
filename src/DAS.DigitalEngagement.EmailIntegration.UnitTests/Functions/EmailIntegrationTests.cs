@@ -4,7 +4,7 @@ using DAS.DigitalEngagement.Models.Infrastructure;
 using Microsoft.Extensions.Logging;
 using Moq;
 
-namespace DAS.DigitalEngagement.EmailIntegration.UnitTests
+namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Functions
 {
     [TestFixture]
     public class EmailIntegrationTests

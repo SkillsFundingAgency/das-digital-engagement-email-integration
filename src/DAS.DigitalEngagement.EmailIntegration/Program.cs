@@ -1,11 +1,12 @@
 
+using DAS.DigitalEngagement.EmailIntegration.Extensions;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-
-using DAS.DigitalEngagement.EmailIntegration.Extensions;
+using System.Diagnostics.CodeAnalysis;
 
 static class Program
 {
+    [ExcludeFromCodeCoverage]
     static async Task Main(string[] args)
     {
         var host = new HostBuilder()
