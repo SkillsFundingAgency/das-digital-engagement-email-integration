@@ -7,11 +7,11 @@ namespace DAS.DigitalEngagement.Application.Services
 {
     public class ImportService : IImportService
     {
-        private readonly ILogger<DataMartRepository> _logger;
+        private readonly ILogger<ImportService> _logger;
         private readonly IExternalApiService _externalApiService;
 
         public ImportService(IExternalApiService externalApiService,
-            ILogger<DataMartRepository> logger)
+            ILogger<ImportService> logger)
         {
            _externalApiService = externalApiService;
             _logger = logger;
@@ -40,7 +40,7 @@ namespace DAS.DigitalEngagement.Application.Services
             };
 
             // ToDo : Call the API and return the result
-            var result = await _externalApiService.GetDataAsync("Contacts/Export/?$filter=ID eq 182");
+            await _externalApiService.GetDataAsync("Contacts/Export/?$filter=ID eq 182");
 
             fileStatus.BulkImportJobs.Add(new BulkImportJob (){ batchId=1,ImportId="1",Status="Failed" });
 
