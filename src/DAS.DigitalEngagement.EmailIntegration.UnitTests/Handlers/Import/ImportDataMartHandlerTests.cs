@@ -113,5 +113,35 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Handlers.Import
             It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
         Times.Once);
         }
+
+        [Test]
+        public void Constructor_WhenCalled_ShouldAssignDependencies()
+        {
+            // Act
+            var handler = new ImportDataMartHandler(
+                _mockLogger.Object,
+                _mockImportService.Object,
+                _mockDataMartRepository.Object);
+
+            // Assert
+            Assert.That(handler, Is.Not.Null);
+        }
+
+
+        [Test]
+        public void Ctor_WithValidDependencies_DoesNotThrow()
+        {
+            // Arrange
+            var logger = new Mock<ILogger<ImportDataMartHandler>>().Object;
+            var importService = new Mock<IImportService>().Object;
+            var repo = new Mock<IDataMartRepository>().Object;
+
+            // Act & Assert
+            Assert.DoesNotThrow(() => new ImportDataMartHandler(_mockLogger.Object,
+                _mockImportService.Object,
+                _mockDataMartRepository.Object));
+        }
+
+
     }
 }
