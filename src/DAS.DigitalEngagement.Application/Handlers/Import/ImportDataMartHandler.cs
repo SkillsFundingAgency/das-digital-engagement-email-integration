@@ -1,5 +1,4 @@
-﻿
-using DAS.DigitalEngagement.Application.Handlers.Import.Interfaces;
+﻿using DAS.DigitalEngagement.Application.Handlers.Import.Interfaces;
 using DAS.DigitalEngagement.Application.Repositories.Interfaces;
 using DAS.DigitalEngagement.Application.Services.Interfaces;
 using DAS.DigitalEngagement.Models.Import;
@@ -24,29 +23,35 @@ namespace DAS.DigitalEngagement.Application.Import.Handlers
             _importService = importService;
         }
 
-        public async Task<BulkImportStatus?> Handle(DataMartSettings config)
+        public async Task<BulkImportStatus> Handle(DataMartSettings config)
         {
             _logger.LogInformation($"about to handle employer lead import");
-
 
             var data = await _dataMartRepository.RetrieveEmployeeRegistrationData(config.ViewName ?? "");
 
             if (config.ObjectName == "Lead")
             {
-                //var status = await _importService.ImportEmployeeRegistration(data);
+                var status = await _importService.ImportEmployeeRegistration(data);
 
-                //return status;
-                return null;
+                return status;
             }
             else
             {
                 _logger.LogInformation($"No Object name is configured in the Configuration");
-                return null;
-
-
+                // Return a default BulkImportStatus instance to satisfy non-nullable contract
+                return new BulkImportStatus
+                {
+                    Container = string.Empty,
+                    Name = string.Empty,
+                    Id = string.Empty,
+                    StartTime = DateTime.UtcNow,
+                    BulkImportJobs = new List<BulkImportJob>(),
+                    BulkImportJobStatus = new List<BulkImportJobStatus>(),
+                    ImportFileIsValid = false,
+                    ValidationError = "No Object name is configured in the Configuration",
+                    HeaderErrors = Enumerable.Empty<string>()
+                };
             }
-
-
         }
 
     }

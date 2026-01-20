@@ -18,8 +18,6 @@ static class Program
             .ConfigureServices((context, services) =>
             {
                 services.AddApplicationOptions();
-            
-                //services.AddOuterApi();
                 services.AddApplicationServices(context.Configuration);
                 services.AddOpenTelemetryRegistration(context.Configuration["APPLICATIONINSIGHTS_CONNECTION_STRING"]!);
 

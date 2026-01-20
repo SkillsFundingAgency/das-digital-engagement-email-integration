@@ -4,9 +4,11 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using SFA.DAS.Configuration.AzureTableStorage;
 using SFA.DAS.Encoding;
+using System.Diagnostics.CodeAnalysis;
 
 namespace DAS.DigitalEngagement.EmailIntegration.Extensions
 {
+    [ExcludeFromCodeCoverage]
     public static class AddConfigurationExtensions
     {
         public static void AddConfiguration(this IConfigurationBuilder builder, string? contentRootPath = null)
