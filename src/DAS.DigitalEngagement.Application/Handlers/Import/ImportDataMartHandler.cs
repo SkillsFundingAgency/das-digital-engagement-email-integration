@@ -11,14 +11,14 @@ namespace DAS.DigitalEngagement.Application.Import.Handlers
     public class ImportDataMartHandler : IImportDataMartHandler
     {
         private readonly IDataMartRepository _dataMartRepository;
-        private readonly ILogger<ImportDataMartHandler> _logger;
+        protected readonly ILogger<ImportDataMartHandler> _logger;
         private readonly IImportService _importService;
 
-        public ImportDataMartHandler(ILoggerFactory loggerFactory,
+        public ImportDataMartHandler(ILogger<ImportDataMartHandler> logger,
             IImportService importService,
             IDataMartRepository dataMartRepository)
         {
-            _logger = loggerFactory.CreateLogger<ImportDataMartHandler>();
+            _logger = logger;
             _dataMartRepository = dataMartRepository;
             _importService = importService;
         }
