@@ -1,5 +1,4 @@
-﻿
-using Azure.Core;
+﻿using Azure.Core;
 using Azure.Identity;
 using DAS.DigitalEngagement.Application.Repositories.Interfaces;
 using DAS.DigitalEngagement.Models.Infrastructure;
@@ -34,12 +33,36 @@ namespace DAS.DigitalEngagement.Application.Repositories
         }
 
 
-        public async Task<IList<dynamic>> RetrieveEmployeeRegistrationData(string viewName)
+        public async Task<IList<dynamic>> RetrieveEmployeeRegistrationData(string? viewName)
         {
             if (string.IsNullOrWhiteSpace(viewName))
                 throw new ArgumentException("View name cannot be empty.", nameof(viewName));
 
+            // Parse "schema.view" or default schema
+            string schema = "dbo";
+            string obj = viewName.Trim();
+            var parts = obj.Split('.', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+            if (parts.Length == 1)
+                obj = parts[0];
+            else if (parts.Length == 2)
+            {
+                schema = parts[0];
+                obj = parts[1];
+            }
+            else
+                throw new ArgumentException("Use 'View' or 'Schema.View'.", nameof(viewName));
+
+            // Strict identifier regex (adjust to your naming rules)
+            static bool IsValidIdentifier(string s) =>
+                System.Text.RegularExpressions.Regex.IsMatch(s, @"^[A-Za-z_][A-Za-z0-9_]*$");
+
+            if (!IsValidIdentifier(schema)) throw new ArgumentException("Invalid schema.", nameof(viewName));
+            if (!IsValidIdentifier(obj)) throw new ArgumentException("Invalid view.", nameof(viewName));
+
+
             string query = $"SELECT TOP 10 * FROM {viewName}";
+
             _logger.LogInformation($"Executing query: {query}");
 
             var results = new List<dynamic>();
