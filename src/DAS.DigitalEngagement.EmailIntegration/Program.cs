@@ -4,6 +4,8 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using System.Diagnostics.CodeAnalysis;
 
+namespace DAS.DigitalEngagement.Program;
+
 static class Program
 {
     [ExcludeFromCodeCoverage]
