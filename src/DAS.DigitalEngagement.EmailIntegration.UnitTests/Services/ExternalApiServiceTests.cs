@@ -153,5 +153,188 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Services
             var ex = Assert.ThrowsAsync<HttpRequestException>(() => _service.PostDataAsync(endpoint, requestBody));
             Assert.That(ex, Is.Not.Null);
         }
+
+        [Test]
+        public async Task ExternalApiService_ShouldLogInformation_ForGetAndPostRequests()
+        {
+            // Arrange
+            var endpoint = "test-endpoint";
+            var expectedGetResponse = "get-response-data";
+            var expectedPostResponse = "post-response-data";
+            var requestBody = new { Name = "Test" };
+
+            _httpMessageHandlerMock
+                .Protected()
+                .Setup<Task<HttpResponseMessage>>(
+                    "SendAsync",
+                    ItExpr.Is<HttpRequestMessage>(request => request.Method == HttpMethod.Get),
+                    ItExpr.IsAny<CancellationToken>())
+                .ReturnsAsync(new HttpResponseMessage
+                {
+                    StatusCode = HttpStatusCode.OK,
+                    Content = new StringContent(expectedGetResponse)
+                });
+
+            _httpMessageHandlerMock
+                .Protected()
+                .Setup<Task<HttpResponseMessage>>(
+                    "SendAsync",
+                    ItExpr.Is<HttpRequestMessage>(request => request.Method == HttpMethod.Post),
+                    ItExpr.IsAny<CancellationToken>())
+                .ReturnsAsync(new HttpResponseMessage
+                {
+                    StatusCode = HttpStatusCode.OK,
+                    Content = new StringContent(expectedPostResponse)
+                });
+
+            // Act
+            var getResult = await _service.GetDataAsync(endpoint);
+            var postResult = await _service.PostDataAsync(endpoint, requestBody);
+
+            // Assert
+            Assert.That(getResult, Is.EqualTo(expectedGetResponse));
+            Assert.That(postResult, Is.EqualTo(expectedPostResponse));
+
+            _loggerMock.Verify(
+                logger => logger.Log(
+                    LogLevel.Information,
+                    It.IsAny<EventId>(),
+                    It.Is<It.IsAnyType>((v, t) => v.ToString().Contains($"Making GET request to https://api.example.com/{endpoint}")),
+                    It.IsAny<Exception>(),
+                    It.IsAny<Func<It.IsAnyType, Exception, string>>()),
+                Times.Once);
+
+            _loggerMock.Verify(
+                logger => logger.Log(
+                    LogLevel.Information,
+                    It.IsAny<EventId>(),
+                    It.Is<It.IsAnyType>((v, t) => v.ToString().Contains($"Received response: {expectedGetResponse}")),
+                    It.IsAny<Exception>(),
+                    It.IsAny<Func<It.IsAnyType, Exception, string>>()),
+                Times.Once);
+
+            _loggerMock.Verify(
+                logger => logger.Log(
+                    LogLevel.Information,
+                    It.IsAny<EventId>(),
+                    It.Is<It.IsAnyType>((v, t) => v.ToString().Contains($"Making POST request to https://api.example.com/{endpoint}")),
+                    It.IsAny<Exception>(),
+                    It.IsAny<Func<It.IsAnyType, Exception, string>>()),
+                Times.Once);
+
+            _loggerMock.Verify(
+                logger => logger.Log(
+                    LogLevel.Information,
+                    It.IsAny<EventId>(),
+                    It.Is<It.IsAnyType>((v, t) => v.ToString().Contains($"Received response: {expectedPostResponse}")),
+                    It.IsAny<Exception>(),
+                    It.IsAny<Func<It.IsAnyType, Exception, string>>()),
+                Times.Once);
+        }
+
+        [Test]
+        public async Task ExternalApiService_ShouldLogErrors_ForGetAndPostRequests_WhenResponseIsUnsuccessful()
+        {
+            // Arrange
+            var endpoint = "test-endpoint";
+            var requestBody = new { Name = "Test" };
+
+            _httpMessageHandlerMock
+                .Protected()
+                .Setup<Task<HttpResponseMessage>>(
+                    "SendAsync",
+                    ItExpr.Is<HttpRequestMessage>(request => request.Method == HttpMethod.Get),
+                    ItExpr.IsAny<CancellationToken>())
+                .ReturnsAsync(new HttpResponseMessage
+                {
+                    StatusCode = HttpStatusCode.BadRequest
+                });
+
+            _httpMessageHandlerMock
+                .Protected()
+                .Setup<Task<HttpResponseMessage>>(
+                    "SendAsync",
+                    ItExpr.Is<HttpRequestMessage>(request => request.Method == HttpMethod.Post),
+                    ItExpr.IsAny<CancellationToken>())
+                .ReturnsAsync(new HttpResponseMessage
+                {
+                    StatusCode = HttpStatusCode.BadRequest
+                });
+
+            // Act & Assert
+            var getException = Assert.ThrowsAsync<HttpRequestException>(() => _service.GetDataAsync(endpoint));
+            Assert.That(getException, Is.Not.Null);
+
+            var postException = Assert.ThrowsAsync<HttpRequestException>(() => _service.PostDataAsync(endpoint, requestBody));
+            Assert.That(postException, Is.Not.Null);
+
+            _loggerMock.Verify(
+                logger => logger.Log(
+                    LogLevel.Error,
+                    It.IsAny<EventId>(),
+                    It.Is<It.IsAnyType>((v, t) => v.ToString().Contains($"Failed to retrieve data from https://api.example.com/{endpoint}. Status Code: BadRequest")),
+                    It.IsAny<Exception>(),
+                    It.IsAny<Func<It.IsAnyType, Exception, string>>()),
+                Times.Once);
+
+            _loggerMock.Verify(
+                logger => logger.Log(
+                    LogLevel.Error,
+                    It.IsAny<EventId>(),
+                    It.Is<It.IsAnyType>((v, t) => v.ToString().Contains($"Failed to post data to https://api.example.com/{endpoint}. Status Code: BadRequest")),
+                    It.IsAny<Exception>(),
+                    It.IsAny<Func<It.IsAnyType, Exception, string>>() ),
+                Times.Once);
+        }
+    }
+
+    [TestFixture]
+    public class ExternalApiServiceConstructorTests
+    {
+        private Mock<HttpMessageHandler> _httpMessageHandlerMock;
+        private Mock<ILogger<ExternalApiService>> _loggerMock;
+
+        [SetUp]
+        public void SetUp()
+        {
+            _httpMessageHandlerMock = new Mock<HttpMessageHandler>();
+            _loggerMock = new Mock<ILogger<ExternalApiService>>();
+        }
+
+        [Test]
+        public void Constructor_ShouldThrowArgumentNullException_WhenApiBaseUrlIsNull()
+        {
+            // Arrange
+            var httpClient = new HttpClient(_httpMessageHandlerMock.Object);
+            var configMock = new Mock<IOptions<EShotAPIM>>();
+            configMock.Setup(c => c.Value).Returns(new EShotAPIM
+            {
+                ApiBaseUrl = null, // ApiBaseUrl is null
+                ApiClientId = "test-api-key"
+            });
+
+            // Act & Assert
+            var ex = Assert.Throws<ArgumentNullException>(() =>
+                new ExternalApiService(httpClient, configMock.Object, _loggerMock.Object));
+            Assert.That(ex.ParamName, Is.EqualTo("ApiBaseUrl"));
+        }
+
+        [Test]
+        public void Constructor_ShouldThrowArgumentNullException_WhenApiClientIdIsNull()
+        {
+            // Arrange
+            var httpClient = new HttpClient(_httpMessageHandlerMock.Object);
+            var configMock = new Mock<IOptions<EShotAPIM>>();
+            configMock.Setup(c => c.Value).Returns(new EShotAPIM
+            {
+                ApiBaseUrl = "https://api.example.com",
+                ApiClientId = null // ApiClientId is null
+            });
+
+            // Act & Assert
+            var ex = Assert.Throws<ArgumentNullException>(() =>
+                new ExternalApiService(httpClient, configMock.Object, _loggerMock.Object));
+            Assert.That(ex.ParamName, Is.EqualTo("ApiClientId"));
+        }
     }
 }
