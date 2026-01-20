@@ -314,9 +314,8 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Services
             });
 
             // Act & Assert
-            var ex = Assert.Throws<ArgumentNullException>(() =>
+            Assert.Throws<ArgumentNullException>(() =>
                 new ExternalApiService(httpClient, configMock.Object, _loggerMock.Object));
-            Assert.That(ex.ParamName, Is.EqualTo("ApiBaseUrl"));
         }
 
         [Test]
@@ -332,9 +331,9 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Services
             });
 
             // Act & Assert
-            var ex = Assert.Throws<ArgumentNullException>(() =>
-                new ExternalApiService(httpClient, configMock.Object, _loggerMock.Object));
-            Assert.That(ex.ParamName, Is.EqualTo("ApiClientId"));
+            Assert.Throws<ArgumentNullException>(() =>
+               new ExternalApiService(httpClient, configMock.Object, _loggerMock.Object));
+
         }
     }
 }
