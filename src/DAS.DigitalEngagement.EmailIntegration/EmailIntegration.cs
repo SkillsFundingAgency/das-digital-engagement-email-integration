@@ -12,7 +12,6 @@ public class EmailIntegration
     private readonly IImportDataMartHandler _importDataMartHandler;
     private readonly ApplicationConfiguration _configuration;
 
-
     public EmailIntegration(ILogger<EmailIntegration> logger, IImportDataMartHandler importDataMartHandler,
         ApplicationConfiguration configuration)
     {
@@ -25,7 +24,7 @@ public class EmailIntegration
     public async Task RunAsync([TimerTrigger("%EmailIntegrationSchedule%")] TimerInfo myTimer)
     {
         // 0 0 22 * * * Everyday at 10pm
-        _logger.LogInformation("C# Timer trigger function executed at: {executionTime}", DateTime.Now);
+        _logger.LogInformation("C# Timer trigger function executed at: {ExecutionTime}", DateTime.Now);
 
         var dataMartSettings = _configuration.DataMart?.FirstOrDefault();
         if (dataMartSettings == null)
@@ -34,10 +33,10 @@ public class EmailIntegration
             return;
         }
 
-        _logger.LogInformation("Starting Email Integration Job" + dataMartSettings);
-        _logger.LogInformation("Connection string " + _configuration.ConnectionString);
-        _logger.LogInformation("Api Base Url " + _configuration?.EShotAPIM?.ApiBaseUrl);
-        _logger.LogInformation("View Name " + dataMartSettings.ViewName);
+        _logger.LogInformation("Starting Email Integration Job with DataMartSettings: {DataMartSettings}", dataMartSettings);
+        _logger.LogInformation("Connection string: {ConnectionString}", _configuration.ConnectionString);
+        _logger.LogInformation("API Base URL: {ApiBaseUrl}", _configuration?.EShotAPIM?.ApiBaseUrl);
+        _logger.LogInformation("View Name: {ViewName}", dataMartSettings.ViewName);
 
         try
         {

@@ -1,5 +1,4 @@
-﻿
-using Azure.Core;
+﻿using Azure.Core;
 using Azure.Identity;
 using DAS.DigitalEngagement.Application.Repositories.Interfaces;
 using DAS.DigitalEngagement.Models.Infrastructure;
@@ -70,7 +69,7 @@ namespace DAS.DigitalEngagement.Application.Repositories
                         }
 
                         results.Add((ExpandoObject)row);
-                        _logger.LogInformation($"Retrieved row: {string.Join(", ", row.Select(kv => $"{kv.Key}={kv.Value}"))}");
+                        _logger.LogInformation("Retrieved row with data: {RowData}", string.Join(", ", row.Select(kv => $"{kv.Key}={kv.Value}")));
                     }
                 }
             }
