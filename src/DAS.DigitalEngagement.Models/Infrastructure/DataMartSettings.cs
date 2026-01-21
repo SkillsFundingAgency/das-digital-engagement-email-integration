@@ -1,5 +1,8 @@
-﻿namespace DAS.DigitalEngagement.Models.Infrastructure
+﻿using System.Diagnostics.CodeAnalysis;
+
+namespace DAS.DigitalEngagement.Models.Infrastructure
 {
+    [ExcludeFromCodeCoverage]
     public class DataMartSettings
     {
         public string? ViewName { get; set; }

@@ -1,8 +1,10 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Text;
 
 namespace DAS.DigitalEngagement.Models.Import
 {
+    [ExcludeFromCodeCoverage]
     public class BulkImportJobStatus
     {
         public int Id { get; set; }

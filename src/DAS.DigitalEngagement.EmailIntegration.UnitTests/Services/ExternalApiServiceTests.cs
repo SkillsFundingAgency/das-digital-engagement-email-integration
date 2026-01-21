@@ -271,7 +271,7 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Services
 
             _loggerMock.Verify(
                 logger => logger.Log(
-                    LogLevel.Information,
+                    LogLevel.Error,
                     It.IsAny<EventId>(),
                     It.IsAny<It.IsAnyType>(),
                     It.IsAny<Exception>(),
@@ -317,7 +317,7 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Services
 
             _loggerMock.Verify(
                 logger => logger.Log(
-                    LogLevel.Information,
+                    LogLevel.Error,
                     It.IsAny<EventId>(),
                     It.IsAny<It.IsAnyType>(),
                     It.IsAny<Exception>(),
@@ -325,54 +325,39 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Services
                 Times.Once);
         }
 
-
-        [TestFixture]
-        public class ExternalApiServiceConstructorTests
+        [Test]
+        public void Constructor_ShouldThrowArgumentNullException_WhenApiBaseUrlIsNull()
         {
-            private Mock<HttpMessageHandler> _httpMessageHandlerMock;
-            private Mock<ILogger<ExternalApiService>> _loggerMock;
-
-            [SetUp]
-            public void SetUp()
+            // Arrange
+            var httpClient = new HttpClient(_httpMessageHandlerMock.Object);
+            var configMock = new Mock<IOptions<EShotAPIM>>();
+            configMock.Setup(c => c.Value).Returns(new EShotAPIM
             {
-                _httpMessageHandlerMock = new Mock<HttpMessageHandler>();
-                _loggerMock = new Mock<ILogger<ExternalApiService>>();
-            }
+                ApiBaseUrl = null, // ApiBaseUrl is null
+                ApiClientId = "test-api-key"
+            });
 
-            [Test]
-            public void Constructor_ShouldThrowArgumentNullException_WhenApiBaseUrlIsNull()
+            // Act & Assert
+            Assert.Throws<ArgumentNullException>(() =>
+                new ExternalApiService(httpClient, configMock.Object, _loggerMock.Object));
+        }
+
+        [Test]
+        public void Constructor_ShouldThrowArgumentNullException_WhenApiClientIdIsNull()
+        {
+            // Arrange
+            var httpClient = new HttpClient(_httpMessageHandlerMock.Object);
+            var configMock = new Mock<IOptions<EShotAPIM>>();
+            configMock.Setup(c => c.Value).Returns(new EShotAPIM
             {
-                // Arrange
-                var httpClient = new HttpClient(_httpMessageHandlerMock.Object);
-                var configMock = new Mock<IOptions<EShotAPIM>>();
-                configMock.Setup(c => c.Value).Returns(new EShotAPIM
-                {
-                    ApiBaseUrl = null, // ApiBaseUrl is null
-                    ApiClientId = "test-api-key"
-                });
+                ApiBaseUrl = "https://api.example.com",
+                ApiClientId = null // ApiClientId is null
+            });
 
-                // Act & Assert
-                Assert.Throws<ArgumentNullException>(() =>
-                    new ExternalApiService(httpClient, configMock.Object, _loggerMock.Object));
-            }
+            // Act & Assert
+            Assert.Throws<ArgumentNullException>(() =>
+               new ExternalApiService(httpClient, configMock.Object, _loggerMock.Object));
 
-            [Test]
-            public void Constructor_ShouldThrowArgumentNullException_WhenApiClientIdIsNull()
-            {
-                // Arrange
-                var httpClient = new HttpClient(_httpMessageHandlerMock.Object);
-                var configMock = new Mock<IOptions<EShotAPIM>>();
-                configMock.Setup(c => c.Value).Returns(new EShotAPIM
-                {
-                    ApiBaseUrl = "https://api.example.com",
-                    ApiClientId = null // ApiClientId is null
-                });
-
-                // Act & Assert
-                Assert.Throws<ArgumentNullException>(() =>
-                   new ExternalApiService(httpClient, configMock.Object, _loggerMock.Object));
-
-            }
         }
     }
 }

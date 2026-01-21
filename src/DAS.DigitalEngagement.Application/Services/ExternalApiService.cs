@@ -20,8 +20,16 @@ namespace DAS.DigitalEngagement.Application.Services
             ILogger<ExternalApiService> logger)
         {
             _httpClient = httpClient;
-            _apiUrl = config.Value.ApiBaseUrl ?? throw new ArgumentNullException(nameof(config.Value.ApiBaseUrl));
-            _apiKey = config.Value.ApiClientId ?? throw new ArgumentNullException(nameof(config.Value.ApiClientId));
+            if (config.Value.ApiBaseUrl == null)
+            {
+                throw new ArgumentNullException(nameof(config));
+            }
+            if (config.Value.ApiClientId == null)
+            {
+                throw new ArgumentNullException(nameof(config));
+            }
+            _apiUrl = config.Value.ApiBaseUrl;
+            _apiKey = config.Value.ApiClientId;
             _logger = logger;
         }
 

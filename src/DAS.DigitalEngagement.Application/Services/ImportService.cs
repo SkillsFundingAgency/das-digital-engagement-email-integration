@@ -17,16 +17,6 @@ namespace DAS.DigitalEngagement.Application.Services
             _logger = logger;
         }
 
-        public Task<string> GetFailures(int jobId)
-        {
-            throw new NotImplementedException();
-        }
-
-        public Task<string> GetWarnings(int jobId)
-        {
-            throw new NotImplementedException();
-        }
-
         public async Task<BulkImportStatus> ImportEmployeeRegistration<T>(IList<T> leads)
         {
             var fileStatus = new BulkImportStatus()
@@ -41,6 +31,7 @@ namespace DAS.DigitalEngagement.Application.Services
 
             // ToDo : Call the API and return the result
             await _externalApiService.GetDataAsync("Contacts/Export/?$filter=ID eq 182");
+            _logger.LogInformation("Called External API to import employee registrations.");
 
             fileStatus.BulkImportJobs.Add(new BulkImportJob (){ batchId=1,ImportId="1",Status="Failed" });
 

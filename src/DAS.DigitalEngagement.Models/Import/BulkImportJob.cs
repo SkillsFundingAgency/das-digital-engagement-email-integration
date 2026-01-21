@@ -1,7 +1,9 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Text;
 
 namespace DAS.DigitalEngagement.Models.Import
 {
+    [ExcludeFromCodeCoverage]
     public class BulkImportJob
     {
         public int batchId { get; set; }
