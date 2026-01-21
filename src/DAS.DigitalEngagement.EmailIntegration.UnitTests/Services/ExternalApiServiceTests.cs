@@ -232,8 +232,9 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Services
                 Times.Once);
         }
 
+
         [Test]
-        public async Task ExternalApiService_ShouldLogErrors_ForGetAndPostRequests_WhenResponseIsUnsuccessful()
+        public async Task ExternalApiService_ShouldLogError_WhenPostRequestIsUnsuccessful()
         {
             // Arrange
             var endpoint = "test-endpoint";
@@ -243,45 +244,27 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Services
                 .Protected()
                 .Setup<Task<HttpResponseMessage>>(
                     "SendAsync",
-                    ItExpr.Is<HttpRequestMessage>(request => request.Method == HttpMethod.Get),
+                    ItExpr.Is<HttpRequestMessage>(r => r.Method == HttpMethod.Post),
                     ItExpr.IsAny<CancellationToken>())
                 .ReturnsAsync(new HttpResponseMessage
                 {
                     StatusCode = HttpStatusCode.BadRequest
                 });
 
-            _httpMessageHandlerMock
-                .Protected()
-                .Setup<Task<HttpResponseMessage>>(
-                    "SendAsync",
-                    ItExpr.Is<HttpRequestMessage>(request => request.Method == HttpMethod.Post),
-                    ItExpr.IsAny<CancellationToken>())
-                .ReturnsAsync(new HttpResponseMessage
-                {
-                    StatusCode = HttpStatusCode.BadRequest
-                });
+            // Act
+            var exception = Assert.ThrowsAsync<HttpRequestException>(
+                () => _service.PostDataAsync(endpoint, requestBody));
 
-            // Act & Assert
-            var getException = Assert.ThrowsAsync<HttpRequestException>(() => _service.GetDataAsync(endpoint));
-            Assert.That(getException, Is.Not.Null);
-
-            var postException = Assert.ThrowsAsync<HttpRequestException>(() => _service.PostDataAsync(endpoint, requestBody));
-            Assert.That(postException, Is.Not.Null);
+            // Assert
+            Assert.That(exception, Is.Not.Null);
 
             _loggerMock.Verify(
                 logger => logger.Log(
                     LogLevel.Error,
                     It.IsAny<EventId>(),
-                    It.Is<It.IsAnyType>((v, t) => v.ToString().Contains($"Failed to retrieve data from https://api.example.com/{endpoint}. Status Code: BadRequest")),
-                    It.IsAny<Exception>(),
-                    It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
-                Times.Once);
-
-            _loggerMock.Verify(
-                logger => logger.Log(
-                    LogLevel.Error,
-                    It.IsAny<EventId>(),
-                    It.Is<It.IsAnyType>((v, t) => v.ToString().Contains($"Failed to post data to https://api.example.com/{endpoint}. Status Code: BadRequest")),
+                    It.Is<It.IsAnyType>((v, _) =>
+                        v.ToString()!.Contains(
+                            $"Failed to post data to https://api.example.com/{endpoint}. Status Code: BadRequest")),
                     It.IsAny<Exception>(),
                     It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
                 Times.Once);
@@ -290,60 +273,106 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Services
                 logger => logger.Log(
                     LogLevel.Information,
                     It.IsAny<EventId>(),
-                    It.IsAny<It.IsAnyType>(),   //accept any message/state
+                    It.IsAny<It.IsAnyType>(),
+                    It.IsAny<Exception>(),
+                    It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+                Times.Once);
+        }
+
+
+        [Test]
+        public async Task ExternalApiService_ShouldLogError_WhenGetRequestIsUnsuccessful()
+        {
+            // Arrange
+            var endpoint = "test-endpoint";
+
+            _httpMessageHandlerMock
+                .Protected()
+                .Setup<Task<HttpResponseMessage>>(
+                    "SendAsync",
+                    ItExpr.Is<HttpRequestMessage>(r => r.Method == HttpMethod.Get),
+                    ItExpr.IsAny<CancellationToken>())
+                .ReturnsAsync(new HttpResponseMessage
+                {
+                    StatusCode = HttpStatusCode.BadRequest
+                });
+
+            // Act
+            var exception = Assert.ThrowsAsync<HttpRequestException>(
+                () => _service.GetDataAsync(endpoint));
+
+            // Assert
+            Assert.That(exception, Is.Not.Null);
+
+            _loggerMock.Verify(
+                logger => logger.Log(
+                    LogLevel.Error,
+                    It.IsAny<EventId>(),
+                    It.Is<It.IsAnyType>((v, _) =>
+                        v.ToString()!.Contains(
+                            $"Failed to retrieve data from https://api.example.com/{endpoint}. Status Code: BadRequest")),
                     It.IsAny<Exception>(),
                     It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
                 Times.Once);
 
-        }
-    }
-
-    [TestFixture]
-    public class ExternalApiServiceConstructorTests
-    {
-        private Mock<HttpMessageHandler> _httpMessageHandlerMock;
-        private Mock<ILogger<ExternalApiService>> _loggerMock;
-
-        [SetUp]
-        public void SetUp()
-        {
-            _httpMessageHandlerMock = new Mock<HttpMessageHandler>();
-            _loggerMock = new Mock<ILogger<ExternalApiService>>();
+            _loggerMock.Verify(
+                logger => logger.Log(
+                    LogLevel.Information,
+                    It.IsAny<EventId>(),
+                    It.IsAny<It.IsAnyType>(),
+                    It.IsAny<Exception>(),
+                    It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+                Times.Once);
         }
 
-        [Test]
-        public void Constructor_ShouldThrowArgumentNullException_WhenApiBaseUrlIsNull()
+
+        [TestFixture]
+        public class ExternalApiServiceConstructorTests
         {
-            // Arrange
-            var httpClient = new HttpClient(_httpMessageHandlerMock.Object);
-            var configMock = new Mock<IOptions<EShotAPIM>>();
-            configMock.Setup(c => c.Value).Returns(new EShotAPIM
+            private Mock<HttpMessageHandler> _httpMessageHandlerMock;
+            private Mock<ILogger<ExternalApiService>> _loggerMock;
+
+            [SetUp]
+            public void SetUp()
             {
-                ApiBaseUrl = null, // ApiBaseUrl is null
-                ApiClientId = "test-api-key"
-            });
+                _httpMessageHandlerMock = new Mock<HttpMessageHandler>();
+                _loggerMock = new Mock<ILogger<ExternalApiService>>();
+            }
 
-            // Act & Assert
-            Assert.Throws<ArgumentNullException>(() =>
-                new ExternalApiService(httpClient, configMock.Object, _loggerMock.Object));
-        }
-
-        [Test]
-        public void Constructor_ShouldThrowArgumentNullException_WhenApiClientIdIsNull()
-        {
-            // Arrange
-            var httpClient = new HttpClient(_httpMessageHandlerMock.Object);
-            var configMock = new Mock<IOptions<EShotAPIM>>();
-            configMock.Setup(c => c.Value).Returns(new EShotAPIM
+            [Test]
+            public void Constructor_ShouldThrowArgumentNullException_WhenApiBaseUrlIsNull()
             {
-                ApiBaseUrl = "https://api.example.com",
-                ApiClientId = null // ApiClientId is null
-            });
+                // Arrange
+                var httpClient = new HttpClient(_httpMessageHandlerMock.Object);
+                var configMock = new Mock<IOptions<EShotAPIM>>();
+                configMock.Setup(c => c.Value).Returns(new EShotAPIM
+                {
+                    ApiBaseUrl = null, // ApiBaseUrl is null
+                    ApiClientId = "test-api-key"
+                });
 
-            // Act & Assert
-            Assert.Throws<ArgumentNullException>(() =>
-               new ExternalApiService(httpClient, configMock.Object, _loggerMock.Object));
+                // Act & Assert
+                Assert.Throws<ArgumentNullException>(() =>
+                    new ExternalApiService(httpClient, configMock.Object, _loggerMock.Object));
+            }
 
+            [Test]
+            public void Constructor_ShouldThrowArgumentNullException_WhenApiClientIdIsNull()
+            {
+                // Arrange
+                var httpClient = new HttpClient(_httpMessageHandlerMock.Object);
+                var configMock = new Mock<IOptions<EShotAPIM>>();
+                configMock.Setup(c => c.Value).Returns(new EShotAPIM
+                {
+                    ApiBaseUrl = "https://api.example.com",
+                    ApiClientId = null // ApiClientId is null
+                });
+
+                // Act & Assert
+                Assert.Throws<ArgumentNullException>(() =>
+                   new ExternalApiService(httpClient, configMock.Object, _loggerMock.Object));
+
+            }
         }
     }
 }
