@@ -283,8 +283,18 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Services
                     It.IsAny<EventId>(),
                     It.Is<It.IsAnyType>((v, t) => v.ToString().Contains($"Failed to post data to https://api.example.com/{endpoint}. Status Code: BadRequest")),
                     It.IsAny<Exception>(),
-                    It.IsAny<Func<It.IsAnyType, Exception, string>>() ),
+                    It.IsAny<Func<It.IsAnyType, Exception, string>>()),
                 Times.Once);
+
+            _loggerMock.Verify(
+                logger => logger.Log(
+                    LogLevel.Information,
+                    It.IsAny<EventId>(),
+                    It.IsAny<It.IsAnyType>(),   //accept any message/state
+                    It.IsAny<Exception>(),
+                    It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+                Times.Once);
+
         }
     }
 
