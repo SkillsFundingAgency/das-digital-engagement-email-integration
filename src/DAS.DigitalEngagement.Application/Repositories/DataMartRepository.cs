@@ -48,7 +48,7 @@ namespace DAS.DigitalEngagement.Application.Repositories
             var accessToken = await _tokenCredential.GetTokenAsync(tokenRequest, CancellationToken.None);
 
             await using (var conn = new SqlConnection(_connectionString))
-            using (var cmd = new SqlCommand(string.Format("SELECT TOP 10 * FROM {0}, conn", viewName)))
+            using (var cmd = new SqlCommand("SELECT TOP 10 * FROM [ASData_PL].[vw_DAS_EmailIntegration], conn", ))
             {
                 // Assign AAD access token (no User ID/Password in connection string)
                 conn.AccessToken = accessToken.Token;
