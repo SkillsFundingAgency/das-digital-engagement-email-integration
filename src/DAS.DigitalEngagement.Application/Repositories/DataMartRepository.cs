@@ -11,6 +11,7 @@ using System.Data;
 using System.Data.SqlClient;
 using System.Dynamic;
 using System.Linq;
+using System.Reflection.Metadata;
 using System.Text;
 
 namespace DAS.DigitalEngagement.Application.Repositories
@@ -21,6 +22,9 @@ namespace DAS.DigitalEngagement.Application.Repositories
         private readonly string _connectionString;
         private readonly TokenCredential _tokenCredential;
         private readonly ILogger<DataMartRepository> _logger;
+
+        private static readonly string[] SqlScopes = { "https://database.windows.net/.default"};
+
 
         public DataMartRepository(
             TokenCredential tokenCredential,
@@ -43,7 +47,7 @@ namespace DAS.DigitalEngagement.Application.Repositories
             var results = new List<dynamic>();
 
             // Acquire Azure AD token for Azure SQL (use .default scope)
-            var tokenRequest = new TokenRequestContext(new[] { "https://database.windows.net/.default" });
+            var tokenRequest = new TokenRequestContext(SqlScopes);
             var accessToken = await _tokenCredential.GetTokenAsync(tokenRequest, CancellationToken.None);
 
             await using (var conn = new SqlConnection(_connectionString))

@@ -1,3 +1,7 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 using DAS.DigitalEngagement.Application.Handlers.Import.Interfaces;
 using DAS.DigitalEngagement.Models.Import;
 using DAS.DigitalEngagement.Models.Infrastructure;
@@ -9,7 +13,6 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Functions
     [TestFixture]
     public class EmailIntegrationTests
     {
-        private Mock<ILoggerFactory> _mockLoggerFactory;
         private Mock<ILogger<EmailIntegration>> _mockLogger;
         private Mock<IImportDataMartHandler> _mockImportDataMartHandler;
         private ApplicationConfiguration _mockConfiguration;
@@ -18,7 +21,6 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Functions
         [SetUp]
         public void SetUp()
         {
-            _mockLoggerFactory = new Mock<ILoggerFactory>();
             _mockLogger = new Mock<ILogger<EmailIntegration>>();
 
 
@@ -77,9 +79,8 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Functions
         public async Task RunAsync_ShouldHandleVariousDataMartSettings(object[] dataMartSettings, string expectedLogMessage)
         {
             // Arrange
-#pragma warning disable CS8601 // Possible null reference assignment.
             _mockConfiguration.DataMart = dataMartSettings?.Select(viewName => new DataMartSettings { ViewName = viewName?.ToString() }).ToArray();
-#pragma warning restore CS8601 // Possible null reference assignment.
+
 
             var timerInfo = Activator.CreateInstance(typeof(Microsoft.Azure.Functions.Worker.TimerInfo), true) as Microsoft.Azure.Functions.Worker.TimerInfo
                 ?? throw new InvalidOperationException("Failed to create TimerInfo instance.");

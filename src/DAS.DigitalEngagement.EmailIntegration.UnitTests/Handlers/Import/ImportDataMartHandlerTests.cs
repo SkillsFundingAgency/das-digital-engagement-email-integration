@@ -104,14 +104,14 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Handlers.Import
             // Assert
             Assert.That(result.ImportFileIsValid, Is.EqualTo(expectedStatus.ImportFileIsValid));
             Assert.That(result.ValidationError, Is.EqualTo(expectedStatus.ValidationError));
+
             _mockLogger.Verify(
-        logger => logger.Log(
+            static logger => logger.Log(
             LogLevel.Information,
             It.IsAny<EventId>(),
             It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("No Object name is configured in the Configuration")),
             null,
-            It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
-        Times.Once);
+            It.IsAny<Func<It.IsAnyType, Exception?, string>>()),Times.Once);
         }
 
         [Test]
