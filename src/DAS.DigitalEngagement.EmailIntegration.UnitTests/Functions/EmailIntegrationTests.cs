@@ -68,7 +68,7 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Functions
                     It.IsAny<EventId>(),
                     It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("First DataMartSettings entry is null.")),
                     It.IsAny<Exception>(),
-                    It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+                    It.IsAny<Func<It.IsAnyType, Exception, string>>()),
                 Times.Once
             );
         }
@@ -95,7 +95,7 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Functions
                     It.IsAny<EventId>(),
                     It.Is<It.IsAnyType>((v, t) => v.ToString().Contains(expectedLogMessage)),
                     It.IsAny<Exception>(),
-                    It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+                    It.IsAny<Func<It.IsAnyType, Exception, string>>()),
                 Times.Once
             );
         }
@@ -135,7 +135,7 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Functions
                     It.IsAny<EventId>(),
                     It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("Email Integration Job completed successfully")),
                     It.IsAny<Exception>(),
-                    It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+                    It.IsAny<Func<It.IsAnyType, Exception, string>>()),
                 Times.Once
             );
         }
@@ -170,7 +170,7 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Functions
                     It.IsAny<EventId>(),
                     It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("Email Integration Job failed with an exception")),
                     testException,
-                    It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+                    It.IsAny<Func<It.IsAnyType, Exception, string>>()),
                 Times.Once
             );
         }

@@ -111,7 +111,7 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Handlers.Import
             It.IsAny<EventId>(),
             It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("No Object name is configured in the Configuration")),
             null,
-            It.IsAny<Func<It.IsAnyType, Exception?, string>>()),Times.Once);
+            It.IsAny<Func<It.IsAnyType, Exception, string>>()),Times.Once);
         }
 
         [Test]

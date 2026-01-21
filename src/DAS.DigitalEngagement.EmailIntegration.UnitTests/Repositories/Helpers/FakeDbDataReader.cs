@@ -37,9 +37,9 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Repositories.Helpers
         public override int Depth => 0;
         public override bool GetBoolean(int ordinal) => throw new NotImplementedException();
         public override byte GetByte(int ordinal) => throw new NotImplementedException();
-        public override long GetBytes(int ordinal, long dataOffset, byte[]? buffer, int bufferOffset, int length) => throw new NotImplementedException();
+        public override long GetBytes(int ordinal, long dataOffset, byte[] buffer, int bufferOffset, int length) => throw new NotImplementedException();
         public override char GetChar(int ordinal) => throw new NotImplementedException();
-        public override long GetChars(int ordinal, long dataOffset, char[]? buffer, int bufferOffset, int length) => throw new NotImplementedException();
+        public override long GetChars(int ordinal, long dataOffset, char[] buffer, int bufferOffset, int length) => throw new NotImplementedException();
         public override string GetDataTypeName(int ordinal) => throw new NotImplementedException();
         public override DateTime GetDateTime(int ordinal) => throw new NotImplementedException();
         public override decimal GetDecimal(int ordinal) => throw new NotImplementedException();

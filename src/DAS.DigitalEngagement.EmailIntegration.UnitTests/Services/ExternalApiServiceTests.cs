@@ -201,7 +201,7 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Services
                     It.IsAny<EventId>(),
                     It.Is<It.IsAnyType>((v, t) => v.ToString().Contains($"Making GET request to https://api.example.com/{endpoint}")),
                     It.IsAny<Exception>(),
-                    It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+                    It.IsAny<Func<It.IsAnyType, Exception, string>>()),
                 Times.Once);
 
             _loggerMock.Verify(
@@ -210,7 +210,7 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Services
                     It.IsAny<EventId>(),
                     It.Is<It.IsAnyType>((v, t) => v.ToString().Contains($"Received response: {expectedGetResponse}")),
                     It.IsAny<Exception>(),
-                    It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+                    It.IsAny<Func<It.IsAnyType, Exception, string>>()),
                 Times.Once);
 
             _loggerMock.Verify(
@@ -219,7 +219,7 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Services
                     It.IsAny<EventId>(),
                     It.Is<It.IsAnyType>((v, t) => v.ToString().Contains($"Making POST request to https://api.example.com/{endpoint}")),
                     It.IsAny<Exception>(),
-                    It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+                    It.IsAny<Func<It.IsAnyType, Exception, string>>()),
                 Times.Once);
 
             _loggerMock.Verify(
@@ -228,13 +228,13 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Services
                     It.IsAny<EventId>(),
                     It.Is<It.IsAnyType>((v, t) => v.ToString().Contains($"Received response: {expectedPostResponse}")),
                     It.IsAny<Exception>(),
-                    It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+                    It.IsAny<Func<It.IsAnyType, Exception, string>>()),
                 Times.Once);
         }
 
 
         [Test]
-        public async Task ExternalApiService_ShouldLogError_WhenPostRequestIsUnsuccessful()
+        public void ExternalApiService_ShouldLogError_WhenPostRequestIsUnsuccessful()
         {
             // Arrange
             var endpoint = "test-endpoint";
@@ -266,7 +266,7 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Services
                         v.ToString()!.Contains(
                             $"Failed to post data to https://api.example.com/{endpoint}. Status Code: BadRequest")),
                     It.IsAny<Exception>(),
-                    It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+                    It.IsAny<Func<It.IsAnyType, Exception, string>>()),
                 Times.Once);
 
             _loggerMock.Verify(
@@ -275,13 +275,13 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Services
                     It.IsAny<EventId>(),
                     It.IsAny<It.IsAnyType>(),
                     It.IsAny<Exception>(),
-                    It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+                    It.IsAny<Func<It.IsAnyType, Exception, string>>()),
                 Times.Once);
         }
 
 
         [Test]
-        public async Task ExternalApiService_ShouldLogError_WhenGetRequestIsUnsuccessful()
+        public void ExternalApiService_ShouldLogError_WhenGetRequestIsUnsuccessful()
         {
             // Arrange
             var endpoint = "test-endpoint";
@@ -312,7 +312,7 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Services
                         v.ToString()!.Contains(
                             $"Failed to retrieve data from https://api.example.com/{endpoint}. Status Code: BadRequest")),
                     It.IsAny<Exception>(),
-                    It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+                    It.IsAny<Func<It.IsAnyType, Exception, string>>()),
                 Times.Once);
 
             _loggerMock.Verify(
@@ -321,7 +321,7 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Services
                     It.IsAny<EventId>(),
                     It.IsAny<It.IsAnyType>(),
                     It.IsAny<Exception>(),
-                    It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+                    It.IsAny<Func<It.IsAnyType, Exception, string>>()),
                 Times.Once);
         }
 

@@ -34,12 +34,12 @@ public class EmailIntegration
 
         _logger.LogInformation("Starting Email Integration Job with DataMartSettings: {DataMartSettings}", dataMartSettings);
         _logger.LogInformation("Connection string: {ConnectionString}", _configuration.ConnectionString);
-        _logger.LogInformation("API Base URL: {ApiBaseUrl}", _configuration?.EShotAPIM?.ApiBaseUrl);
+        _logger.LogInformation("API Base URL: {ApiBaseUrl}", _configuration.EShotAPIM?.ApiBaseUrl);
         _logger.LogInformation("View Name: {ViewName}", dataMartSettings.ViewName);
 
         try
         {
-            var result = await _importDataMartHandler.Handle(dataMartSettings);
+            await _importDataMartHandler.Handle(dataMartSettings);
             _logger.LogInformation("Email Integration Job completed successfully");
         }
         catch (Exception ex)

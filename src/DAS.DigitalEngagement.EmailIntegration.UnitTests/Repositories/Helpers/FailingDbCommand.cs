@@ -31,8 +31,10 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Repositories.Helpers
         protected override DbParameter CreateDbParameter()
             => throw new NotImplementedException();
 
-        protected override DbConnection DbConnection { get; set; } = null!;
-        protected override DbTransaction DbTransaction { get; set; } = null!;
+        // Fix for CS8765: Ensure nullability matches base member
+        protected override DbConnection? DbConnection { get; set; } = null!;
+        protected override DbTransaction? DbTransaction { get; set; } = null!;
+
         public override bool DesignTimeVisible { get; set; }
         public override UpdateRowSource UpdatedRowSource { get; set; }
 

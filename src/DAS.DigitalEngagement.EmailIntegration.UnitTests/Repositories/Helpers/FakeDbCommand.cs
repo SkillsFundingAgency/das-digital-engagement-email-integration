@@ -26,7 +26,7 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Repositories.Helpers
             => _reader;
 
         public override int ExecuteNonQuery() => 0;
-        public override object? ExecuteScalar() => null;
+        public override object ExecuteScalar() => null;
 
         public override void Prepare() { }
         public override void Cancel() { }

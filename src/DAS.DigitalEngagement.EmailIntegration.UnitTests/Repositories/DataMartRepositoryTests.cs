@@ -16,7 +16,7 @@ using System.Threading.Tasks;
 namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Repositories
 {
     [TestFixture]
-    public class EmployeeRepositoryTests
+    public class DataMartRepositoryTests
     {
         private Mock<TokenCredential> _tokenCredentialMock;
         private Mock<ILogger<DataMartRepository>> _loggerMock;
@@ -64,7 +64,7 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Repositories
 
             // Assert
             Assert.That(result.Count, Is.EqualTo(1));
-            var row = (IDictionary<string, object?>)result[0];
+            var row = (IDictionary<string, object>)result[0];
             Assert.That(row["EmployeeId"], Is.EqualTo(123));
             Assert.That(row["Name"], Is.EqualTo("John Doe"));
         }
@@ -73,7 +73,7 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Repositories
         public void RetrieveEmployeeRegistrationData_ShouldThrowArgumentException_WhenViewNameIsNullOrEmpty()
         {
             // Arrange
-            string? viewName = null;
+            string viewName = null;
 
             // Act & Assert
             var ex = Assert.ThrowsAsync<ArgumentException>(() => dataMartRepo.RetrieveEmployeeRegistrationData(viewName));
