@@ -74,7 +74,7 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Functions
         }
 
 
-        [TestCase(new object[] { }, "First DataMartSettings entry is null.")]
+        [TestCase(new object[0], "First DataMartSettings entry is null.")]
         [TestCase(new object[] { "ValidView" }, "Starting Email Integration Job")]
         public async Task RunAsync_ShouldHandleVariousDataMartSettings(object[] dataMartSettings, string expectedLogMessage)
         {
