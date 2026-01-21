@@ -28,7 +28,7 @@ namespace DAS.DigitalEngagement.Application.Services
         public async Task<string> GetDataAsync(string endpoint)
         {
             var requestUrl = $"{_apiUrl}/{endpoint}";
-            _logger.LogInformation($"Making GET request to {requestUrl}");
+            _logger.LogInformation("Making GET request to {RequestUrl}", requestUrl);
 
             var request = new HttpRequestMessage(HttpMethod.Get, requestUrl);
             request.Headers.Authorization = new AuthenticationHeaderValue("Token", _apiKey);
@@ -37,21 +37,24 @@ namespace DAS.DigitalEngagement.Application.Services
 
             if (!response.IsSuccessStatusCode)
             {
-                _logger.LogError($"Failed to retrieve data from {requestUrl}. Status Code: {response.StatusCode}");
+                _logger.LogError(
+                    "Failed to retrieve data from {RequestUrl}. Status Code: {StatusCode}",
+                    requestUrl,
+                    response.StatusCode);
                 response.EnsureSuccessStatusCode();
             }
 
             var content = await response.Content.ReadAsStringAsync();
-            _logger.LogInformation($"Received response: {content}");
 
+            _logger.LogInformation("Received response: {Content}", content);
+        
             return content;
         }
-
 
         public async Task<string> PostDataAsync(string endpoint, object body)
         {
             var requestUrl = $"{_apiUrl}/{endpoint}";
-            _logger.LogInformation($"Making POST request to {requestUrl}");
+            _logger.LogInformation("Making POST request to {RequestUrl}", requestUrl);
 
             var request = new HttpRequestMessage(HttpMethod.Post, requestUrl);
             request.Headers.Authorization = new AuthenticationHeaderValue("Token", _apiKey);
@@ -64,16 +67,17 @@ namespace DAS.DigitalEngagement.Application.Services
 
             if (!response.IsSuccessStatusCode)
             {
-                _logger.LogError($"Failed to post data to {requestUrl}. Status Code: {response.StatusCode}");
+                _logger.LogError(
+                    "Failed to post data to {RequestUrl}. Status Code: {StatusCode}",
+                    requestUrl,
+                    response.StatusCode);
                 response.EnsureSuccessStatusCode();
             }
 
             var content = await response.Content.ReadAsStringAsync();
-            _logger.LogInformation($"Received response: {content}");
+            _logger.LogInformation("Received response: {Content}", content);
 
             return content;
         }
-
-
     }
 }
