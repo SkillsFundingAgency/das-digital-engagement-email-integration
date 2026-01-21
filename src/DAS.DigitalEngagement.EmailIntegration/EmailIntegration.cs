@@ -7,7 +7,6 @@ namespace DAS.DigitalEngagement.EmailIntegration;
 
 public class EmailIntegration
 {
-    // private readonly ILogger _logger;
     protected readonly ILogger<EmailIntegration> _logger;
     private readonly IImportDataMartHandler _importDataMartHandler;
     private readonly ApplicationConfiguration _configuration;
