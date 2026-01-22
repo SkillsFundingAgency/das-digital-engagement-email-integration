@@ -1,19 +1,20 @@
-﻿using DAS.DigitalEngagement.Application.Services.Interfaces;
+﻿using DAS.DigitalEngagement.Application.Repositories;
+using DAS.DigitalEngagement.Application.Services.Interfaces;
 using DAS.DigitalEngagement.Models.Import;
-using System.Net.Http.Headers;
+using Microsoft.Extensions.Logging;
 
 namespace DAS.DigitalEngagement.Application.Services
 {
     public class ImportService : IImportService
     {
-        public Task<string> GetFailures(int jobId)
-        {
-            throw new NotImplementedException();
-        }
+        private readonly ILogger<ImportService> _logger;
+        private readonly IExternalApiService _externalApiService;
 
-        public Task<string> GetWarnings(int jobId)
+        public ImportService(IExternalApiService externalApiService,
+            ILogger<ImportService> logger)
         {
-            throw new NotImplementedException();
+           _externalApiService = externalApiService;
+            _logger = logger;
         }
 
         public async Task<BulkImportStatus> ImportEmployeeRegistration<T>(IList<T> leads)
@@ -29,6 +30,8 @@ namespace DAS.DigitalEngagement.Application.Services
             };
 
             // ToDo : Call the API and return the result
+            await _externalApiService.GetDataAsync("Contacts/Export/?$filter=ID eq 182");
+            _logger.LogInformation("Called External API to import employee registrations.");
 
             fileStatus.BulkImportJobs.Add(new BulkImportJob (){ batchId=1,ImportId="1",Status="Failed" });
 

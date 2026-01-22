@@ -1,13 +1,15 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
 namespace DAS.DigitalEngagement.Models.Infrastructure
 {
-    public class DataMartConfig
+    [ExcludeFromCodeCoverage]
+    public class ConnectionString
     {
-        public IList<DataMartSettings>? Settings { get; set; }
+        public string? DataMart { get; set; }
     }
 }

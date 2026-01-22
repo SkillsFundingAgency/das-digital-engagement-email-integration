@@ -1,5 +1,4 @@
-﻿
-using DAS.DigitalEngagement.Application.Handlers.Import.Interfaces;
+﻿using DAS.DigitalEngagement.Application.Handlers.Import.Interfaces;
 using DAS.DigitalEngagement.Application.Repositories.Interfaces;
 using DAS.DigitalEngagement.Application.Services.Interfaces;
 using DAS.DigitalEngagement.Models.Import;
@@ -12,14 +11,14 @@ namespace DAS.DigitalEngagement.Application.Import.Handlers
     public class ImportDataMartHandler : IImportDataMartHandler
     {
         private readonly IDataMartRepository _dataMartRepository;
-        private readonly ILogger<ImportDataMartHandler> _logger;
+        protected readonly ILogger<ImportDataMartHandler> _logger;
         private readonly IImportService _importService;
 
-        public ImportDataMartHandler(ILoggerFactory loggerFactory,
+        public ImportDataMartHandler(ILogger<ImportDataMartHandler> logger,
             IImportService importService,
             IDataMartRepository dataMartRepository)
         {
-            _logger = loggerFactory.CreateLogger<ImportDataMartHandler>();
+            _logger = logger;
             _dataMartRepository = dataMartRepository;
             _importService = importService;
         }
@@ -28,10 +27,9 @@ namespace DAS.DigitalEngagement.Application.Import.Handlers
         {
             _logger.LogInformation($"about to handle employer lead import");
 
-
             var data = await _dataMartRepository.RetrieveEmployeeRegistrationData(config.ViewName ?? "");
 
-            if (config.ObjectName == "Main")
+            if (config.ObjectName == "Lead")
             {
                 var status = await _importService.ImportEmployeeRegistration(data);
 
@@ -39,16 +37,21 @@ namespace DAS.DigitalEngagement.Application.Import.Handlers
             }
             else
             {
-                //  var status = await _bulkImportService.ImportCustomObject(data, config.ObjectName);
-
-                //  return status;
-                // To Do
-                return null;
-
-
+                _logger.LogInformation($"No Object name is configured in the Configuration");
+                // Return a default BulkImportStatus instance to satisfy non-nullable contract
+                return new BulkImportStatus
+                {
+                    Container = string.Empty,
+                    Name = string.Empty,
+                    Id = string.Empty,
+                    StartTime = DateTime.UtcNow,
+                    BulkImportJobs = new List<BulkImportJob>(),
+                    BulkImportJobStatus = new List<BulkImportJobStatus>(),
+                    ImportFileIsValid = false,
+                    ValidationError = "No Object name is configured in the Configuration",
+                    HeaderErrors = Enumerable.Empty<string>()
+                };
             }
-
-
         }
 
     }

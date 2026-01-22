@@ -1,13 +1,16 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
 namespace DAS.DigitalEngagement.Models.Infrastructure
 {
-    public class ConnectionStrings
+    [ExcludeFromCodeCoverage]
+    public class Functions
     {
-        public string? DataMart { get; set; }
+        public string? EmailIntegrationSchedule { get; set; }
     }
+
 }

@@ -1,54 +1,41 @@
-using DAS.DigitalEngagement.Application.Handlers.Import.Interfaces;
-using DAS.DigitalEngagement.Application.Import.Handlers;
-using DAS.DigitalEngagement.Application.Repositories;
-using DAS.DigitalEngagement.Application.Repositories.Interfaces;
-using DAS.DigitalEngagement.Application.Services;
-using DAS.DigitalEngagement.Application.Services.Interfaces;
-using DAS.DigitalEngagement.Models.Infrastructure;
-using EmailIntegration.Extensions;
-using Microsoft.Azure.Functions.Worker;
-using Microsoft.Azure.Functions.Worker.Builder;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
+
+using DAS.DigitalEngagement.EmailIntegration.Extensions;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
-using System.Configuration;
+using System.Diagnostics.CodeAnalysis;
 
-var builder = FunctionsApplication.CreateBuilder(args);
+namespace DAS.DigitalEngagement.Program;
 
-builder.ConfigureFunctionsWebApplication();
-builder.Configuration.BuildDasConfiguration();
-
-//todo: revisit and see the latest logging implementation
-builder.Logging.AddFilter("Microsoft", LogLevel.Warning);
-builder.Logging.AddFilter("System", LogLevel.Warning);
-builder.Logging.AddFilter("DAS.EmailIntegration", LogLevel.Information);
-
-builder.Services.AddOptions();
-builder.Services.Configure<ConnectionStrings>(builder.Configuration.GetSection("ConnectionStrings"));
-builder.Services.Configure<List<DataMartSettings>>(builder.Configuration.GetSection("DataMart"));
-
-
-
-builder.Services
-    .AddApplicationInsightsTelemetryWorkerService()
-    .ConfigureFunctionsApplicationInsights();
-
-builder.Services.AddTransient<IImportDataMartHandler, ImportDataMartHandler>();
-builder.Services.AddTransient<IImportService, ImportService>();
-
-var environment = builder.Configuration.GetValue<string>("ASPNETCORE_ENVIRONMENT");
-
-if (environment == "Development")
+static class Program
 {
-    builder.Services.AddTransient<IDataMartRepository, DataMartRepository>();
-}
-else
-{
-    builder.Services.AddTransient<IDataMartRepository, DataMartRepository>(s =>
-        new DataMartRepository(s.GetService<IOptions<ConnectionStrings>>()));
-}
+    [ExcludeFromCodeCoverage]
+    static async Task Main(string[] args)
+    {
+        var host = new HostBuilder()
+            .ConfigureFunctionsWebApplication()
+            .ConfigureAppConfiguration((hostingContext, config) =>
+            {
+                config.AddConfiguration(hostingContext.HostingEnvironment.ContentRootPath);
+            })
 
+            .ConfigureServices((context, services) =>
+            {
+                services.AddApplicationOptions();
+                services.AddApplicationServices(context.Configuration);
+                services.AddOpenTelemetryRegistration(context.Configuration["APPLICATIONINSIGHTS_CONNECTION_STRING"]!);
 
-builder.Build().Run();
+            })
+            .ConfigureLogging((hostingContext, logging) =>
+            {
+                logging.SetMinimumLevel(LogLevel.Information);
+
+                logging.AddFilter("Microsoft", LogLevel.Warning);
+                logging.AddFilter("System", LogLevel.Warning);
+                logging.AddFilter("SFA.DAS.EmployerFeedback.Jobs", LogLevel.Information);
+            })
+            .Build();
+
+        await host.RunAsync();
+    }
+
+}
