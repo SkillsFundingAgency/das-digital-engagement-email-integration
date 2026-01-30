@@ -59,7 +59,34 @@ namespace DAS.DigitalEngagement.Application.Services
             return content;
         }
 
-        public async Task<string> PostDataAsync(string endpoint, object body)
+        public async Task<string> PostDataAsync(string endpoint, Stream csvBodyStream)
+        {
+            var requestUrl = $"{_apiUrl}/{endpoint}";
+            _logger.LogInformation("Making POST request to {RequestUrl}", requestUrl);
+
+            var request = new HttpRequestMessage(HttpMethod.Post, requestUrl);
+            request.Headers.Authorization = new AuthenticationHeaderValue("Token", _apiKey);
+            request.Content = new StreamContent(csvBodyStream);
+            request.Content.Headers.ContentType = new MediaTypeHeaderValue("text/csv");
+
+            var response = await _httpClient.SendAsync(request);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogError(
+                    "Failed to post data to {RequestUrl}. Status Code: {StatusCode}",
+                    requestUrl,
+                    response.StatusCode);
+                response.EnsureSuccessStatusCode();
+            }
+
+            var content = await response.Content.ReadAsStringAsync();
+            _logger.LogInformation("Received response: {Content}", content);
+
+            return content;
+        }
+
+        public async Task<string> PostDataAsync(string endpoint, string csvBodyString)
         {
             var requestUrl = $"{_apiUrl}/{endpoint}";
             _logger.LogInformation("Making POST request to {RequestUrl}", requestUrl);
@@ -67,9 +94,16 @@ namespace DAS.DigitalEngagement.Application.Services
             var request = new HttpRequestMessage(HttpMethod.Post, requestUrl);
             request.Headers.Authorization = new AuthenticationHeaderValue("Token", _apiKey);
 
-            // Serialize the body object to JSON and set it as the content
-            var jsonBody = System.Text.Json.JsonSerializer.Serialize(body);
-            request.Content = new StringContent(jsonBody, Encoding.UTF8, "application/json");
+
+
+            var bytes = Encoding.UTF8.GetBytes(csvBodyString);
+            var bodyContent = new ByteArrayContent(bytes);
+            bodyContent.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
+            bodyContent.Headers.ContentLength = bytes.Length;
+
+            request.Content = bodyContent;
+
+
 
             var response = await _httpClient.SendAsync(request);
 

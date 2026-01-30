@@ -20,6 +20,8 @@ namespace DAS.DigitalEngagement.EmailIntegration.Extensions
         {
             services.AddTransient<IImportDataMartHandler, ImportDataMartHandler>();
             services.AddTransient<IImportService, ImportService>();
+            services.AddTransient<IPayLoadMapper, PayLoadMapper>();
+
 
             services.AddTransient<IDataMartRepository, DataMartRepository>();
             string? tenantId = configuration.GetSection("TenantId").Value ?? throw new ConfigurationErrorsException("TenantId is not configured");
@@ -32,6 +34,8 @@ namespace DAS.DigitalEngagement.EmailIntegration.Extensions
 
                                                     ));
             services.AddHttpClient<IExternalApiService,ExternalApiService>();
+            services.AddTransient<IChunkingService, ChunkingService>();
+            services.AddTransient<ICsvService, CsvService>();
             return services;
         }
     }

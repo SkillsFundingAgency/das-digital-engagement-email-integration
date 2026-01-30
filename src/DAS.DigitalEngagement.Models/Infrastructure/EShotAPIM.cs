@@ -13,6 +13,7 @@ namespace DAS.DigitalEngagement.Models.Infrastructure
         public string? ApiBaseUrl { get; set; }
         public string? ApiClientId { get; set; }
         public int ApiRetryCount { get; set; }
+        public int ChunkSizeKB { get; set; } = 10240; // Default to 10 MB
     }
 
 }

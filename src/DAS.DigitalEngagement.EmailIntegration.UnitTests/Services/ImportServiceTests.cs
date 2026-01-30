@@ -16,6 +16,7 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Services
     {
         private Mock<IExternalApiService> _mockExternalApiService;
         private Mock<ILogger<ImportService>> _mockLogger;
+        private Mock<IPayLoadMapper> _mockPayLoadMapper;
         private ImportService _importService;
 
         [SetUp]
@@ -23,7 +24,10 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Services
         {
             _mockExternalApiService = new Mock<IExternalApiService>();
             _mockLogger = new Mock<ILogger<ImportService>>();
-            _importService = new ImportService(_mockExternalApiService.Object, _mockLogger.Object);
+            _mockPayLoadMapper = new Mock<IPayLoadMapper>();
+            _importService = new ImportService(_mockExternalApiService.Object, 
+                _mockLogger.Object, 
+                _mockPayLoadMapper.Object);
         }
 
         [Test]
