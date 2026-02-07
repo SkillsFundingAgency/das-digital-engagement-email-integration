@@ -1,16 +1,7 @@
 ﻿using DAS.DigitalEngagement.Application.Services.Interfaces;
 using DAS.DigitalEngagement.Models.Infrastructure;
-using Microsoft.Extensions.Options;
-using System;
-using System.Collections;
-using System.Collections.Generic;
 using System.Dynamic;
-using System.Linq;
-using System.Net.Http.Json;
-using System.Text;
 using System.Text.Json;
-using System.Text.Json.Serialization;
-using System.Threading.Tasks;
 
 namespace DAS.DigitalEngagement.Application.Services
 {

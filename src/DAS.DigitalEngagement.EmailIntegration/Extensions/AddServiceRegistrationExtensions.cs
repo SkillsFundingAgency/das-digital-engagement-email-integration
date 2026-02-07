@@ -6,15 +6,10 @@ using DAS.DigitalEngagement.Application.Repositories;
 using DAS.DigitalEngagement.Application.Repositories.Interfaces;
 using DAS.DigitalEngagement.Application.Services;
 using DAS.DigitalEngagement.Application.Services.Interfaces;
-using DAS.DigitalEngagement.EmailIntegration.Validators;
-using DAS.DigitalEngagement.Models.Infrastructure;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Options;
-using System.ComponentModel.DataAnnotations;
 using System.Configuration;
 using System.Diagnostics.CodeAnalysis;
-using static Microsoft.ApplicationInsights.MetricDimensionNames.TelemetryContext;
 
 namespace DAS.DigitalEngagement.EmailIntegration.Extensions
 {

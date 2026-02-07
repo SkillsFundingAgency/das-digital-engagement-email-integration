@@ -2,13 +2,11 @@ using DAS.DigitalEngagement.Models.Infrastructure;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using System.Diagnostics.CodeAnalysis;
 
 namespace DAS.DigitalEngagement.EmailIntegration.Extensions
 {
-    using Microsoft.Extensions.Hosting;
-    using Microsoft.Extensions.Logging;
-    using Microsoft.Extensions.Options;
-
+    [ExcludeFromCodeCoverage]
     internal sealed class ConfigurationValidationHostedService : IHostedService
     {
         private readonly IValidateOptions<ApplicationConfiguration> _validator;

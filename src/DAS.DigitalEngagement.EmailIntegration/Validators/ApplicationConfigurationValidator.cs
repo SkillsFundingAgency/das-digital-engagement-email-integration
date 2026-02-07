@@ -1,13 +1,10 @@
 ﻿using DAS.DigitalEngagement.Models.Infrastructure;
 using Microsoft.Extensions.Options;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using System.Diagnostics.CodeAnalysis;
 
 namespace DAS.DigitalEngagement.EmailIntegration.Validators
 {
+    [ExcludeFromCodeCoverage]
     public class ApplicationConfigurationValidator : IValidateOptions<ApplicationConfiguration>
     {
         public ValidateOptionsResult Validate(string? name, ApplicationConfiguration? options)

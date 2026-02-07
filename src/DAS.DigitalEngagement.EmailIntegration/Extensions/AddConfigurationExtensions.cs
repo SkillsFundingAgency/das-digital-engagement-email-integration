@@ -3,10 +3,7 @@ using DAS.DigitalEngagement.Models.Infrastructure;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
-using Microsoft.Identity.Client;
 using SFA.DAS.Configuration.AzureTableStorage;
-using SFA.DAS.Encoding;
-using System.Configuration;
 using System.Diagnostics.CodeAnalysis;
 
 namespace DAS.DigitalEngagement.EmailIntegration.Extensions

@@ -1,13 +1,8 @@
-﻿using DAS.DigitalEngagement.Application.Repositories;
-using DAS.DigitalEngagement.Application.Services.Interfaces;
+﻿using DAS.DigitalEngagement.Application.Services.Interfaces;
 using DAS.DigitalEngagement.Models.Import;
 using DAS.DigitalEngagement.Models.Infrastructure;
 using Microsoft.Extensions.Logging;
-using System.Dynamic;
 using System.Net;
-using System.Net.NetworkInformation;
-using System.Text.Encodings.Web;
-using System.Text.Json;
 using System.Text.Json.Nodes;
 
 namespace DAS.DigitalEngagement.Application.Services
