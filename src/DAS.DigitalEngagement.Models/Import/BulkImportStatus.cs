@@ -15,9 +15,9 @@ namespace DAS.DigitalEngagement.Models.Import
             StartTime = DateTime.Now;
             BulkImportJobs = new List<BulkImportJob>();
         }
-        public required string Container { get; set; }
         public required string Name { get; set; }
-        public required string Id { get; set; } 
+        public required string Id { get; set; }
+        public int? ContactImportTemplate { get; set; }
         public DateTime StartTime { get; set; }
         public IList<BulkImportJob> BulkImportJobs { get; set; }
         public  double? Duration => (DateTime.Now - StartTime).TotalMilliseconds;
@@ -27,12 +27,7 @@ namespace DAS.DigitalEngagement.Models.Import
             {
                 var status = ImportStatus.Queued;
 
-
-                if (ImportFileIsValid == false || HeaderErrors.Any())
-                {
-                    status = ImportStatus.ValidationFailed;
-                }
-                else if (BulkImportJobs.Any(s => s.Status == "Failed"))
+                if (BulkImportJobs.Any(s => s.Status == "Failed"))
                 {
                     status = ImportStatus.Failed;
                 }
@@ -44,15 +39,11 @@ namespace DAS.DigitalEngagement.Models.Import
                 {
                     status = ImportStatus.Completed;
                 }
-                
+
                 return status;
             }
         }
 
         public required List<BulkImportJobStatus> BulkImportJobStatus { get; set; }
-
-        public bool ImportFileIsValid { get; set; } = true;
-        public required string ValidationError { get; set; }
-        public IEnumerable<string> HeaderErrors { get; set; } = new List<string>();
     }
 }

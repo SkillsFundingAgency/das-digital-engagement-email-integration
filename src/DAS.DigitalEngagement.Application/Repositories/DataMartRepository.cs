@@ -42,14 +42,10 @@ namespace DAS.DigitalEngagement.Application.Repositories
         }
 
 
-        public async Task<IList<dynamic>> RetrieveEmployeeRegistrationData(string? viewName)
+        public async Task<IList<dynamic>> RetrieveEmployeeRegistrationData()
         {
-            if (string.IsNullOrWhiteSpace(viewName))
-                throw new ArgumentException("View name cannot be empty.", nameof(viewName));
-
             var results = new List<dynamic>();
 
-            // Acquire Azure AD token for Azure SQL (use .default scope)
             var tokenRequest = new TokenRequestContext(SqlScopes);
             var accessToken = await _tokenCredential.GetTokenAsync(tokenRequest, CancellationToken.None);
 
@@ -66,7 +62,7 @@ namespace DAS.DigitalEngagement.Application.Repositories
 
                 using (var cmd = conn.CreateCommand())
                 {
-                    cmd.CommandText = $"SELECT TOP 200 * FROM [ASData_PL].[vw_DAS_EmailIntegration]";
+                    cmd.CommandText = $"SELECT TOP 100 * FROM [ASData_PL].[vw_DAS_EmailIntegration]";
 
                     using (var reader = await cmd.ExecuteReaderAsync(CancellationToken.None))
                     {
@@ -83,7 +79,7 @@ namespace DAS.DigitalEngagement.Application.Repositories
                             }
 
                             results.Add((ExpandoObject)row);
-                            _logger.LogInformation("Retrieved row with data: {RowData}", string.Join(", ", row.Select(kv => $"{kv.Key}={kv.Value}")));
+                           // _logger.LogInformation("Retrieved row with data: {RowData}", string.Join(", ", row.Select(kv => $"{kv.Key}={kv.Value}")));
                         }
                     }
                 }

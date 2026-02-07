@@ -1,6 +1,4 @@
-﻿
-
-namespace DAS.DigitalEngagement.Application.Services
+﻿namespace DAS.DigitalEngagement.Application.Services.Interfaces
 {
     public interface ICsvService
     {

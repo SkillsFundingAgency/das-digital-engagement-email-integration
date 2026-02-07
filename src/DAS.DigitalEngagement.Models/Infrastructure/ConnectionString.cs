@@ -10,6 +10,6 @@ namespace DAS.DigitalEngagement.Models.Infrastructure
     [ExcludeFromCodeCoverage]
     public class ConnectionString
     {
-        public string? DataMart { get; set; }
+        public required string DataMart { get; set; }
     }
 }

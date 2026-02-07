@@ -5,6 +5,6 @@ namespace DAS.DigitalEngagement.Application.Handlers.Import.Interfaces
 {
     public interface IImportDataMartHandler
     {
-        Task<BulkImportStatus> Handle(DataMartSettings config);
+        Task<ImportSummaryResult> Handle(IList<DataMartSettings> config);
     }
 }

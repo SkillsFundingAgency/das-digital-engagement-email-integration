@@ -1,9 +1,10 @@
-﻿namespace DAS.DigitalEngagement.Application.Services.Interfaces
+﻿using DAS.DigitalEngagement.Models.Import;
+
+namespace DAS.DigitalEngagement.Application.Services.Interfaces
 {
     public interface IExternalApiService
     {
         Task<string> GetDataAsync(string endpoint);
-        Task<string> PostDataAsync(string endpoint, Stream csvBodyStream);
-        Task<string> PostDataAsync(string endpoint, string csvBodyString);
+        Task<BatchResultDetail> PostDataAsync(string endpoint, string csvBodyString);
     }
 }

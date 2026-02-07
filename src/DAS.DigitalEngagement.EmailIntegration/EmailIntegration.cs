@@ -23,23 +23,15 @@ public class EmailIntegration
     public async Task RunAsync([TimerTrigger("%EmailIntegrationSchedule%")] TimerInfo myTimer)
     {
         // 0 0 22 * * * Everyday at 10pm
-        _logger.LogInformation("C# Timer trigger function executed at: {ExecutionTime}", DateTime.Now);
-
-        var dataMartSettings = _configuration.DataMart?.FirstOrDefault();
-        if (dataMartSettings == null)
-        {
-            _logger.LogError("First DataMartSettings entry is null.");
-            return;
-        }
-
-        _logger.LogInformation("Starting Email Integration Job with DataMartSettings: {DataMartSettings}", dataMartSettings);
+        _logger.LogInformation("Timer trigger function executed at: {ExecutionTime}", DateTime.Now);
         _logger.LogInformation("Connection string: {ConnectionString}", _configuration.ConnectionString);
-        _logger.LogInformation("API Base URL: {ApiBaseUrl}", _configuration.EShotAPIM?.ApiBaseUrl);
-        _logger.LogInformation("View Name: {ViewName}", dataMartSettings.ViewName);
+        _logger.LogInformation("API Base URL: {ApiBaseUrl}", _configuration.EShotAPIM?.ApiBaseUrl);  
 
         try
         {
-            await _importDataMartHandler.Handle(dataMartSettings);
+            var importSummary = await _importDataMartHandler.Handle(_configuration.DataMart);
+
+            _logger.LogInformation($"Import Summary: {importSummary.ToString()}");
             _logger.LogInformation("Email Integration Job completed successfully");
         }
         catch (Exception ex)

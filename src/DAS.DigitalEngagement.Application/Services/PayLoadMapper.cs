@@ -1,41 +1,42 @@
 ﻿using DAS.DigitalEngagement.Application.Services.Interfaces;
 using DAS.DigitalEngagement.Models.Infrastructure;
+using Microsoft.Extensions.Options;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Dynamic;
 using System.Linq;
+using System.Net.Http.Json;
 using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 
 namespace DAS.DigitalEngagement.Application.Services
 {
     public class PayLoadMapper : IPayLoadMapper
     {
-        public IList<ExpandoObject> MapToPayload<T>(IList<T> leads)
+        public IList<DataMartSettings> _dataMartSettings { get; }
+
+        public PayLoadMapper(IList<DataMartSettings> dataMartSettings)
+        {
+            _dataMartSettings = dataMartSettings;
+        }
+    
+        public IList<ExpandoObject> MapToPayload<T>(IList<T> leads,string objectName)
         {
             ArgumentNullException.ThrowIfNull(leads);
-            var result = new List<ExpandoObject>();
 
-            var maps = new List<FieldMap>
-                   {
-                       new() { Source = "Email",     Target = "Email" },
-                       new() { Source = "FirstName", Target = "FirstName" },
-                       new() { Source = "LastName",  Target = "LastName" },
-                       new() { Source = "LastLogin", Target = "LastSentDate" }
-                   };
+            var maps = JsonSerializer.Deserialize<List<FieldMap>>(
+                           _dataMartSettings?
+                               .FirstOrDefault(x => x.ObjectName == objectName)?
+                               .FieldMapping ?? "[]"
+                       ) ?? new List<FieldMap>();
 
-            // var customFields = new Dictionary<string, object> { ["SubaccountID"] = 2 };
-
-            //return [.. leads
-            //    .Where(lead => lead != null)
-            //    .Select(lead => AddFields(MapDynamic(lead!, maps), customFields))];
-
-            //result.Add(MapDynamic(lead, maps));
-
-            //return MapDynamic(leads!, maps);
-            return [.. leads
+            return leads
                 .Where(lead => lead != null)
-                .Select(lead => MapDynamic(lead!, maps))];
+                .Select(lead => MapDynamic(lead!, maps))
+                .ToList();
         }
 
 

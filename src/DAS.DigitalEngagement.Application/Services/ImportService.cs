@@ -1,8 +1,14 @@
 ﻿using DAS.DigitalEngagement.Application.Repositories;
 using DAS.DigitalEngagement.Application.Services.Interfaces;
 using DAS.DigitalEngagement.Models.Import;
+using DAS.DigitalEngagement.Models.Infrastructure;
 using Microsoft.Extensions.Logging;
 using System.Dynamic;
+using System.Net;
+using System.Net.NetworkInformation;
+using System.Text.Encodings.Web;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 
 namespace DAS.DigitalEngagement.Application.Services
 {
@@ -13,54 +19,94 @@ namespace DAS.DigitalEngagement.Application.Services
         private readonly IPayLoadMapper _payLoadMapper;
         private readonly IChunkingService _chunkingService;
         private readonly ICsvService _csvService;
+        public readonly IList<DataMartSettings> _dataMartSettings;
+
 
         public ImportService(IExternalApiService externalApiService,
             ILogger<ImportService> logger,
             IPayLoadMapper payLoadMapper,
-            IChunkingService chunkingService,ICsvService csvService)
+            IChunkingService chunkingService,
+            ICsvService csvService,
+            IList<DataMartSettings> dataMartSettings)
         {
             _externalApiService = externalApiService;
             _logger = logger;
             _payLoadMapper = payLoadMapper;
             _chunkingService = chunkingService;
             _csvService = csvService;
+            _dataMartSettings = dataMartSettings;
         }
 
-        public async Task<BulkImportStatus> ImportEmployeeRegistration<T>(IList<T> leads)
+        public async Task<bool> IsContactImportTemplatesExist()
         {
-            var fileStatus = new BulkImportStatus()
+            DataMartSettings empRegistrationSettings = GetDataMartConfig("Lead");
+            var filter = WebUtility.UrlEncode( $"ID eq {empRegistrationSettings.TemplatedUploadId}");
+            var importResult = await _externalApiService.GetDataAsync($"ContactImportTemplates/?$filter={filter}");
+            int count = JsonNode.Parse(importResult)?["value"]?.AsArray()?.Count ?? 0;
+
+            return count >= 1;
+
+        }
+
+        public async Task<ImportSummaryResult> ImportEmployeeRegistration<T>(IList<T> leads)
+        {
+            DataMartSettings empRegistrationSettings = GetDataMartConfig("Lead");
+
+            var summary = new ImportSummaryResult
             {
-                BulkImportJobStatus = new List<BulkImportJobStatus>(),
-                Container = "Test",
-                Id = "1",
-                Name = "Test",
-                ValidationError = "Test",
-               
+                StartTime = DateTime.UtcNow,
+                Messages = new List<string>(),
+                TotalRecordsFromDb = leads?.Count ?? 0,
+                Status = "Partial"
             };
 
-            var contactsChunks = _chunkingService.GetChunks(_csvService.GetByteCount(leads), leads).ToList();
+            try
+            {
+                var safeLeads = leads ?? new List<T>();
+                var byteCount = _csvService.GetByteCount(safeLeads);
+                var contactsChunks = _chunkingService.GetChunks(byteCount, safeLeads).ToList();
+                int index = 0;
+                foreach (var contactsList in contactsChunks)
+                {   
+                    index++;
+                    var payLoad = _payLoadMapper.MapToPayload(contactsList, empRegistrationSettings.ObjectName);
+                    var csvString = _csvService.ToCsv(payLoad.ToList());
+                    var csvStreamBody = _csvService.GenerateStreamFromString(csvString);
 
-            // ToDo : Call the API and return the result
-            // await _externalApiService.GetDataAsync("Contacts/Export/?$filter=ID eq 182");
-            foreach (var contactsList in contactsChunks) {
+                    var importResult = await _externalApiService.PostDataAsync(
+                        $"ContactImports/TemplatedUpload({empRegistrationSettings.TemplatedUploadId})", csvString);
+                    
+                    importResult.BatchId = $"Batch : {index}";
+                    importResult.RecordsProcessed = contactsList.Count;
+                    summary.BatchResults.Add(importResult);
 
-
-                var payLoad = _payLoadMapper.MapToPayload(contactsList);
-
-                var csvString1 = _csvService.ToCsv(contactsList);
-
-                var csvString = _csvService.ToCsv(payLoad);
-                
-                var csvStreamBody = _csvService.GenerateStreamFromString(csvString);
-
-                // await _externalApiService.PostDataAsync("Contacts/Save", body);
-                 var importResult = await _externalApiService.PostDataAsync("ContactImports/TemplatedUpload(1)", csvString);
-
-                _logger.LogInformation("Called External API to import employee registrations.");
-
-                fileStatus.BulkImportJobs.Add(new BulkImportJob() { batchId = 1, ImportId = "1", Status = "Failed" });
+                    _logger.LogInformation("Called External API to import employee registrations.");
+                }
+              
             }
-            return await Task.FromResult(fileStatus);
+            catch (Exception ex)
+            {
+                summary.Status = "Failed";
+                summary.Messages.Add($"Import failed: {ex.Message}");
+                _logger.LogError(ex, "Error during employee registration import.");
+            }
+            finally
+            {
+                summary.EndTime = DateTime.UtcNow;
+                if (summary.Status != "Failed")
+                {
+                summary.Status = summary.BatchResults.All(b => b.Status == "Completed") ? "Completed" : "Partial";
+                }
+                summary.Messages.Add("Import completed.");
+            }
+
+            return summary;
+        }
+
+        private DataMartSettings GetDataMartConfig(string objectName)
+        {
+            return _dataMartSettings.FirstOrDefault(x => x.ObjectName == objectName)
+                                                ?? throw new Exception("Employee registration config is missing");
         }
     }
 }

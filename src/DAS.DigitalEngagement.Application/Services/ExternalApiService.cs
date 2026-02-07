@@ -1,4 +1,6 @@
-﻿using DAS.DigitalEngagement.Application.Services.Interfaces;
+﻿using Azure;
+using DAS.DigitalEngagement.Application.Services.Interfaces;
+using DAS.DigitalEngagement.Models.Import;
 using DAS.DigitalEngagement.Models.Infrastructure;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -59,35 +61,15 @@ namespace DAS.DigitalEngagement.Application.Services
             return content;
         }
 
-        public async Task<string> PostDataAsync(string endpoint, Stream csvBodyStream)
+       
+        public async Task<BatchResultDetail> PostDataAsync(string endpoint, string csvBodyString)
         {
-            var requestUrl = $"{_apiUrl}/{endpoint}";
-            _logger.LogInformation("Making POST request to {RequestUrl}", requestUrl);
-
-            var request = new HttpRequestMessage(HttpMethod.Post, requestUrl);
-            request.Headers.Authorization = new AuthenticationHeaderValue("Token", _apiKey);
-            request.Content = new StreamContent(csvBodyStream);
-            request.Content.Headers.ContentType = new MediaTypeHeaderValue("text/csv");
-
-            var response = await _httpClient.SendAsync(request);
-
-            if (!response.IsSuccessStatusCode)
+            var result = new BatchResultDetail
             {
-                _logger.LogError(
-                    "Failed to post data to {RequestUrl}. Status Code: {StatusCode}",
-                    requestUrl,
-                    response.StatusCode);
-                response.EnsureSuccessStatusCode();
-            }
+                Status = "Pending",
+                Error = null
+            };
 
-            var content = await response.Content.ReadAsStringAsync();
-            _logger.LogInformation("Received response: {Content}", content);
-
-            return content;
-        }
-
-        public async Task<string> PostDataAsync(string endpoint, string csvBodyString)
-        {
             var requestUrl = $"{_apiUrl}/{endpoint}";
             _logger.LogInformation("Making POST request to {RequestUrl}", requestUrl);
 
@@ -103,23 +85,34 @@ namespace DAS.DigitalEngagement.Application.Services
 
             request.Content = bodyContent;
 
-
-
-            var response = await _httpClient.SendAsync(request);
-
-            if (!response.IsSuccessStatusCode)
+            try
             {
-                _logger.LogError(
-                    "Failed to post data to {RequestUrl}. Status Code: {StatusCode}",
-                    requestUrl,
-                    response.StatusCode);
-                response.EnsureSuccessStatusCode();
+                var response = await _httpClient.SendAsync(request);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    _logger.LogError(
+                        "Failed to post data to {RequestUrl}. Status Code: {StatusCode}",
+                        requestUrl,
+                        response.StatusCode);
+                    result.Status = "Failed";
+                    result.Error = $"Failed to post data to {requestUrl}. Status Code: {response.StatusCode}";
+                    response.EnsureSuccessStatusCode();
+                }
+                var content = await response.Content.ReadAsStringAsync();
+                result.TokenFromEshot = content;
+                result.Status = "Completed";
+
+                _logger.LogInformation("Received response: {Content}", content);
+            }
+            catch (Exception ex)
+            {
+                result.Status = "Failed";
+                result.Error = $"Failed to post data to {requestUrl}. Error: {ex.Message}";
+                _logger.LogError(ex, "Exception occurred while posting data to {RequestUrl}", requestUrl);
             }
 
-            var content = await response.Content.ReadAsStringAsync();
-            _logger.LogInformation("Received response: {Content}", content);
-
-            return content;
+            return result;
         }
     }
 }
