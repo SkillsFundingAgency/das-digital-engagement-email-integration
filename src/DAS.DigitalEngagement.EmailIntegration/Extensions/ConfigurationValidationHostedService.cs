@@ -61,7 +61,7 @@ namespace DAS.DigitalEngagement.EmailIntegration.Extensions
                 else if (!string.IsNullOrWhiteSpace(result.FailureMessage))
                 {
                     _logger.LogCritical("Configuration error: {Error}", result.FailureMessage);
-                    Console.Error.WriteLine("Configuration error: {Error}", result.FailureMessage);
+                    Console.Error.WriteLine($"Configuration error: {result.FailureMessage}");
                 }
 
                 _lifetime.StopApplication();
