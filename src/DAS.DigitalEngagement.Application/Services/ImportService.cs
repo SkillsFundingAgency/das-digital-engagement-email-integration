@@ -14,7 +14,7 @@ namespace DAS.DigitalEngagement.Application.Services
         private readonly IPayLoadMapper _payLoadMapper;
         private readonly IChunkingService _chunkingService;
         private readonly ICsvService _csvService;
-        public readonly IList<DataMartSettings> _dataMartSettings;
+        private readonly IReadOnlyList<DataMartSettings> _dataMartSettings;
 
 
         public ImportService(IExternalApiService externalApiService,
@@ -29,7 +29,7 @@ namespace DAS.DigitalEngagement.Application.Services
             _payLoadMapper = payLoadMapper;
             _chunkingService = chunkingService;
             _csvService = csvService;
-            _dataMartSettings = dataMartSettings;
+            _dataMartSettings = dataMartSettings.ToList().AsReadOnly();
         }
 
         public async Task<bool> IsContactImportTemplatesExist()
@@ -66,8 +66,7 @@ namespace DAS.DigitalEngagement.Application.Services
                     index++;
                     var payLoad = _payLoadMapper.MapToPayload(contactsList, empRegistrationSettings.ObjectName);
                     var csvString = _csvService.ToCsv(payLoad.ToList());
-                    var csvStreamBody = _csvService.GenerateStreamFromString(csvString);
-
+              
                     var importResult = await _externalApiService.PostDataAsync(
                         $"ContactImports/TemplatedUpload({empRegistrationSettings.TemplatedUploadId})", csvString);
                     
@@ -100,8 +99,12 @@ namespace DAS.DigitalEngagement.Application.Services
 
         private DataMartSettings GetDataMartConfig(string objectName)
         {
-            return _dataMartSettings.FirstOrDefault(x => x.ObjectName == objectName)
-                                                ?? throw new Exception("Employee registration config is missing");
+            var config = _dataMartSettings.FirstOrDefault(x => x.ObjectName == objectName);
+            if (config is null)
+            {
+                throw new InvalidOperationException("Employee registration config is missing");
+            }
+            return config;
         }
     }
 }

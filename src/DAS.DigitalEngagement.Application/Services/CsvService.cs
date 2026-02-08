@@ -21,15 +21,15 @@ namespace DAS.DigitalEngagement.Application.Services
                 var dicts = leads.Cast<System.Dynamic.ExpandoObject>()
                                  .Select(e => (IDictionary<string, object?>)e)
                                  .ToList();
+
                 if (!dicts.Any()) return string.Empty;
 
                 var headers = new List<string>();
                 foreach (var d in dicts)
                 {
-                    foreach (var k in d.Keys)
+                    foreach (var k in d.Keys.Where(k => !headers.Contains(k)))
                     {
-                        if (!headers.Contains(k))
-                            headers.Add(k);
+                        headers.Add(k);
                     }
                 }
 
@@ -42,10 +42,7 @@ namespace DAS.DigitalEngagement.Application.Services
                 foreach (var row in dicts)
                 {
                     foreach (var h in headers)
-                    {
-                        row.TryGetValue(h, out var value);
-                        csv.WriteField(value);
-                    }
+                        csv.WriteField(row.TryGetValue(h, out var value) ? value : null);
                     csv.NextRecord();
                 }
 
@@ -53,19 +50,14 @@ namespace DAS.DigitalEngagement.Application.Services
                 return writer.ToString();
             }
 
-            using (var writer = new StringWriter())
-            using (var csv = new CsvWriter(writer, CultureInfo.InvariantCulture))
-            {
-                // csv.Context.RegisterClassMap<PersonMap>();
-
-                csv.WriteRecords(leads);
-
-                writer.Flush();
-                return writer.ToString();
-            }
+            using var writer2 = new StringWriter();
+            using var csv2 = new CsvWriter(writer2, CultureInfo.InvariantCulture);
+            csv2.WriteRecords(leads);
+            writer2.Flush();
+            return writer2.ToString();
         }
 
-        public bool IsEmpty(StreamReader stream)
+        public static bool IsEmpty(StreamReader stream)
         {
 
             stream.DiscardBufferedData();
@@ -79,28 +71,22 @@ namespace DAS.DigitalEngagement.Application.Services
             return String.IsNullOrWhiteSpace(stream.Peek().ToString());
         }
 
-        public bool HasData(StreamReader stream)
+        public static bool HasData(StreamReader stream)
         {
             stream.DiscardBufferedData();
             stream.BaseStream.Seek(0, System.IO.SeekOrigin.Begin);
             stream.ReadLine();
-
-            //if there is data and not just headers, the second line should have data and shouldnt be whitespace
-
-            var secondLine = stream.ReadLine();
-
-            return String.IsNullOrWhiteSpace(secondLine) == false;
+            return !string.IsNullOrWhiteSpace(stream.ReadLine());
         }
 
-        public  Stream GenerateStreamFromString(string s)
+        public Stream GenerateStreamFromString(string s)
         {
             var stream = new MemoryStream();
-            var writer = new StreamWriter(stream);
+            using var writer = new StreamWriter(stream, leaveOpen: true);
             writer.Write(s);
             writer.Flush();
             stream.Position = 0;
             return stream;
         }
-
     }
 }

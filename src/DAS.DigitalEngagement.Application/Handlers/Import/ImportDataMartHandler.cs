@@ -41,30 +41,28 @@ namespace DAS.DigitalEngagement.Application.Import.Handlers
 
             if (!await _importService.IsContactImportTemplatesExist())
             {
-                _logger.LogWarning($"Contact import template is not availabel in E-shot.");
+                _logger.LogWarning("Contact import template is not availabel in E-shot.");
                 summary.Status = "Failed";
                 summary.EndTime = DateTime.UtcNow;
                 summary.Messages.Add("Contact import template is not available in E-shot.");
                 return summary;
             }
 
-            _logger.LogInformation($"DataMart Handler is about to handle employer lead import");
+            _logger.LogInformation("DataMart Handler is about to handle employer lead import");
 
             var data = await _dataMartRepository.RetrieveEmployeeRegistrationData();
 
-
             if (data != null && data.Count > 0)
             {
-                _logger.LogInformation($"DataMart Handler retrieved {data.Count} records for employer lead import");
+                _logger.LogInformation("DataMart Handler retrieved {RecordCount} records for employer lead import", data.Count);
                 return await _importService.ImportEmployeeRegistration(data);
             }
 
-            _logger.LogInformation($"DataMart Handler did not retrieve any records for employer lead import");
+            _logger.LogInformation("DataMart Handler did not retrieve any records for employer lead import");
             summary.Status = "Completed";
             summary.EndTime = DateTime.UtcNow;
             summary.Messages.Add("No records to import.");
             return summary;
-
         }
     }
 }

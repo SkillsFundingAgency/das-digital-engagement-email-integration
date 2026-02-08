@@ -95,7 +95,7 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Services
             stream.Position = 0;
             using var reader = new StreamReader(stream);
 
-            var result = _service.IsEmpty(reader);
+            var result = CsvService.IsEmpty(reader);
 
             Assert.That(result, Is.True);
         }
@@ -110,7 +110,7 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Services
             stream.Position = 0;
             using var reader = new StreamReader(stream);
 
-            var result = _service.IsEmpty(reader);
+            var result = CsvService.IsEmpty(reader);
 
             Assert.That(result, Is.False);
         }
@@ -122,7 +122,7 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Services
             var stream = new MemoryStream(Encoding.UTF8.GetBytes(csv));
             using var reader = new StreamReader(stream);
 
-            var result = _service.HasData(reader);
+            var result = CsvService.HasData(reader);
 
             Assert.That(result, Is.False);
         }
@@ -134,7 +134,7 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Services
             var stream = new MemoryStream(Encoding.UTF8.GetBytes(csv));
             using var reader = new StreamReader(stream);
 
-            var result = _service.HasData(reader);
+            var result = CsvService.HasData(reader);
 
             Assert.That(result, Is.True);
         }

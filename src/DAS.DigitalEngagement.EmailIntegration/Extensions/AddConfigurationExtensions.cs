@@ -33,8 +33,7 @@ namespace DAS.DigitalEngagement.EmailIntegration.Extensions
         public static IServiceCollection AddApplicationOptions(this IServiceCollection services, IConfiguration configuration)
         {
 
-            var optionsBuilder = services
-                .AddOptions<ApplicationConfiguration>()
+           services.AddOptions<ApplicationConfiguration>()
                 .Configure<IConfiguration>((settings, configuration) =>
                     configuration.Bind(settings));
 

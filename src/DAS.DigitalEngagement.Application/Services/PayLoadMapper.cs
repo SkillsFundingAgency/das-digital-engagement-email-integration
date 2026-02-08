@@ -14,7 +14,7 @@ namespace DAS.DigitalEngagement.Application.Services
             _dataMartSettings = dataMartSettings;
         }
     
-        public IList<ExpandoObject> MapToPayload<T>(IList<T> leads,string objectName)
+        public IList<ExpandoObject> MapToPayload<T>(IList<T> leads, string objectName)
         {
             ArgumentNullException.ThrowIfNull(leads);
 
@@ -25,7 +25,7 @@ namespace DAS.DigitalEngagement.Application.Services
                        ) ?? new List<FieldMap>();
 
             return leads
-                .Where(lead => lead != null)
+                .Where(lead => !Equals(lead, default(T)))
                 .Select(lead => MapDynamic(lead!, maps))
                 .ToList();
         }

@@ -10,7 +10,7 @@ namespace DAS.DigitalEngagement.Application.Services
         public double maxDensity { get; set; } = 0.95;
 
        
-        private IOptions<EShotAPIM> _eShotAPIMOptions;
+        private readonly IOptions<EShotAPIM> _eShotAPIMOptions;
 
         public ChunkingService(IOptions<EShotAPIM> eShotAPIMOptions)
         {
@@ -32,7 +32,7 @@ namespace DAS.DigitalEngagement.Application.Services
             return Math.Max(1, chunkSize); // Ensure chunkSize is at least 1    
         }
 
-        private IEnumerable<IList<T>> SplitList<T>(List<T> locations, int nSize)
+        private static IEnumerable<IList<T>> SplitList<T>(List<T> locations, int nSize)
         {
             for (int i = 0; i < locations.Count; i += nSize)
             {

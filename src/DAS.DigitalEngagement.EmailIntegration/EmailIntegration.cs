@@ -24,14 +24,17 @@ public class EmailIntegration
     {
         // 0 0 22 * * * Everyday at 10pm
         _logger.LogInformation("Timer trigger function executed at: {ExecutionTime}", DateTime.Now);
-        _logger.LogInformation("Connection string: {ConnectionString}", _configuration.ConnectionString);
-        _logger.LogInformation("API Base URL: {ApiBaseUrl}", _configuration.EShotAPIM?.ApiBaseUrl);  
+        _logger.LogInformation(
+            "Connection string: {ConnectionString}, API Base URL: {ApiBaseUrl}",
+            _configuration.ConnectionString,
+            _configuration.EShotAPIM?.ApiBaseUrl
+        );
 
         try
         {
             var importSummary = await _importDataMartHandler.Handle(_configuration.DataMart);
 
-            _logger.LogInformation($"Import Summary: {importSummary.ToString()}");
+            _logger.LogInformation("Import Summary: {ImportSummary}", importSummary.ToString());
             _logger.LogInformation("Email Integration Job completed successfully");
         }
         catch (Exception ex)

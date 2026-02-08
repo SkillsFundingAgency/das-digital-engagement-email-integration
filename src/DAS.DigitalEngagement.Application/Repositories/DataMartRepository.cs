@@ -1,18 +1,11 @@
 ﻿using Azure.Core;
-using Azure.Identity;
 using DAS.DigitalEngagement.Application.Repositories.Interfaces;
 using DAS.DigitalEngagement.Models.Infrastructure;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using System;
-using System.Collections.Generic;
-using System.Data;
 using System.Data.Common;
 using System.Dynamic;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace DAS.DigitalEngagement.Application.Repositories
 {
@@ -37,7 +30,6 @@ namespace DAS.DigitalEngagement.Application.Repositories
             _tokenCredential = tokenCredential;
             _logger = logger;
 
-            // Default factory creates a SqlConnection using the configured connection string.
             _connectionFactory = connectionFactory ?? (() => new SqlConnection(_connectionString));
         }
 
@@ -51,7 +43,6 @@ namespace DAS.DigitalEngagement.Application.Repositories
 
             await using (var conn = _connectionFactory())
             {
-                // If the concrete connection is SqlConnection, set the AccessToken for AAD auth.
                 if (conn is SqlConnection sqlConn)
                 {
                     sqlConn.AccessToken = accessToken.Token;
@@ -79,7 +70,6 @@ namespace DAS.DigitalEngagement.Application.Repositories
                             }
 
                             results.Add((ExpandoObject)row);
-                           // _logger.LogInformation("Retrieved row with data: {RowData}", string.Join(", ", row.Select(kv => $"{kv.Key}={kv.Value}")));
                         }
                     }
                 }
