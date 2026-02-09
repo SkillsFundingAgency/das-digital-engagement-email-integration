@@ -18,13 +18,13 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Services
     [TestFixture]
     public class ImportServiceTests
     {
-            private Mock<IExternalApiService> _externalApiServiceMock;
-            private Mock<ILogger<ImportService>> _loggerMock;
-            private Mock<IPayLoadMapper> _payLoadMapperMock;
-            private Mock<IChunkingService> _chunkingServiceMock;
-            private Mock<ICsvService> _csvServiceMock;
-            private IList<DataMartSettings> _dataMartSettings;
-            private ImportService _service;
+        private Mock<IExternalApiService> _externalApiServiceMock;
+        private Mock<ILogger<ImportService>> _loggerMock;
+        private Mock<IPayLoadMapper> _payLoadMapperMock;
+        private Mock<IChunkingService> _chunkingServiceMock;
+        private Mock<ICsvService> _csvServiceMock;
+        private IList<DataMartSettings> _dataMartSettings;
+        private ImportService _service;
 
             [SetUp]
             public void SetUp()
@@ -93,15 +93,19 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Services
                 new ExpandoObject()
             };
             var csvString = "csv";
-            var importResult = new ImportSummaryResult { Status = "Completed" };
+            var batchResult = new BatchResultDetail { Status = "Completed", TokenFromEshot = "{\"Token\":\"abc\"}" };
 
             _csvServiceMock.Setup(x => x.GetByteCount(It.IsAny<IList<string>>())).Returns(10);
             _chunkingServiceMock.Setup(x => x.GetChunks(It.IsAny<int>(), It.IsAny<IList<string>>())).Returns(chunkedLeads);
             _payLoadMapperMock.Setup(x => x.MapToPayload(It.IsAny<IList<string>>(), It.IsAny<string>())).Returns(payload);
             _csvServiceMock.Setup(x => x.ToCsv(It.IsAny<IList<ExpandoObject>>())).Returns(csvString);
-            _csvServiceMock.Setup(x => x.GenerateStreamFromString(csvString)).Returns(new System.IO.MemoryStream());
             _externalApiServiceMock.Setup(x => x.PostDataAsync(It.IsAny<string>(), csvString))
-                .Returns(Task.FromResult<BatchResultDetail>(new BatchResultDetail { Status = "Completed" }));
+                .ReturnsAsync(batchResult);
+
+            // Mock the API call inside VerifyContactImport
+            _externalApiServiceMock
+                .Setup(x => x.GetDataAsync(It.Is<string>(s => s.Contains("ContactImports"))))
+                .ReturnsAsync("{\"value\":[{\"ContactsImported\":2,\"ImportStatus\":\"Completed\",\"AdditionalInfo\":null}]}");
 
             var summary = await _service.ImportEmployeeRegistration(leads);
 
@@ -134,28 +138,37 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Services
         {
             var leads = new List<string> { "lead1", "lead2" };
             var chunkedLeads = new List<IList<string>>
-                    {
-                        new List<string> { "lead1" },
-                        new List<string> { "lead2" }
-                    };
+    {
+        new List<string> { "lead1" },
+        new List<string> { "lead2" }
+    };
             var payload = new List<ExpandoObject> { new ExpandoObject() };
             var csvString = "csv,t";
 
             _csvServiceMock.Setup(x => x.GetByteCount(It.IsAny<IList<string>>())).Returns(10);
             _chunkingServiceMock.Setup(x => x.GetChunks<string>(It.IsAny<long>(), It.IsAny<IList<string>>()))
-                        .Returns(chunkedLeads);
+                .Returns(chunkedLeads);
             _payLoadMapperMock.Setup(x => x.MapToPayload(It.IsAny<IList<string>>(), It.IsAny<string>())).Returns(payload);
             _csvServiceMock.Setup(x => x.ToCsv(It.IsAny<IList<ExpandoObject>>())).Returns(csvString);
-            _csvServiceMock.Setup(x => x.GenerateStreamFromString(csvString)).Returns(new System.IO.MemoryStream());
 
+            // Mock PostDataAsync for each batch
             _externalApiServiceMock.SetupSequence(x => x.PostDataAsync(It.IsAny<string>(), csvString))
-                .ReturnsAsync(new BatchResultDetail { Status = "Completed" })
-                .ReturnsAsync(new BatchResultDetail { Status = "Failed" });
+                .ReturnsAsync(new BatchResultDetail { Status = "Completed", TokenFromEshot = "{\"Token\":\"abc\"}" })
+                .ReturnsAsync(new BatchResultDetail { Status = "Failed", TokenFromEshot = "{\"Token\":\"def\"}" });
+
+            // Mock GetDataAsync for VerifyContactImport for both batches
+            _externalApiServiceMock
+                .Setup(x => x.GetDataAsync(It.Is<string>(s => s.Contains("ContactImports") && s.Contains("abc"))))
+                .ReturnsAsync("{\"value\":[{\"ContactsImported\":1,\"ImportStatus\":\"Completed\",\"AdditionalInfo\":null}]}");
+            _externalApiServiceMock
+                .Setup(x => x.GetDataAsync(It.Is<string>(s => s.Contains("ContactImports") && s.Contains("def"))))
+                .ReturnsAsync("{\"value\":[{\"ContactsImported\":1,\"ImportStatus\":\"Error\",\"AdditionalInfo\":\"Some error\"}]}");
 
             var summary = await _service.ImportEmployeeRegistration(leads);
 
             Assert.That(summary.Status, Is.EqualTo("Partial"));
             Assert.That(summary.BatchResults.Any(b => b.Status == "Failed"));
+            Assert.That(summary.Messages, Does.Contain("Import completed."));
         }
 
         [Test]
@@ -180,36 +193,36 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Services
             Assert.That(ex.InnerException.Message, Does.Contain("Employee registration config is missing"));
         }
 
-
-
-
         [Test]
         public async Task ImportEmployeeRegistration_ReturnsPartial_WhenAnyBatchNotCompleted()
         {
             var leads = new List<string> { "lead1", "lead2", "lead3", "lead4" };
             var chunkedLeads = new List<IList<string>>
-                                {
-                                    new List<string> { "lead1", "lead2" },
-                                    new List<string> { "lead3", "lead4" }
-                                };
+                    {
+                        new List<string> { "lead1", "lead2" },
+                        new List<string> { "lead3", "lead4" }
+                    };
             var payload = new List<ExpandoObject> { new ExpandoObject() };
             var csvString = "csv";
 
             _csvServiceMock.Setup(x => x.GetByteCount(It.IsAny<IList<string>>())).Returns(1);
-
-            // Fix: Use It.IsAny<long>() instead of It.IsAny<int>() to match the signature
             _chunkingServiceMock.Setup(x => x.GetChunks<string>(It.IsAny<long>(), It.IsAny<IList<string>>()))
                 .Returns(chunkedLeads);
-
-            _payLoadMapperMock.Setup(x => x.MapToPayload(It.IsAny<IList<string>>(), It.IsAny<string>()))
-                .Returns(payload);
+            _payLoadMapperMock.Setup(x => x.MapToPayload(It.IsAny<IList<string>>(), It.IsAny<string>())).Returns(payload);
             _csvServiceMock.Setup(x => x.ToCsv<ExpandoObject>(It.IsAny<IList<ExpandoObject>>())).Returns(csvString);
-            _csvServiceMock.Setup(x => x.GenerateStreamFromString(It.IsAny<string>()))
-                .Returns(new System.IO.MemoryStream());
 
+            // Mock PostDataAsync for each batch
             _externalApiServiceMock.SetupSequence(x => x.PostDataAsync(It.IsAny<string>(), It.IsAny<string>()))
-                .ReturnsAsync(new BatchResultDetail { Status = "Completed" })
-                .ReturnsAsync(new BatchResultDetail { Status = "Failed" });
+                .ReturnsAsync(new BatchResultDetail { Status = "Completed", TokenFromEshot = "{\"Token\":\"abc\"}" })
+                .ReturnsAsync(new BatchResultDetail { Status = "Failed", TokenFromEshot = "{\"Token\":\"def\"}" });
+
+            // Mock GetDataAsync for VerifyContactImport for both batches
+            _externalApiServiceMock
+                .Setup(x => x.GetDataAsync(It.Is<string>(s => s.Contains("ContactImports") && s.Contains("abc"))))
+                .ReturnsAsync("{\"value\":[{\"ContactsImported\":2,\"ImportStatus\":\"Completed\",\"AdditionalInfo\":null}]}");
+            _externalApiServiceMock
+                .Setup(x => x.GetDataAsync(It.Is<string>(s => s.Contains("ContactImports") && s.Contains("def"))))
+                .ReturnsAsync("{\"value\":[{\"ContactsImported\":2,\"ImportStatus\":\"Error\",\"AdditionalInfo\":\"Some error\"}]}");
 
             var summary = await _service.ImportEmployeeRegistration(leads);
 
@@ -217,8 +230,6 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Services
             Assert.That(summary.BatchResults.Count, Is.EqualTo(2));
             Assert.That(summary.Messages, Does.Contain("Import completed."));
         }
-
-
 
         [Test]
         public async Task ImportEmployeeRegistration_HandlesNullLeads()
