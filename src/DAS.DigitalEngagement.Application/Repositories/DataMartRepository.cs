@@ -59,8 +59,6 @@ namespace DAS.DigitalEngagement.Application.Repositories
                     {
                         while (await reader.ReadAsync())
                         {
-                            _logger.LogInformation("Reading a new row from the result set.");
-
                             IDictionary<string, object?> row = new ExpandoObject();
 
                             for (int i = 0; i < reader.FieldCount; i++)

@@ -66,12 +66,14 @@ namespace DAS.DigitalEngagement.Application.Services
                     index++;
                     var payLoad = _payLoadMapper.MapToPayload(contactsList, empRegistrationSettings.ObjectName);
                     var csvString = _csvService.ToCsv(payLoad.ToList());
-              
+
                     var importResult = await _externalApiService.PostDataAsync(
                         $"ContactImports/TemplatedUpload({empRegistrationSettings.TemplatedUploadId})", csvString);
-                    
+
                     importResult.BatchId = $"Batch : {index}";
-                    importResult.RecordsProcessed = contactsList.Count;
+
+                    await VerifyContactImport(importResult);
+
                     summary.BatchResults.Add(importResult);
 
                     _logger.LogInformation("Called External API to import employee registrations.");
@@ -95,6 +97,54 @@ namespace DAS.DigitalEngagement.Application.Services
             }
 
             return summary;
+        }
+
+        private async Task VerifyContactImport(BatchResultDetail importResult)
+        {
+            ExtractToken(importResult);
+
+            // Wait for 60 sec before checking the import status otherwise we get the "Waiting" response
+            await Task.Delay(TimeSpan.FromSeconds(60));
+
+            // The token value should be wrapped in single quotes for OData filter
+            var filter = WebUtility.UrlEncode($"Token eq '{importResult.TokenFromEshot}'");
+            var response = await _externalApiService.GetDataAsync($"ContactImports?$filter={filter}");
+
+            var node = JsonNode.Parse(response)?["value"]?.AsArray()?.FirstOrDefault();
+            if (node != null)
+            {
+                importResult.RecordsProcessed = node["ContactsImported"]?.GetValue<int?>() ?? 0;
+                var error = node["ImportStatus"]?.GetValue<string>() ?? importResult.Status;
+                importResult.Status = error == "Error" ? "Failed" : "Completed";
+                importResult.Error = node["AdditionalInfo"]?.GetValue<string>();
+
+                if (importResult.Status == "Failed")
+                {
+                    var errorInfo = $"Import error: {importResult.Error}";
+                    _logger.LogError(errorInfo);
+                }
+            }
+        }
+
+        private void ExtractToken(BatchResultDetail importResult)
+        {
+            // Parse the token if it's a JSON string like {"Token":"..."}
+            if (!string.IsNullOrEmpty(importResult.TokenFromEshot) && importResult.TokenFromEshot.TrimStart().StartsWith("{"))
+            {
+                try
+                {
+                    var tokenNode = JsonNode.Parse(importResult.TokenFromEshot);
+                    var tokenValue = tokenNode?["Token"]?.GetValue<string>();
+                    if (!string.IsNullOrEmpty(tokenValue))
+                    {
+                        importResult.TokenFromEshot = tokenValue;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to parse TokenFromEshot JSON.");
+                }
+            }
         }
 
         private DataMartSettings GetDataMartConfig(string objectName)
