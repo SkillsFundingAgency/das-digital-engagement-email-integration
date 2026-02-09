@@ -167,7 +167,7 @@ To run locally, add the following to your `local.settings.json`:
       "ViewName": "*****",
       "ConfigFileLocation": null,
       "TemplatedUploadId": "1",
-      "FieldMapping": "[{\"Source\":\"Email\",\"Target\":\"Email\"},{\"Source\":\"FirstName\",\"Target\":\"FirstName\"},{\"Source\":\"LastName\",\"Target\":\"LastName\"},{\"Source\":\"LastSentDate\"}]"
+      "FieldMapping": "[{\"Source\":\"Email\",\"Target\":\"Email\"},{\"Source\":\"FirstName\",\"Target\":\"FirstName\"},{\"Source\":\"LastName\",\"Target\":\"LastName\"},{\"Source\":\"DateOfLastAPIAutoSync\",\"Target\":\"DateOfLastAPIAutoSync\"}]"
     }
   ]
 }
