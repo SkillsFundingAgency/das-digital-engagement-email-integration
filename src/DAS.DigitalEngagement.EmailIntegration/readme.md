@@ -99,100 +99,131 @@ This repository contains projects targeting .NET 8 for digital engagement and em
 4. Build the solution.
 5. Run the project using Visual Studio or the command line.
 
-# TimerTrigger - C#
+---
+
+## TimerTrigger - C#
 
 This sample demonstrates how to use a `TimerTrigger` in a .NET 8 Azure Function to execute code on a schedule.
 
-## How it works
+### How it works
 
-A `TimerTrigger` allows you to run your function based on a schedule defined by a [cron expression]. Cron expressions are strings with 6 fields representing: seconds, minutes, hours, day of month, month, and day of week.
+A `TimerTrigger` allows you to run your function based on a schedule defined by a cron expression. Cron expressions are strings with 6 fields representing: seconds, minutes, hours, day of month, month, and day of week.
 
 For example, the cron expression `0 */5 * * * *` means:
-- At second 0,
-- Every 5 minutes,
-- Every hour,
-- Every day of the month,
-- Every month,
-- Every day of the week.
+
+- At second 0
+- Every 5 minutes
+- Every hour
+- Every day of the month
+- Every month
+- Every day of the week
 
 This will trigger the function every 5 minutes.
 
-## Example Function
+### Example Function
 
 - The schedule is configured via the `EmailIntegrationSchedule` setting in `local.settings.json`.
 - The function logs the execution time each time it runs.
 
-## Configuration
+### Configuration
 
 To run locally, add the following to your `local.settings.json`:
 
 - `EmailIntegrationSchedule`: Cron expression for the timer. Example: `0/5 * * * * *` triggers every 5 seconds. For daily at 10pm, use `0 0 22 * * *`.
 
-## Learn more
+### Learn more
 
 - [Azure Functions TimerTrigger documentation](https://learn.microsoft.com/en-us/azure/azure-functions/functions-bindings-timer)
 
- ## Table Storage Configuration
+---
 
-    PartitionKey			
-    LOCAL2	
+## Table Storage Configuration
 
-    RowKey
-    SFA.DAS.EmailIntegration_1.0	
+**PartitionKey**  
+`LOCAL2`
 
-     **Data:**
+**RowKey**  
+`SFA.DAS.EmailIntegration_1.0`
+
+**Data:**
+
+```json
+{
+  "ConnectionString": {
+    "DataMart": "Server=tcp:******,****;Initial Catalog=****;Persist Security Info=False;MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;"
+  },
+  "Functions": {
+    "EmailIntegrationSchedule": "0 */5 * * * *"
+  },
+  "EShotAPIM": {
+    "ApiBaseUrl": "https://rest-api.e-shot.net",
+    "ApiClientId": "********",
+    "ApiRetryCount": 6,
+    "ChunkSizeKB": 5
+  },
+  "DataMart": [
     {
-        "ConnectionString": {
-            "DataMart": "Server=tcp:******,****;Initial Catalog=****;Persist Security Info=False;MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;"
-        },
-        "Functions": {
-            "EmailIntegrationSchedule": "0 */5 * * * *"
-        },
-        "EShotAPIM": {
-            "ApiBaseUrl": "https://rest-api.e-shot.net",
-            "ApiClientId": "********",
-            "ApiRetryCount": 6,
-            "ChunkSizeKB": 5
-        },
-        "DataMart": [{
-                "ObjectName": "Lead",
-                "ViewName": "*****",
-                "ConfigFileLocation": null,
-                "TemplatedUploadId": "1",
-                "FieldMapping": "[{\"Source\":\"Email\",\"Target\":\"Email\"},{\"Source\":\"FirstName\",\"Target\":\"FirstName\"},{\"Source\":\"LastName\",\"Target\":\"LastName\"},{\"Source\":\"LastLogin\",\"Target\":\"LastSentDate\"}]"
-            }
-        ]
+      "ObjectName": "Lead",
+      "ViewName": "*****",
+      "ConfigFileLocation": null,
+      "TemplatedUploadId": "1",
+      "FieldMapping": "[{\"Source\":\"Email\",\"Target\":\"Email\"},{\"Source\":\"FirstName\",\"Target\":\"FirstName\"},{\"Source\":\"LastName\",\"Target\":\"LastName\"},{\"Source\":\"LastSentDate\"}]"
     }
+  ]
+}
+```
 
-- 
+---
 
-### Architecture Diagram (Mermaid)
+## Architecture Diagram (Mermaid)
+
 ```mermaid
 flowchart TD
-    A[Azure Function TimerTrigger] --> B[ImportDataMartHandler]
-    B --> C[ImportService]
-    C --> D[ExternalApiService]
-    D --> E[External Email Provider (e-shot API)]
-    C --> F[DataMart Repository]
-    F --> G[SQL Database]
-    D --> H[Logging & Monitoring]
-    H --> I[Application Insights / OpenTelemetry]
-
-    subgraph Application Layer
-        B
-        C
-        F
+    subgraph Azure["Azure Environment"]
+        TTRG[TimerTrigger Function - DAS.DigitalEngagement.EmailIntegration]
+        DI["(Dependency Injection Container)"]
+        AI["(Application Insights & OpenTelemetry)"]
+        CFG["(Configuration - Azure Table Storage/App Settings)"]
     end
 
-    subgraph Integration Layer
-        D
-        E
+    subgraph AppLayer["Application Layer (.NET 8)"]
+        SRV1[ImportService]
+        SRV2[ExternalApiService]
+        REPO["(Repository / Data Access)"]
+        MODELS["[DAS.DigitalEngagement.Models - DTOs / Entities]"]
     end
 
-    subgraph Monitoring
-        H
-        I
+    subgraph Integrations["External Integrations"]
+        ESHOT["(e-shot REST API)"]
+        SQL["(DataMart SQL Database)"]
     end
-    ```
 
+    %% Wiring
+    TTRG -->|Resolves services| DI
+    DI --> SRV1
+    DI --> SRV2
+    DI --> REPO
 
+    %% Config and telemetry
+    CFG --> TTRG
+    CFG --> SRV1
+    CFG --> SRV2
+    TTRG --> AI
+    SRV1 --> AI
+    SRV2 --> AI
+    REPO --> AI
+
+    %% Data & API flows
+    TTRG -->|Triggers workflow on schedule| SRV1
+    SRV1 -->|Reads source data| REPO
+    REPO -->|Queries/Views| SQL
+    SRV1 -->|Maps and prepares payloads| MODELS
+    SRV1 -->|Batched uploads / sync| SRV2
+    SRV2 -->|REST calls| ESHOT
+    SRV2 -->|Results / status| SRV1
+
+    %% Shared models
+    TTRG --- MODELS
+    SRV2 --- MODELS
+    REPO --- MODELS
+```
