@@ -132,63 +132,7 @@ To run locally, add the following to your `local.settings.json`:
 
 - [Azure Functions TimerTrigger documentation](https://learn.microsoft.com/en-us/azure/azure-functions/functions-bindings-timer)
 
-
-- 
-### Architecture Diagram (Mermaid)
-
-```mermaid
-flowchart LR
-    subgraph Azure["Azure Environment"]
-        TTRG[TimerTrigger Function<br/>DAS.DigitalEngagement.EmailIntegration]
-        DI[(Dependency Injection Container)]
-        AI[(Application Insights<br/>& OpenTelemetry)]
-        CFG[(Configuration<br/>Azure Table Storage/App Settings)]
-    end
-
-    subgraph AppLayer["Application Layer (.NET 8)"]
-        SRV1[ImportService]
-        SRV2[ExternalApiService]
-        REPO[(Repository / Data Access)]
-        MODELS[[DAS.DigitalEngagement.Models<br/>DTOs / Entities]]
-    end
-
-    subgraph Integrations["External Integrations"]
-        ESHOT[(e-shot REST API)]
-        SQL[(DataMart SQL Database)]
-    end
-
-    %% Wiring
-    TTRG -->|Resolves services| DI
-    DI --> SRV1
-    DI --> SRV2
-    DI --> REPO
-
-    %% Config and telemetry
-    CFG --> TTRG
-    CFG --> SRV1
-    CFG --> SRV2
-    TTRG --> AI
-    SRV1 --> AI
-    SRV2 --> AI
-    REPO --> AI
-
-    %% Data & API flows
-    TTRG -->|Triggers workflow on schedule| SRV1
-    SRV1 -->|Reads source data| REPO
-    REPO -->|Queries/Views| SQL
-    SRV1 -->|Maps & prepares payloads| MODELS
-    SRV1 -->|Batched uploads / sync| SRV2
-    SRV2 -->|REST calls| ESHOT
-    SRV2 -->|Results / status| SRV1
-
-    %% Shared models
-    TTRG --- MODELS
-    SRV2 --- MODELS
-    REPO --- MODELS
-
-
-
-    ## Table Storage Configuration
+ ## Table Storage Configuration
 
     PartitionKey			
     LOCAL2	
@@ -219,3 +163,36 @@ flowchart LR
             }
         ]
     }
+
+- 
+
+### Architecture Diagram (Mermaid)
+```mermaid
+flowchart TD
+    A[Azure Function TimerTrigger] --> B[ImportDataMartHandler]
+    B --> C[ImportService]
+    C --> D[ExternalApiService]
+    D --> E[External Email Provider (e-shot API)]
+    C --> F[DataMart Repository]
+    F --> G[SQL Database]
+    D --> H[Logging & Monitoring]
+    H --> I[Application Insights / OpenTelemetry]
+
+    subgraph Application Layer
+        B
+        C
+        F
+    end
+
+    subgraph Integration Layer
+        D
+        E
+    end
+
+    subgraph Monitoring
+        H
+        I
+    end
+    ```
+
+
