@@ -13,7 +13,8 @@ SELECT   Email
         ,acc.Id as EmployerAccountID
         ,acc.CreatedDate as CreatedDate
         ,us.LastLogin as LastLogin
-        ,acc.ApprenticeshipEmployerType as ApprenticeshipEmployerType
+        ,acc.ApprenticeshipEmployerType as ApprenticeshipEmployerType,
+         GETDATE() as DateOfLastAPIAutoSync
 
 
 FROM  [ASData_PL].[Acc_User] as us 
