@@ -23,36 +23,46 @@ namespace DAS.DigitalEngagement.Application.Import.Handlers
             _importService = importService;
         }
 
-        public async Task<BulkImportStatus> Handle(DataMartSettings config)
+        public async Task<ImportSummaryResult> Handle(IList<DataMartSettings> config)
         {
-            _logger.LogInformation($"about to handle employer lead import");
-
-            var data = await _dataMartRepository.RetrieveEmployeeRegistrationData(config.ViewName ?? "");
-
-            if (config.ObjectName == "Lead")
+            var summary = new ImportSummaryResult
             {
-                var status = await _importService.ImportEmployeeRegistration(data);
+                StartTime = DateTime.UtcNow,
+                Messages = new List<string>()
+            };
 
-                return status;
-            }
-            else
+            if (!config.Any(x => x.ObjectName == "Lead"))
             {
-                _logger.LogInformation($"No Object name is configured in the Configuration");
-                // Return a default BulkImportStatus instance to satisfy non-nullable contract
-                return new BulkImportStatus
-                {
-                    Container = string.Empty,
-                    Name = string.Empty,
-                    Id = string.Empty,
-                    StartTime = DateTime.UtcNow,
-                    BulkImportJobs = new List<BulkImportJob>(),
-                    BulkImportJobStatus = new List<BulkImportJobStatus>(),
-                    ImportFileIsValid = false,
-                    ValidationError = "No Object name is configured in the Configuration",
-                    HeaderErrors = Enumerable.Empty<string>()
-                };
+                summary.Status = "Failed";
+                summary.EndTime = DateTime.UtcNow;
+                summary.Messages.Add("Expected Object name is configured in the Configuration");
+                return summary;
             }
+
+            if (!await _importService.IsContactImportTemplatesExist())
+            {
+                _logger.LogWarning("Contact import template is not availabel in E-shot.");
+                summary.Status = "Failed";
+                summary.EndTime = DateTime.UtcNow;
+                summary.Messages.Add("Contact import template is not available in E-shot.");
+                return summary;
+            }
+
+            _logger.LogInformation("DataMart Handler is about to handle employer lead import");
+
+            var data = await _dataMartRepository.RetrieveEmployeeRegistrationData();
+
+            if (data != null && data.Count > 0)
+            {
+                _logger.LogInformation("DataMart Handler retrieved {RecordCount} records for employer lead import", data.Count);
+                return await _importService.ImportEmployeeRegistration(data);
+            }
+
+            _logger.LogInformation("DataMart Handler did not retrieve any records for employer lead import");
+            summary.Status = "Completed";
+            summary.EndTime = DateTime.UtcNow;
+            summary.Messages.Add("No records to import.");
+            return summary;
         }
-
     }
 }

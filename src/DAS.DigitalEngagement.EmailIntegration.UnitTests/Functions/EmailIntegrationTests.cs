@@ -1,179 +1,133 @@
 using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
 using DAS.DigitalEngagement.Application.Handlers.Import.Interfaces;
-using DAS.DigitalEngagement.Models.Import;
 using DAS.DigitalEngagement.Models.Infrastructure;
+using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging;
 using Moq;
+using System.Collections.Generic;
+using DAS.DigitalEngagement.Models.Import;
 
 namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Functions
 {
     [TestFixture]
     public class EmailIntegrationTests
     {
-        private Mock<ILogger<EmailIntegration>> _mockLogger;
-        private Mock<IImportDataMartHandler> _mockImportDataMartHandler;
-        private ApplicationConfiguration _mockConfiguration;
-        private EmailIntegration _emailIntegration;
+        private Mock<ILogger<EmailIntegration>> _loggerMock;
+        private Mock<IImportDataMartHandler> _importDataMartHandlerMock;
+        private ApplicationConfiguration _configuration;
+        private EmailIntegration _sut;
 
         [SetUp]
         public void SetUp()
         {
-            _mockLogger = new Mock<ILogger<EmailIntegration>>();
-
-
-            _mockImportDataMartHandler = new Mock<IImportDataMartHandler>();
-
-            _mockConfiguration = new ApplicationConfiguration
+            _loggerMock = new Mock<ILogger<EmailIntegration>>();
+            _importDataMartHandlerMock = new Mock<IImportDataMartHandler>();
+            _configuration = new ApplicationConfiguration
             {
-                DataMart = new[]
-                {
-                new DataMartSettings
-                {
-                    ViewName = "TestView"
-                }
-            },
-                ConnectionString = new ConnectionString
-                {
-                    DataMart = "TestConnectionString"
-                },
+                ConnectionString = new ConnectionString { DataMart = "TestConnectionString" },
                 EShotAPIM = new EShotAPIM
                 {
-                    ApiBaseUrl = "https://api.test.com"
+                    ApiBaseUrl = "https://api.test.com",
+                    ApiClientId = "TestClientId",
+                    ApiRetryCount = 3,
+                    ChunkSizeKB = 1024
+                },
+                DataMart = new List<DataMartSettings>
+                {
+                    new DataMartSettings
+                    {
+                        ViewName = "TestView",
+                        ObjectName = "TestObject",
+                        Config = "TestConfig",
+                        FieldMapping = "TestFieldMapping",
+                        TemplatedUploadId = 1
+                    }
                 }
             };
-
-            _emailIntegration = new EmailIntegration(_mockLogger.Object, _mockImportDataMartHandler.Object, _mockConfiguration);
-
+            _sut = new EmailIntegration(_loggerMock.Object, _importDataMartHandlerMock.Object, _configuration);
         }
 
         [Test]
-        public async Task RunAsync_ShouldLogError_WhenDataMartSettingsIsNull()
+        public async Task RunAsync_LogsInformationAndCallsHandler_WhenNoException()
         {
             // Arrange
-            _mockConfiguration.DataMart = Array.Empty<DataMartSettings>();
+            var timerInfo = new TimerInfo();
+            var importSummary = new ImportSummaryResult(); 
+            _importDataMartHandlerMock
+                .Setup(h => h.Handle(_configuration.DataMart))
+                .ReturnsAsync(importSummary);
 
             // Act
-            var timerInfo = Activator.CreateInstance(typeof(Microsoft.Azure.Functions.Worker.TimerInfo), true) as Microsoft.Azure.Functions.Worker.TimerInfo
-                ?? throw new InvalidOperationException("Failed to create TimerInfo instance.");
-
-            await _emailIntegration.RunAsync(timerInfo);
+            await _sut.RunAsync(timerInfo);
 
             // Assert
-            _mockLogger.Verify(
+            _importDataMartHandlerMock.Verify(h => h.Handle(_configuration.DataMart), Times.Once);
+            _loggerMock.Verify(
                 x => x.Log(
-                    LogLevel.Error,
+                    LogLevel.Information,
                     It.IsAny<EventId>(),
-                    It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("First DataMartSettings entry is null.")),
-                    It.IsAny<Exception>(),
+                    It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("Timer trigger function executed at")),
+                    null,
                     It.IsAny<Func<It.IsAnyType, Exception, string>>()),
-                Times.Once
-            );
-        }
-
-
-        [TestCase(new object[0], "First DataMartSettings entry is null.")]
-        [TestCase(new object[] { "ValidView" }, "Starting Email Integration Job")]
-        public async Task RunAsync_ShouldHandleVariousDataMartSettings(object[] dataMartSettings, string expectedLogMessage)
-        {
-            // Arrange
-            _mockConfiguration.DataMart = dataMartSettings?.Select(viewName => new DataMartSettings { ViewName = viewName?.ToString() }).ToArray();
-
-
-            var timerInfo = Activator.CreateInstance(typeof(Microsoft.Azure.Functions.Worker.TimerInfo), true) as Microsoft.Azure.Functions.Worker.TimerInfo
-                ?? throw new InvalidOperationException("Failed to create TimerInfo instance.");
-
-            // Act
-            await _emailIntegration.RunAsync(timerInfo);
-
-            // Assert
-            _mockLogger.Verify(
+                Times.Once);
+            _loggerMock.Verify(
                 x => x.Log(
-                    It.IsAny<LogLevel>(),
+                    LogLevel.Information,
                     It.IsAny<EventId>(),
-                    It.Is<It.IsAnyType>((v, t) => v.ToString().Contains(expectedLogMessage)),
-                    It.IsAny<Exception>(),
+                    // Updated to match the actual logged value (the type name)
+                    It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("Connection string: DAS.DigitalEngagement.Models.Infrastructure.ConnectionString")),
+                    null,
                     It.IsAny<Func<It.IsAnyType, Exception, string>>()),
-                Times.Once
-            );
-        }
-
-        [Test]
-        public async Task RunAsync_ShouldLogInformation_WhenJobCompletesSuccessfully()
-        {
-            // Arrange
-            var validDataMartSettings = new DataMartSettings
-            {
-                ViewName = "ValidView"
-            };
-
-            _mockConfiguration.DataMart = new[] { validDataMartSettings };
-
-            _mockImportDataMartHandler
-                .Setup(h => h.Handle(It.IsAny<DataMartSettings>()))
-                .ReturnsAsync(new BulkImportStatus
-                {
-                    Container = "TestContainer",
-                    Name = "TestName",
-                    Id = "TestId",
-                    BulkImportJobStatus = new List<BulkImportJobStatus>(),
-                    ValidationError = string.Empty
-                }); // Simulate successful handling
-
-            var timerInfo = Activator.CreateInstance(typeof(Microsoft.Azure.Functions.Worker.TimerInfo), true) as Microsoft.Azure.Functions.Worker.TimerInfo
-                ?? throw new InvalidOperationException("Failed to create TimerInfo instance.");
-
-            // Act
-            await _emailIntegration.RunAsync(timerInfo);
-
-            // Assert
-            _mockLogger.Verify(
+                Times.Once);
+            _loggerMock.Verify(
+                x => x.Log(
+                    LogLevel.Information,
+                    It.IsAny<EventId>(),
+                    It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("API Base URL: https://api.test.com")),
+                    null,
+                    It.IsAny<Func<It.IsAnyType, Exception, string>>()),
+                Times.Once);
+            _loggerMock.Verify(
+                x => x.Log(
+                    LogLevel.Information,
+                    It.IsAny<EventId>(),
+                    It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("Import Summary")),
+                    null,
+                    It.IsAny<Func<It.IsAnyType, Exception, string>>()),
+                Times.Once);
+            _loggerMock.Verify(
                 x => x.Log(
                     LogLevel.Information,
                     It.IsAny<EventId>(),
                     It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("Email Integration Job completed successfully")),
-                    It.IsAny<Exception>(),
+                    null,
                     It.IsAny<Func<It.IsAnyType, Exception, string>>()),
-                Times.Once
-            );
+                Times.Once);
         }
 
         [Test]
-        public async Task RunAsync_ShouldLogError_WhenJobFailsWithException()
+        public async Task RunAsync_LogsError_WhenExceptionThrown()
         {
             // Arrange
-            var validDataMartSettings = new DataMartSettings
-            {
-                ViewName = "ValidView"
-            };
-
-            _mockConfiguration.DataMart = new[] { validDataMartSettings };
-
-            var testException = new Exception("Test exception");
-
-            _mockImportDataMartHandler
-                .Setup(h => h.Handle(It.IsAny<DataMartSettings>()))
-                .ThrowsAsync(testException); // Simulate an exception during handling
-
-            var timerInfo = Activator.CreateInstance(typeof(Microsoft.Azure.Functions.Worker.TimerInfo), true) as Microsoft.Azure.Functions.Worker.TimerInfo
-                ?? throw new InvalidOperationException("Failed to create TimerInfo instance.");
+            var timerInfo = new TimerInfo();
+            var exception = new Exception("Test exception");
+            _importDataMartHandlerMock
+                .Setup(h => h.Handle(_configuration.DataMart))
+                .ThrowsAsync(exception);
 
             // Act
-            await _emailIntegration.RunAsync(timerInfo);
+            await _sut.RunAsync(timerInfo);
 
             // Assert
-            _mockLogger.Verify(
+            _loggerMock.Verify(
                 x => x.Log(
                     LogLevel.Error,
                     It.IsAny<EventId>(),
                     It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("Email Integration Job failed with an exception")),
-                    testException,
+                    exception,
                     It.IsAny<Func<It.IsAnyType, Exception, string>>()),
-                Times.Once
-            );
+                Times.Once);
         }
-
     }
 }

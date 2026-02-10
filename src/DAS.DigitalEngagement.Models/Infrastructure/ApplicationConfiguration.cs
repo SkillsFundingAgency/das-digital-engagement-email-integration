@@ -11,9 +11,9 @@ namespace DAS.DigitalEngagement.Models.Infrastructure
     [ExcludeFromCodeCoverage]
     public class ApplicationConfiguration
     {
-        public ConnectionString? ConnectionString { get; set; }
+        public required ConnectionString ConnectionString { get; set; }
         public Functions? Functions { get; set; }
-        public EShotAPIM? EShotAPIM { get; set; }
-        public IList<DataMartSettings> DataMart { get; set; } = new List<DataMartSettings>();
+        public required EShotAPIM EShotAPIM { get; set; }
+        public required IList<DataMartSettings> DataMart { get; set; } = new List<DataMartSettings>();
     }
 }

@@ -5,7 +5,7 @@ namespace DAS.DigitalEngagement.Application.Services.Interfaces
 {
     public interface IImportService
     {
-        Task<BulkImportStatus> ImportEmployeeRegistration<T>(IList<T> leads);
-
+        Task<ImportSummaryResult> ImportEmployeeRegistration<T>(IList<T> leads);
+        Task<bool> IsContactImportTemplatesExist();
     }
 }

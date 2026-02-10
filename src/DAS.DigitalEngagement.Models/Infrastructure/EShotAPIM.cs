@@ -10,9 +10,10 @@ namespace DAS.DigitalEngagement.Models.Infrastructure
     [ExcludeFromCodeCoverage]
     public class EShotAPIM
     {
-        public string? ApiBaseUrl { get; set; }
-        public string? ApiClientId { get; set; }
-        public int ApiRetryCount { get; set; }
+        public required string ApiBaseUrl { get; set; }
+        public required string ApiClientId { get; set; }
+        public  required int ApiRetryCount { get; set; }
+        public required int ChunkSizeKB { get; set; } = 10240; // Default to 10 MB
     }
 
 }

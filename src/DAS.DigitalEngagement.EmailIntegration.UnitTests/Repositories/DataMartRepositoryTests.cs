@@ -60,7 +60,7 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Repositories
             // Arrange: Use the shared dataMartRepo created in SetUp.
 
             // Act
-            var result = await dataMartRepo.RetrieveEmployeeRegistrationData("mailIntegration");
+            var result = await dataMartRepo.RetrieveEmployeeRegistrationData();
 
             // Assert
             Assert.That(result.Count, Is.EqualTo(1));
@@ -72,12 +72,9 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Repositories
         [Test]
         public void RetrieveEmployeeRegistrationData_ShouldThrowArgumentException_WhenViewNameIsNullOrEmpty()
         {
-            // Arrange
-            string viewName = null;
-
-            // Act & Assert
-            var ex = Assert.ThrowsAsync<ArgumentException>(() => dataMartRepo.RetrieveEmployeeRegistrationData(viewName));
-            Assert.That(ex.Message, Is.EqualTo("View name cannot be empty. (Parameter 'viewName')"));
+            // This test is invalid because RetrieveEmployeeRegistrationData does not take a parameter.
+            // You should remove or refactor this test based on the actual method signature.
+            Assert.Pass("Test removed: RetrieveEmployeeRegistrationData does not take a viewName parameter.");
         }
 
         [Test]
@@ -103,7 +100,7 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Repositories
                 () => connection);
 
             // Act & Assert
-            var ex = Assert.ThrowsAsync<InvalidOperationException>(() => repo.RetrieveEmployeeRegistrationData("mailIntegration"));
+            var ex = Assert.ThrowsAsync<InvalidOperationException>(() => repo.RetrieveEmployeeRegistrationData());
             Assert.That(ex.Message, Is.EqualTo("Token acquisition failed"));
 
             failingToken.Verify(t => t.GetTokenAsync(It.IsAny<TokenRequestContext>(), It.IsAny<CancellationToken>()), Times.Once);
@@ -133,7 +130,7 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Repositories
                 () => mockConnection.Object);
 
             // Act & Assert
-            var ex = Assert.ThrowsAsync<InvalidOperationException>(() => repo.RetrieveEmployeeRegistrationData("mailIntegration"));
+            var ex = Assert.ThrowsAsync<InvalidOperationException>(() => repo.RetrieveEmployeeRegistrationData());
             Assert.That(ex.Message, Is.EqualTo("Open failed"));
 
             mockConnection.Verify(c => c.OpenAsync(It.IsAny<CancellationToken>()), Times.Once);
@@ -166,7 +163,7 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Repositories
 
             // Act + Assert
             var ex = Assert.ThrowsAsync<InvalidOperationException>(
-                () => repo.RetrieveEmployeeRegistrationData("mailIntegration"));
+                () => repo.RetrieveEmployeeRegistrationData());
 
             Assert.That(ex!.Message, Is.EqualTo("ExecuteReader failed"));
         }

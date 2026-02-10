@@ -1,4 +1,6 @@
-using DAS.DigitalEngagement.Application.Handlers.Import;
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 using DAS.DigitalEngagement.Application.Import.Handlers;
 using DAS.DigitalEngagement.Application.Repositories.Interfaces;
 using DAS.DigitalEngagement.Application.Services.Interfaces;
@@ -6,142 +8,134 @@ using DAS.DigitalEngagement.Models.Import;
 using DAS.DigitalEngagement.Models.Infrastructure;
 using Microsoft.Extensions.Logging;
 using Moq;
-using NUnit.Framework;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Handlers.Import
 {
     [TestFixture]
     public class ImportDataMartHandlerTests
     {
-        private Mock<ILogger<ImportDataMartHandler>> _mockLogger;
-        private Mock<IDataMartRepository> _mockDataMartRepository;
-        private Mock<IImportService> _mockImportService;
+        private Mock<IDataMartRepository> _dataMartRepositoryMock;
+        private Mock<ILogger<ImportDataMartHandler>> _loggerMock;
+        private Mock<IImportService> _importServiceMock;
         private ImportDataMartHandler _handler;
 
         [SetUp]
         public void SetUp()
         {
-            _mockLogger = new Mock<ILogger<ImportDataMartHandler>>();
-            _mockDataMartRepository = new Mock<IDataMartRepository>();
-            _mockImportService = new Mock<IImportService>();
-
-            _handler = new ImportDataMartHandler(
-                _mockLogger.Object,
-                _mockImportService.Object,
-                _mockDataMartRepository.Object);
+            _dataMartRepositoryMock = new Mock<IDataMartRepository>();
+            _loggerMock = new Mock<ILogger<ImportDataMartHandler>>();
+            _importServiceMock = new Mock<IImportService>();
+            _handler = new ImportDataMartHandler(_loggerMock.Object, _importServiceMock.Object, _dataMartRepositoryMock.Object);
         }
 
         [Test]
-        public async Task Handle_WhenObjectNameIsLead_ShouldCallImportEmployeeRegistrationAndReturnStatus()
+        public async Task Handle_ReturnsFailed_WhenConfigDoesNotContainLead()
         {
             // Arrange
-            var config = new DataMartSettings
+            var config = new List<DataMartSettings>
             {
-                ObjectName = "Lead",
-                ViewName = "TestView"
-            };
-
-            var mockData = new List<dynamic>();
-            _mockDataMartRepository
-                .Setup(repo => repo.RetrieveEmployeeRegistrationData(config.ViewName))
-                .ReturnsAsync(mockData);
-
-            var expectedStatus = new BulkImportStatus
-            {
-                Container = string.Empty,
-                Name = string.Empty,
-                Id = string.Empty,
-                StartTime = DateTime.UtcNow,
-                BulkImportJobs = new List<BulkImportJob>(),
-                BulkImportJobStatus = new List<BulkImportJobStatus>(),
-                ImportFileIsValid = true,
-                ValidationError = string.Empty,
-                HeaderErrors = Enumerable.Empty<string>()
-            };
-            _mockImportService
-                .Setup(service => service.ImportEmployeeRegistration(mockData))
-                .ReturnsAsync(expectedStatus);
-
-            // Act
-            var result = await _handler.Handle(config);
-
-            // Assert
-            Assert.That(result, Is.EqualTo(expectedStatus));
-            _mockDataMartRepository.Verify(repo => repo.RetrieveEmployeeRegistrationData(config.ViewName), Times.Once);
-            _mockImportService.Verify(service => service.ImportEmployeeRegistration(mockData), Times.Once);
-        }
-
-        [Test]
-        public async Task Handle_WhenObjectNameIsNotLead_ShouldLogAndReturnDefaultBulkImportStatus()
-        {
-            // Arrange
-            var config = new DataMartSettings
-            {
-                ObjectName = "NotLead",
-                ViewName = "TestView"
-            };
-
-            var expectedStatus = new BulkImportStatus
-            {
-                Container = string.Empty,
-                Name = string.Empty,
-                Id = string.Empty,
-                StartTime = DateTime.UtcNow,
-                BulkImportJobs = new List<BulkImportJob>(),
-                BulkImportJobStatus = new List<BulkImportJobStatus>(),
-                ImportFileIsValid = false,
-                ValidationError = "No Object name is configured in the Configuration",
-                HeaderErrors = Enumerable.Empty<string>()
+                new DataMartSettings
+                {
+                    ObjectName = "NotLead",
+                    ViewName = "SomeView",
+                    Config = "SomeConfig",
+                    FieldMapping = "SomeFieldMapping",
+                    TemplatedUploadId = 1
+                }
             };
 
             // Act
             var result = await _handler.Handle(config);
 
             // Assert
-            Assert.That(result.ImportFileIsValid, Is.EqualTo(expectedStatus.ImportFileIsValid));
-            Assert.That(result.ValidationError, Is.EqualTo(expectedStatus.ValidationError));
-
-            _mockLogger.Verify(
-            static logger => logger.Log(
-            LogLevel.Information,
-            It.IsAny<EventId>(),
-            It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("No Object name is configured in the Configuration")),
-            null,
-            It.IsAny<Func<It.IsAnyType, Exception, string>>()),Times.Once);
+            Assert.That(result.Status, Is.EqualTo("Failed"));
+            Assert.That(result.Messages, Does.Contain("Expected Object name is configured in the Configuration"));
+            Assert.That(result.StartTime, Is.Not.Null);
+            Assert.That(result.EndTime, Is.Not.Null);
         }
 
         [Test]
-        public void Constructor_WhenCalled_ShouldAssignDependencies()
-        {
-            // Act
-            var handler = new ImportDataMartHandler(
-                _mockLogger.Object,
-                _mockImportService.Object,
-                _mockDataMartRepository.Object);
-
-            // Assert
-            Assert.That(handler, Is.Not.Null);
-        }
-
-
-        [Test]
-        public void Ctor_WithValidDependencies_DoesNotThrow()
+        public async Task Handle_ReturnsFailed_WhenContactImportTemplateDoesNotExist()
         {
             // Arrange
-            var logger = new Mock<ILogger<ImportDataMartHandler>>().Object;
-            var importService = new Mock<IImportService>().Object;
-            var repo = new Mock<IDataMartRepository>().Object;
+            var config = new List<DataMartSettings>
+            {
+                new DataMartSettings
+                {
+                    ObjectName = "Lead",
+                    ViewName = "SomeView",
+                    Config = "SomeConfig",
+                    FieldMapping = "SomeFieldMapping",
+                    TemplatedUploadId = 1
+                }
+            };
+            _importServiceMock.Setup(x => x.IsContactImportTemplatesExist()).ReturnsAsync(false);
 
-            // Act & Assert
-            Assert.DoesNotThrow(() => new ImportDataMartHandler(_mockLogger.Object,
-                _mockImportService.Object,
-                _mockDataMartRepository.Object));
+            // Act
+            var result = await _handler.Handle(config);
+
+            // Assert
+            Assert.That(result.Status, Is.EqualTo("Failed"));
+            Assert.That(result.Messages, Does.Contain("Contact import template is not available in E-shot."));
+            Assert.That(result.StartTime, Is.Not.Null);
+            Assert.That(result.EndTime, Is.Not.Null);
         }
 
+        [Test]
+        public async Task Handle_ReturnsImportSummaryResultFromImportService_WhenDataExists()
+        {
+            // Arrange
+            var config = new List<DataMartSettings>
+            {
+                new DataMartSettings
+                {
+                    ObjectName = "Lead",
+                    ViewName = "SomeView",
+                    Config = "SomeConfig",
+                    FieldMapping = "SomeFieldMapping",
+                    TemplatedUploadId = 1
+                }
+            };
+            _importServiceMock.Setup(x => x.IsContactImportTemplatesExist()).ReturnsAsync(true);
+            var data = new List<object> { new object() };
+            _dataMartRepositoryMock.Setup(x => x.RetrieveEmployeeRegistrationData()).ReturnsAsync(data);
+            var expectedSummary = new ImportSummaryResult { Status = "Completed", Messages = new List<string> { "Imported" } };
+            _importServiceMock.Setup(x => x.ImportEmployeeRegistration(data)).ReturnsAsync(expectedSummary);
 
+            // Act
+            var result = await _handler.Handle(config);
+
+            // Assert
+            Assert.That(result.Status, Is.EqualTo(expectedSummary.Status));
+            Assert.That(result.Messages, Is.EqualTo(expectedSummary.Messages));
+        }
+
+        [Test]
+        public async Task Handle_ReturnsCompleted_WhenNoDataToImport()
+        {
+            // Arrange
+            var config = new List<DataMartSettings>
+            {
+                new DataMartSettings
+                {
+                    ObjectName = "Lead",
+                    ViewName = "SomeView",
+                    Config = "SomeConfig",
+                    FieldMapping = "SomeFieldMapping",
+                    TemplatedUploadId = 1
+                }
+            };
+            _importServiceMock.Setup(x => x.IsContactImportTemplatesExist()).ReturnsAsync(true);
+            _dataMartRepositoryMock.Setup(x => x.RetrieveEmployeeRegistrationData()).ReturnsAsync(new List<object>());
+
+            // Act
+            var result = await _handler.Handle(config);
+
+            // Assert
+            Assert.That(result.Status, Is.EqualTo("Completed"));
+            Assert.That(result.Messages, Does.Contain("No records to import."));
+            Assert.That(result.StartTime, Is.Not.Null);
+            Assert.That(result.EndTime, Is.Not.Null);
+        }
     }
 }

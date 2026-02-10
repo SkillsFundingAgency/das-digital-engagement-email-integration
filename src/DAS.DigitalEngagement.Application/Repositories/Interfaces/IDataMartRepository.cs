@@ -4,6 +4,6 @@ namespace DAS.DigitalEngagement.Application.Repositories.Interfaces
 {
     public interface IDataMartRepository
     {
-        Task<IList<dynamic>> RetrieveEmployeeRegistrationData(string? viewName);
+        Task<IList<dynamic>> RetrieveEmployeeRegistrationData();
     }
 }

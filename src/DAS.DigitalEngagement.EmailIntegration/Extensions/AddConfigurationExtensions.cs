@@ -1,9 +1,9 @@
-﻿using DAS.DigitalEngagement.Models.Infrastructure;
+﻿using DAS.DigitalEngagement.EmailIntegration.Validators;
+using DAS.DigitalEngagement.Models.Infrastructure;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using SFA.DAS.Configuration.AzureTableStorage;
-using SFA.DAS.Encoding;
 using System.Diagnostics.CodeAnalysis;
 
 namespace DAS.DigitalEngagement.EmailIntegration.Extensions
@@ -30,39 +30,41 @@ namespace DAS.DigitalEngagement.EmailIntegration.Extensions
             });
         }
 
-        public static IServiceCollection AddApplicationOptions(this IServiceCollection services)
+        public static IServiceCollection AddApplicationOptions(this IServiceCollection services, IConfiguration configuration)
         {
-            services
-                .AddOptions<ApplicationConfiguration>()
+
+           services.AddOptions<ApplicationConfiguration>()
                 .Configure<IConfiguration>((settings, configuration) =>
                     configuration.Bind(settings));
+
+            // Register validator that returns detailed, per-property errors
+            services.AddSingleton<IValidateOptions<ApplicationConfiguration>, ApplicationConfigurationValidator>();
+            services.AddHostedService<ConfigurationValidationHostedService>();
 
             services.AddSingleton(s => s.GetRequiredService<IOptions<ApplicationConfiguration>>().Value);
 
             services.AddSingleton(s =>
             {
-                var configuration = s.GetRequiredService<IConfiguration>();
-                var dasEncodingConfig = new EncodingConfig { Encodings = [] };
-                configuration.GetSection(nameof(dasEncodingConfig.Encodings)).Bind(dasEncodingConfig.Encodings);
-                return dasEncodingConfig;
-            });
-
-            // Provide IOptions<ConnectionString> so repository can receive it via DI
-            services.AddSingleton<IOptions<ConnectionString>>(s =>
-            {
                 var appConfig = s.GetRequiredService<IOptions<ApplicationConfiguration>>().Value;
-                var conn = appConfig?.ConnectionString ?? new ConnectionString();
+                var conn = appConfig.ConnectionString;
                 return Options.Create(conn);
             });
 
-            services.AddSingleton<IOptions<EShotAPIM>>(s =>
+            services.AddSingleton(s =>
             {
                 var appConfig = s.GetRequiredService<IOptions<ApplicationConfiguration>>().Value;
-                var eShotAPIM = appConfig?.EShotAPIM ?? new EShotAPIM();
+                var eShotAPIM = appConfig.EShotAPIM;
                 return Options.Create(eShotAPIM);
             });
 
+            services.AddSingleton(sp =>
+            {
+                var appConfig = sp.GetRequiredService<IOptions<ApplicationConfiguration>>().Value;
+                return appConfig.DataMart ?? new List<DataMartSettings>();
+            });
+
             return services;
+
         }
 
     }
