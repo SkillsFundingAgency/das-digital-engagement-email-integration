@@ -75,6 +75,13 @@
     "vnetRouteAllEnabled": {
       "type": "bool",
       "defaultValue": false
+    },
+    "tenantId": {
+      "type": "string"
+    },
+    "emailIntegrationSchedule": {
+      "type": "string",
+      "defaultValue": "0 0 22 * * *"
     }
   },
   "variables": {
@@ -280,6 +287,14 @@
                 {
                   "name": "WEBSITE_RUN_FROM_PACKAGE",
                   "value": "1"
+                },
+                {
+                  "name": "TenantId",
+                  "value": "[parameters('tenantId')]"
+                },
+                {
+                  "name": "EmailIntegrationSchedule",
+                  "value": "[parameters('emailIntegrationSchedule')]"
                 }
               ]
             }
