@@ -22,7 +22,7 @@ static class Program
             {
                 services.AddApplicationOptions(context.Configuration);
                 services.AddApplicationServices(context.Configuration);
-                services.AddOpenTelemetryRegistration(context.Configuration["APPLICATIONINSIGHTS_CONNECTION_STRING"]!);
+               // services.AddOpenTelemetryRegistration(context.Configuration["APPLICATIONINSIGHTS_CONNECTION_STRING"]!);
 
             })
             .ConfigureLogging((hostingContext, logging) =>
