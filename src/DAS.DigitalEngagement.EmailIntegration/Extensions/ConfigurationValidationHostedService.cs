@@ -28,9 +28,6 @@ namespace DAS.DigitalEngagement.EmailIntegration.Extensions
 
         public Task StartAsync(CancellationToken cancellationToken)
         {
-            // Run validation in the background so we don't block startup. The Functions host
-            // must receive worker metadata within a short gRPC timeout; accessing _options.Value
-            // here would trigger the deferred Table Storage load and block the worker from registering.
             _ = Task.Run(async () =>
             {
                 try
