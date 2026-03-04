@@ -18,6 +18,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Folder Include="StoredProcedure\" />
     <Folder Include="View\" />
   </ItemGroup>
 
