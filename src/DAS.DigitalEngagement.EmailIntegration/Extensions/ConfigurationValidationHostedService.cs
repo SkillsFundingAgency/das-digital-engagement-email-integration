@@ -28,46 +28,61 @@ namespace DAS.DigitalEngagement.EmailIntegration.Extensions
 
         public Task StartAsync(CancellationToken cancellationToken)
         {
-            ApplicationConfiguration optionsValue;
-            try
+            // Run validation in the background so we don't block startup. The Functions host
+            // must receive worker metadata within a short gRPC timeout; accessing _options.Value
+            // here would trigger the deferred Table Storage load and block the worker from registering.
+            _ = Task.Run(async () =>
             {
-                optionsValue = _options.Value;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogCritical(ex, "Failed to resolve {OptionsType}.", nameof(ApplicationConfiguration));
-                Console.Error.WriteLine($"Failed to resolve {nameof(ApplicationConfiguration)}: {ex.Message}");
-                _lifetime.StopApplication();
-                return Task.CompletedTask;
-            }
-
-            var result = _validator.Validate(Options.DefaultName, optionsValue);
-
-            if (!result.Succeeded)
-            {
-                _logger.LogCritical("Configuration validation failed. Stopping application.");
-                Console.Error.WriteLine("Configuration validation failed. Stopping application.");
-
-                if (result.Failures != null && result.Failures.Any())
+                try
                 {
-                    foreach (var failure in result.Failures)
+                    await Task.Delay(TimeSpan.FromSeconds(2), cancellationToken);
+                }
+                catch (OperationCanceledException)
+                {
+                    return;
+                }
+
+                ApplicationConfiguration optionsValue;
+                try
+                {
+                    optionsValue = _options.Value;
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogCritical(ex, "Failed to resolve {OptionsType}.", nameof(ApplicationConfiguration));
+                    Console.Error.WriteLine($"Failed to resolve {nameof(ApplicationConfiguration)}: {ex.Message}");
+                    _lifetime.StopApplication();
+                    return;
+                }
+
+                var result = _validator.Validate(Options.DefaultName, optionsValue);
+
+                if (!result.Succeeded)
+                {
+                    _logger.LogCritical("Configuration validation failed. Stopping application.");
+                    Console.Error.WriteLine("Configuration validation failed. Stopping application.");
+
+                    if (result.Failures != null && result.Failures.Any())
                     {
-                        _logger.LogCritical("Configuration error: {Error}", failure);
-                        Console.Error.WriteLine($"Configuration error: {failure}");
+                        foreach (var failure in result.Failures)
+                        {
+                            _logger.LogCritical("Configuration error: {Error}", failure);
+                            Console.Error.WriteLine($"Configuration error: {failure}");
+                        }
                     }
-                }
-                else if (!string.IsNullOrWhiteSpace(result.FailureMessage))
-                {
-                    _logger.LogCritical("Configuration error: {Error}", result.FailureMessage);
-                    Console.Error.WriteLine($"Configuration error: {result.FailureMessage}");
+                    else if (!string.IsNullOrWhiteSpace(result.FailureMessage))
+                    {
+                        _logger.LogCritical("Configuration error: {Error}", result.FailureMessage);
+                        Console.Error.WriteLine($"Configuration error: {result.FailureMessage}");
+                    }
+
+                    _lifetime.StopApplication();
+                    return;
                 }
 
-                _lifetime.StopApplication();
-                return Task.CompletedTask;
-            }
-
-            _logger.LogInformation("Configuration validated successfully.");
-            Console.WriteLine("Configuration validated successfully.");
+                _logger.LogInformation("Configuration validated successfully.");
+                Console.WriteLine("Configuration validated successfully.");
+            }, cancellationToken);
 
             return Task.CompletedTask;
         }
