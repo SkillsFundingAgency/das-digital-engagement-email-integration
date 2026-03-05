@@ -103,8 +103,8 @@ namespace DAS.DigitalEngagement.Application.Services
         {
             ExtractToken(importResult);
 
-            // Wait for 60 sec before checking the import status otherwise we get the "Waiting" response
-            await Task.Delay(TimeSpan.FromSeconds(60));
+            // Wait for 10 sec before checking the import status otherwise we get the "Waiting" response
+            await Task.Delay(TimeSpan.FromSeconds(10));
 
             // The token value should be wrapped in single quotes for OData filter
             var filter = WebUtility.UrlEncode($"Token eq '{importResult.TokenFromEshot}'");

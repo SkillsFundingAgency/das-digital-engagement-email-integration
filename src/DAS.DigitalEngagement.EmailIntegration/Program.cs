@@ -31,7 +31,7 @@ static class Program
 
                 logging.AddFilter("Microsoft", LogLevel.Warning);
                 logging.AddFilter("System", LogLevel.Warning);
-                logging.AddFilter("SFA.DAS.EmployerFeedback.Jobs", LogLevel.Information);
+                logging.AddFilter("DAS.DigitalEngagement.EmailIntegration", LogLevel.Information);
             })
             .Build();
 

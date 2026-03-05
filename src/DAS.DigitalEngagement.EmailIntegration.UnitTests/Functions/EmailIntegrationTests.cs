@@ -7,6 +7,7 @@ using Microsoft.Extensions.Logging;
 using Moq;
 using System.Collections.Generic;
 using DAS.DigitalEngagement.Models.Import;
+using DAS.DigitalEngagement.Application.Services.Interfaces;
 
 namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Functions
 {
@@ -15,6 +16,7 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Functions
     {
         private Mock<ILogger<EmailIntegration>> _loggerMock;
         private Mock<IImportDataMartHandler> _importDataMartHandlerMock;
+        private Mock<IReportService> _reportServiceMock;
         private ApplicationConfiguration _configuration;
         private EmailIntegration _sut;
 
@@ -23,6 +25,7 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Functions
         {
             _loggerMock = new Mock<ILogger<EmailIntegration>>();
             _importDataMartHandlerMock = new Mock<IImportDataMartHandler>();
+            _reportServiceMock = new Mock<IReportService>();
             _configuration = new ApplicationConfiguration
             {
                 ConnectionString = new ConnectionString { DataMart = "TestConnectionString" },
@@ -45,7 +48,7 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Functions
                     }
                 }
             };
-            _sut = new EmailIntegration(_loggerMock.Object, _importDataMartHandlerMock.Object, _configuration);
+            _sut = new EmailIntegration(_loggerMock.Object, _importDataMartHandlerMock.Object, _configuration, _reportServiceMock.Object);
         }
 
         [Test]
