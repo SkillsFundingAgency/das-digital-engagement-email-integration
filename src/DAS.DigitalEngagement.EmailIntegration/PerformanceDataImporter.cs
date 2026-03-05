@@ -13,7 +13,7 @@ public class PerformanceDataImporter
     }
 
     [Function("PerformanceDataImporter")]
-    public async Task RunAsync([TimerTrigger("*/10 * * * * *")] TimerInfo myTimer)
+    public void Run([TimerTrigger("%PerformanceDataImportSchedule%")] TimerInfo myTimer)
     {
         _logger.LogInformation($"Performance Data Importer started at: {DateTime.Now}");
 
