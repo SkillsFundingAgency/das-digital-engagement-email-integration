@@ -3,6 +3,7 @@ using DAS.DigitalEngagement.Application.Services.Interfaces;
 using DAS.DigitalEngagement.Models.Import;
 using Microsoft.Extensions.Logging;
 using System.Text;
+using System.Text.Json;
 
 namespace DAS.DigitalEngagement.Application.Services
 {
@@ -29,6 +30,36 @@ namespace DAS.DigitalEngagement.Application.Services
             sb.AppendLine($"End Time: {summary.EndTime:O}");
             sb.AppendLine($"Total Records From DB: {summary.TotalRecordsFromDb}");
             sb.AppendLine($"Total Records Processed: {summary.TotalRecordsProcessed}");
+
+            // Format Field Mapping
+            if (!string.IsNullOrWhiteSpace(summary.FieldMapping))
+            {
+                try
+                {
+                    var mappings = JsonSerializer.Deserialize<List<FieldMappingItem>>(summary.FieldMapping);
+                    if (mappings != null && mappings.Count > 0)
+                    {
+                        sb.AppendLine("Field Mapping:");
+                        foreach (var map in mappings)
+                        {
+                            sb.AppendLine($"  Source: {map.Source} -> Target: {map.Target}");
+                        }
+                    }
+                    else
+                    {
+                        sb.AppendLine("Field Mapping: None");
+                    }
+                }
+                catch
+                {
+                    sb.AppendLine($"Field Mapping (raw): {summary.FieldMapping}");
+                }
+            }
+            else
+            {
+                sb.AppendLine("Field Mapping: None");
+            }
+
             sb.AppendLine();
 
             if (summary.BatchResults != null && summary.BatchResults.Count > 0)
@@ -89,6 +120,13 @@ namespace DAS.DigitalEngagement.Application.Services
                 _logger.LogError(ex, "Failed to save report file.");
                 throw;
             }
+        }
+
+        // Helper class for deserialization
+        private class FieldMappingItem
+        {
+            public string? Source { get; set; }
+            public string? Target { get; set; }
         }
     }
 }

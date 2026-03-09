@@ -52,7 +52,8 @@ namespace DAS.DigitalEngagement.Application.Services
                 StartTime = DateTime.UtcNow,
                 Messages = new List<string>(),
                 TotalRecordsFromDb = leads?.Count ?? 0,
-                Status = "Partial"
+                Status = "Partial",
+                FieldMapping = empRegistrationSettings.FieldMapping
             };
 
             try
