@@ -20,7 +20,7 @@ public class EmailIntegration
     }
 
     [Function("EmailIntegration")]
-    public async Task RunAsync([TimerTrigger("0 0 22 * * *")] TimerInfo myTimer)
+    public async Task RunAsync([TimerTrigger("%EmailIntegrationSchedule%")] TimerInfo myTimer)
     {
         // 0 0 22 * * * Everyday at 10pm
         _logger.LogInformation("Timer trigger function executed at: {ExecutionTime}", DateTime.Now);
