@@ -7,14 +7,12 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Functions;
 
 public class PerformanceDataImporterTests
 {
-    // Add a constructor to set up any necessary dependencies for the tests, such as a mock logger.
     private readonly Mock<ILogger<PerformanceDataImporter>> _loggerMock;
     public PerformanceDataImporterTests()
     {
         _loggerMock = new Mock<ILogger<PerformanceDataImporter>>();
     }
 
-    // Using NUnit, add a test to verify that the PerformanceDataImporter function logs the expected information when it runs successfully.
     [Test]
     public void Run_LogsInformation_WhenNoException()
     {
@@ -43,7 +41,6 @@ public class PerformanceDataImporterTests
             Times.Once);
     }
 
-    // Add a test to verify that the PerformanceDataImporter function logs an error when an exception is thrown during the import process.
     [Test]
     public void Run_LogsError_WhenExceptionThrown()
     {
