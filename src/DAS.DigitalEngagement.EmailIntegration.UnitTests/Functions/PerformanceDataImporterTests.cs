@@ -61,4 +61,24 @@ public class PerformanceDataImporterTests
             Times.Never); // Adjust this to Times.Once if you want to simulate an exception and verify the error logging.
     }
 
+    [Test]
+    public void Run_LogsWarning_WhenTimerIsPastDue()
+    {
+        // Arrange
+        var loggerMock = new Mock<ILogger<PerformanceDataImporter>>();
+        var sut = new PerformanceDataImporter(loggerMock.Object);
+        var timerInfo = new TimerInfo { IsPastDue = true };
+        // Act
+        sut.Run(timerInfo);
+        // Assert
+        loggerMock.Verify(
+            x => x.Log(
+                LogLevel.Warning,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("Timer schedule status: overdue")),
+                null,
+                It.IsAny<Func<It.IsAnyType, Exception, string>>()),
+            Times.Once);
+    }
+
 }
