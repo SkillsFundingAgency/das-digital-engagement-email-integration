@@ -15,7 +15,7 @@ public class PerformanceDataImporter
     [Function("PerformanceDataImporter")]
     public void Run([TimerTrigger("%PerformanceDataImportSchedule%")] TimerInfo myTimer)
     {
-        _logger.LogInformation($"Performance Data Importer started at: {DateTime.Now}");
+        _logger.LogInformation("Performance Data Importer started at: {DateTime}", DateTime.Now);
 
         try
         {
@@ -23,7 +23,7 @@ public class PerformanceDataImporter
         }
         catch (Exception ex)
         {
-            _logger.LogError($"Error importing performance data: {ex.Message}");
+            _logger.LogError("Error importing performance data: {Message}", ex.Message);
         }
 
         if (myTimer.IsPastDue)
