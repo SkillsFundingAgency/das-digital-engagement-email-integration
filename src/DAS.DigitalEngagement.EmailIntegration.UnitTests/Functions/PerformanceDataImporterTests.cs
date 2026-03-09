@@ -48,6 +48,16 @@ public class PerformanceDataImporterTests
         var loggerMock = new Mock<ILogger<PerformanceDataImporter>>();
         var sut = new PerformanceDataImporter(loggerMock.Object);
         var timerInfo = new TimerInfo();
+
+        // Make the logger throw when the "ran successfully" information message is logged
+        loggerMock.Setup(x => x.Log(
+            LogLevel.Information,
+            It.IsAny<EventId>(),
+            It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("Performance data import ran successfully.")),
+            null,
+            It.IsAny<Func<It.IsAnyType, Exception, string>>()))
+            .Throws(new Exception("Simulated exception during import"));
+
         // Act
         sut.Run(timerInfo);
         // Assert
@@ -58,7 +68,7 @@ public class PerformanceDataImporterTests
                 It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("Error importing performance data:")),
                 null,
                 It.IsAny<Func<It.IsAnyType, Exception, string>>()),
-            Times.Never); // Adjust this to Times.Once if you want to simulate an exception and verify the error logging.
+            Times.Once); // Adjust this to Times.Once if you want to simulate an exception and verify the error logging.
     }
 
     [Test]
