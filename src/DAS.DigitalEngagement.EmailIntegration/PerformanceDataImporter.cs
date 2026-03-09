@@ -23,7 +23,7 @@ public class PerformanceDataImporter
         }
         catch (Exception ex)
         {
-            _logger.LogError("Error importing performance data: {Message}", ex.Message);
+            _logger.LogError(ex, "Error importing performance data");
         }
 
         if (myTimer.IsPastDue)
