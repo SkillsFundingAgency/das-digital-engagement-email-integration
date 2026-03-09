@@ -68,7 +68,7 @@ public class PerformanceDataImporterTests
                 It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("Error importing performance data:")),
                 null,
                 It.IsAny<Func<It.IsAnyType, Exception, string>>()),
-            Times.Once); // Adjust this to Times.Once if you want to simulate an exception and verify the error logging.
+            Times.Never); // Adjust this to Times.Once if you want to simulate an exception and verify the error logging.
     }
 
     [Test]
