@@ -17,6 +17,7 @@ namespace DAS.DigitalEngagement.Models.Import
                     .Sum(b => b.RecordsProcessed);
             }
         }
+        public string? FieldMapping { get; set; }
 
         public List<BatchResultDetail> BatchResults { get; set; } = new();
         public List<string> Messages { get; set; } = new();

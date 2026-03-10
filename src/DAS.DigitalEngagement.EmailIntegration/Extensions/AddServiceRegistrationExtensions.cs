@@ -1,5 +1,6 @@
 ﻿using Azure.Core;
 using Azure.Identity;
+using Azure.Storage.Blobs;
 using DAS.DigitalEngagement.Application.Handlers.Import.Interfaces;
 using DAS.DigitalEngagement.Application.Import.Handlers;
 using DAS.DigitalEngagement.Application.Repositories;
@@ -18,14 +19,16 @@ namespace DAS.DigitalEngagement.EmailIntegration.Extensions
     {
         public static IServiceCollection AddApplicationServices(this IServiceCollection services, IConfiguration configuration)
         {
-         
+            string? azureBlobStorage = configuration.GetSection("AzureWebJobsStorage").Value ?? throw new ConfigurationErrorsException("AzureWebJobsStorage is not configured");
+            string? tenantId = configuration.GetSection("TenantId").Value ?? throw new ConfigurationErrorsException("TenantId is not configured");
+
             services.AddTransient<IImportDataMartHandler, ImportDataMartHandler>();
             services.AddTransient<IImportService, ImportService>();
             services.AddTransient<IPayLoadMapper, PayLoadMapper>();
 
 
             services.AddTransient<IDataMartRepository, DataMartRepository>();
-            string? tenantId = configuration.GetSection("TenantId").Value ?? throw new ConfigurationErrorsException("TenantId is not configured");
+           
             services.AddSingleton<TokenCredential>(sp =>
                                                     new ChainedTokenCredential(
                                                         new ManagedIdentityCredential(),
@@ -37,6 +40,9 @@ namespace DAS.DigitalEngagement.EmailIntegration.Extensions
             services.AddHttpClient<IExternalApiService,ExternalApiService>();
             services.AddTransient<IChunkingService, ChunkingService>();
             services.AddTransient<ICsvService, CsvService>();
+            services.AddTransient<IReportService, ReportService>();
+            services.AddSingleton(provider => new BlobServiceClient(azureBlobStorage));
+
             return services;
         }
     }

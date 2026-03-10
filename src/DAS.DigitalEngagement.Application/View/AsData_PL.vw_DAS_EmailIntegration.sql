@@ -12,8 +12,7 @@ SELECT   Email
         ,LastName
         ,acc.Id as EmployerAccountID
         ,acc.CreatedDate as CreatedDate
-        ,us.LastLogin as LastLogin
-        ,acc.ApprenticeshipEmployerType as ApprenticeshipEmployerType,
+        ,us.LastLogin as LastLogin,
          GETDATE() as DateOfLastAPIAutoSync
 
 
