@@ -175,7 +175,7 @@ namespace DAS.DigitalEngagement.Application.Services.UnitTests
         /// as Encoding.UTF8.GetBytes does not accept null.
         /// </summary>
         [Test]
-        public void SaveReportToBlob_NullReportContent_ThrowsArgumentNullException()
+        public async Task SaveReportToBlob_NullReportContent_LogsErrorAndDoesNotThrow()
         {
             // Arrange
             string reportContent = null;
@@ -201,14 +201,23 @@ namespace DAS.DigitalEngagement.Application.Services.UnitTests
             var service = new ReportService(mockBlobServiceClient.Object, mockLogger.Object);
 
             // Act & Assert
-            Assert.ThrowsAsync<ArgumentNullException>(async () => await service.SaveReportToBlob(reportContent, fileName));
+            Assert.DoesNotThrowAsync(async () => await service.SaveReportToBlob(reportContent, fileName));
+
+            mockLogger.Verify(
+                x => x.Log(
+                    LogLevel.Error,
+                    It.IsAny<EventId>(),
+                    It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("Failed to save report file.")),
+                    It.IsAny<ArgumentNullException>(),
+                    It.IsAny<Func<It.IsAnyType, Exception, string>>()),
+                Times.Once);
         }
 
         /// <summary>
-        /// Tests that SaveReportToBlob logs error and re-throws exception when UploadAsync fails.
+        /// Tests that SaveReportToBlob logs error and does not throw when UploadAsync fails.
         /// </summary>
         [Test]
-        public void SaveReportToBlob_UploadThrowsException_LogsErrorAndRethrows()
+        public async Task SaveReportToBlob_UploadThrowsException_LogsErrorAndDoesNotThrow()
         {
             // Arrange
             var reportContent = "Test content";
@@ -239,8 +248,7 @@ namespace DAS.DigitalEngagement.Application.Services.UnitTests
             var service = new ReportService(mockBlobServiceClient.Object, mockLogger.Object);
 
             // Act & Assert
-            var actualException = Assert.ThrowsAsync<RequestFailedException>(async () => await service.SaveReportToBlob(reportContent, fileName));
-            Assert.That(actualException, Is.EqualTo(expectedException));
+            Assert.DoesNotThrowAsync(async () => await service.SaveReportToBlob(reportContent, fileName));
 
             mockLogger.Verify(
                 x => x.Log(
@@ -278,8 +286,7 @@ namespace DAS.DigitalEngagement.Application.Services.UnitTests
             var service = new ReportService(mockBlobServiceClient.Object, mockLogger.Object);
 
             // Act & Assert
-            var actualException = Assert.ThrowsAsync<RequestFailedException>(async () => await service.SaveReportToBlob(reportContent, fileName));
-            Assert.That(actualException, Is.EqualTo(expectedException));
+            Assert.DoesNotThrowAsync(async () => await service.SaveReportToBlob(reportContent, fileName));
 
             mockLogger.Verify(
                 x => x.Log(

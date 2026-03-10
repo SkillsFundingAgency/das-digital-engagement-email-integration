@@ -138,8 +138,8 @@ namespace DAS.DigitalEngagement.Application.Services
         // Helper class for deserialization
         private class FieldMappingItem
         {
-            public string? Source { get; set; }
-            public string? Target { get; set; }
+            public string? Source { get;  }
+            public string? Target { get;  }
         }
     }
 }
