@@ -56,7 +56,7 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Functions
         {
             // Arrange
             var timerInfo = new TimerInfo();
-            var importSummary = new ImportSummaryResult(); 
+            var importSummary = new ImportSummaryResult();
             _importDataMartHandlerMock
                 .Setup(h => h.Handle(_configuration.DataMart))
                 .ReturnsAsync(importSummary);
