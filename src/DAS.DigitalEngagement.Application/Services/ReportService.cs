@@ -31,12 +31,25 @@ namespace DAS.DigitalEngagement.Application.Services
             sb.AppendLine($"Total Records From DB: {summary.TotalRecordsFromDb}");
             sb.AppendLine($"Total Records Processed: {summary.TotalRecordsProcessed}");
 
-            // Format Field Mapping
-            if (!string.IsNullOrWhiteSpace(summary.FieldMapping))
+            AppendFieldMapping(sb, summary.FieldMapping);
+
+            sb.AppendLine();
+
+            AppendBatchResults(sb, summary.BatchResults);
+
+            AppendMessages(sb, summary.Messages);
+
+            sb.AppendLine("################################################################################");
+            return sb.ToString();
+        }
+
+        private void AppendFieldMapping(StringBuilder sb, string? fieldMapping)
+        {
+            if (!string.IsNullOrWhiteSpace(fieldMapping))
             {
                 try
                 {
-                    var mappings = JsonSerializer.Deserialize<List<FieldMappingItem>>(summary.FieldMapping);
+                    var mappings = JsonSerializer.Deserialize<List<FieldMappingItem>>(fieldMapping);
                     if (mappings != null && mappings.Count > 0)
                     {
                         sb.AppendLine("Field Mapping:");
@@ -52,22 +65,23 @@ namespace DAS.DigitalEngagement.Application.Services
                 }
                 catch
                 {
-                    sb.AppendLine($"Field Mapping (raw): {summary.FieldMapping}");
+                    sb.AppendLine($"Field Mapping (raw): {fieldMapping}");
                 }
             }
             else
             {
                 sb.AppendLine("Field Mapping: None");
             }
+        }
 
-            sb.AppendLine();
-
-            if (summary.BatchResults != null && summary.BatchResults.Count > 0)
+        private void AppendBatchResults(StringBuilder sb, List<BatchResultDetail>? batchResults)
+        {
+            if (batchResults != null && batchResults.Count > 0)
             {
-                sb.AppendLine($"Batch Results ({summary.BatchResults.Count}):");
-                for (int i = 0; i < summary.BatchResults.Count; i++)
+                sb.AppendLine($"Batch Results ({batchResults.Count}):");
+                for (int i = 0; i < batchResults.Count; i++)
                 {
-                    var batch = summary.BatchResults[i];
+                    var batch = batchResults[i];
                     sb.AppendLine($"  Batch {i + 1}:");
                     sb.AppendLine($"    BatchId: {batch.BatchId}");
                     sb.AppendLine($"    Status: {batch.Status}");
@@ -83,11 +97,14 @@ namespace DAS.DigitalEngagement.Application.Services
             {
                 sb.AppendLine("No batch results available.");
             }
+        }
 
-            if (summary.Messages != null && summary.Messages.Count > 0)
+        private void AppendMessages(StringBuilder sb, List<string>? messages)
+        {
+            if (messages != null && messages.Count > 0)
             {
                 sb.AppendLine("Messages:");
-                foreach (var msg in summary.Messages)
+                foreach (var msg in messages)
                 {
                     sb.AppendLine($"  - {msg}");
                 }
@@ -96,9 +113,6 @@ namespace DAS.DigitalEngagement.Application.Services
             {
                 sb.AppendLine("No messages.");
             }
-
-            sb.AppendLine("################################################################################");
-            return sb.ToString();
         }
 
         public async Task SaveReportToBlob(string reportContent, string fileName)
@@ -113,12 +127,11 @@ namespace DAS.DigitalEngagement.Application.Services
                 using var stream = new MemoryStream(Encoding.UTF8.GetBytes(reportContent));
                 await reportBlobClient.UploadAsync(stream, overwrite: true);
 
-                _logger.LogInformation($"Report file saved: {fileName}.report.txt");
+                _logger.LogInformation("Report file saved: {FileName}.report.txt", fileName);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Failed to save report file.");
-                throw;
             }
         }
 
