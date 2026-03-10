@@ -43,7 +43,7 @@ namespace DAS.DigitalEngagement.Application.Services
             return sb.ToString();
         }
 
-        private void AppendFieldMapping(StringBuilder sb, string? fieldMapping)
+        private static void AppendFieldMapping(StringBuilder sb, string? fieldMapping)
         {
             if (!string.IsNullOrWhiteSpace(fieldMapping))
             {
@@ -74,7 +74,7 @@ namespace DAS.DigitalEngagement.Application.Services
             }
         }
 
-        private void AppendBatchResults(StringBuilder sb, List<BatchResultDetail>? batchResults)
+        private static void AppendBatchResults(StringBuilder sb, List<BatchResultDetail>? batchResults)
         {
             if (batchResults != null && batchResults.Count > 0)
             {
@@ -99,7 +99,7 @@ namespace DAS.DigitalEngagement.Application.Services
             }
         }
 
-        private void AppendMessages(StringBuilder sb, List<string>? messages)
+        private static void AppendMessages(StringBuilder sb, List<string>? messages)
         {
             if (messages != null && messages.Count > 0)
             {
@@ -136,10 +136,10 @@ namespace DAS.DigitalEngagement.Application.Services
         }
 
         // Helper class for deserialization
-        private class FieldMappingItem
+        sealed class FieldMappingItem
         {
-            public string? Source { get;  }
-            public string? Target { get;  }
+            public string? Source { get; } = "";
+            public string? Target { get; } = "";
         }
     }
 }
