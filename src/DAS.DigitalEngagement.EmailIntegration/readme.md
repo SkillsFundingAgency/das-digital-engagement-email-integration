@@ -168,7 +168,7 @@ To run locally, add the following to your `local.settings.json`:
   "ConnectionString": {
     "DataMart": "Server=tcp:******,****;Initial Catalog=****;Persist Security Info=False;MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;"
   },
-  "EmailMarketingAPI": {
+  "EmailMarketingApi": {
     "ApiBaseUrl": "https://rest-api.e-shot.net",
     "ApiKey": "********",
     "ApiRetryCount": 6,

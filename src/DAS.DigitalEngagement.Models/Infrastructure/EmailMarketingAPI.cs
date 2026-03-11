@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 namespace DAS.DigitalEngagement.Models.Infrastructure
 {
     [ExcludeFromCodeCoverage]
-    public class EmailMarketingAPI
+    public class EmailMarketingApi
     {
         public required string ApiBaseUrl { get; set; }
         public required string ApiKey { get; set; }

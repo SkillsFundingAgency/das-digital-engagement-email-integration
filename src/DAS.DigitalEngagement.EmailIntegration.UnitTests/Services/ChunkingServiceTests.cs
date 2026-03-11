@@ -11,14 +11,14 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Services
     [TestFixture]
     public class ChunkingServiceTests
     {
-        private Mock<IOptions<EmailMarketingAPI>> _mockOptions;
+        private Mock<IOptions<EmailMarketingApi>> _mockOptions;
         private ChunkingService _service;
 
         [SetUp]
         public void SetUp()
         {
-            _mockOptions = new Mock<IOptions<EmailMarketingAPI>>();
-            _mockOptions.Setup(x => x.Value).Returns(new EmailMarketingAPI
+            _mockOptions = new Mock<IOptions<EmailMarketingApi>>();
+            _mockOptions.Setup(x => x.Value).Returns(new EmailMarketingApi
             {
                 ApiBaseUrl = "https://dummy.url",
                 ApiKey = "dummy-client-id",

@@ -19,7 +19,7 @@ namespace DAS.DigitalEngagement.EmailIntegration.Validators
 
             ValidateDataMart(options.DataMart, failures);
             ValidateConnectionString(options.ConnectionString, failures);
-            ValidateEmailMarketingAPI(options.EmailMarketingAPI, failures);
+            ValidateEmailMarketingApi(options.EmailMarketingApi, failures);
 
             return failures.Count == 0 ? ValidateOptionsResult.Success : ValidateOptionsResult.Fail(failures);
         }
@@ -61,20 +61,20 @@ namespace DAS.DigitalEngagement.EmailIntegration.Validators
             AddIfNullOrWhiteSpace(connectionString.DataMart, "ConnectionString.Database: required and cannot be empty.", failures);
         }
 
-        private void ValidateEmailMarketingAPI(EmailMarketingAPI? emailMarketingAPI, List<string> failures)
+        private void ValidateEmailMarketingApi(EmailMarketingApi? emailMarketingApi, List<string> failures)
         {
-            if (emailMarketingAPI == null)
+            if (emailMarketingApi == null)
             {
-                failures.Add("EmailMarketingAPI: section is missing.");
+                failures.Add("EmailMarketingApi: section is missing.");
                 return;
             }
 
-            AddIfNullOrWhiteSpace(emailMarketingAPI.ApiKey, "EmailMarketingAPI.ApiKey: required and cannot be empty.", failures);
-            AddIfNullOrWhiteSpace(emailMarketingAPI.ApiBaseUrl, "EmailMarketingAPI.ApiBaseUrl: required and cannot be empty.", failures);
-            if (emailMarketingAPI.ApiRetryCount == 0)
-                failures.Add("EmailMarketingAPI.ApiRetryCount: required and cannot be Zero.");
-            if (emailMarketingAPI.ChunkSizeKB == 0)
-                failures.Add("EmailMarketingAPI.ChunkSizeKB: required and cannot be Zero.");
+            AddIfNullOrWhiteSpace(emailMarketingApi.ApiKey, "EmailMarketingApi.ApiKey: required and cannot be empty.", failures);
+            AddIfNullOrWhiteSpace(emailMarketingApi.ApiBaseUrl, "EmailMarketingApi.ApiBaseUrl: required and cannot be empty.", failures);
+            if (emailMarketingApi.ApiRetryCount == 0)
+                failures.Add("EmailMarketingApi.ApiRetryCount: required and cannot be Zero.");
+            if (emailMarketingApi.ChunkSizeKB == 0)
+                failures.Add("EmailMarketingApi.ChunkSizeKB: required and cannot be Zero.");
         }
 
         private void AddIfNullOrWhiteSpace(string? value, string message, List<string> failures)

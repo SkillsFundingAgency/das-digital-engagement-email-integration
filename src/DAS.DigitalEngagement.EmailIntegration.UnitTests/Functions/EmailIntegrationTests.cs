@@ -29,7 +29,7 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Functions
             _configuration = new ApplicationConfiguration
             {
                 ConnectionString = new ConnectionString { DataMart = "TestConnectionString" },
-                EmailMarketingAPI = new EmailMarketingAPI
+                EmailMarketingApi = new EmailMarketingApi
                 {
                     ApiBaseUrl = "https://api.test.com",
                     ApiKey = "TestClientId",

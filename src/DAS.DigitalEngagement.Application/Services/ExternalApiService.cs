@@ -17,7 +17,7 @@ namespace DAS.DigitalEngagement.Application.Services
 
         public ExternalApiService(
             HttpClient httpClient,
-            IOptions<EmailMarketingAPI> config,
+            IOptions<EmailMarketingApi> config,
             ILogger<ExternalApiService> logger)
         {
             _httpClient = httpClient;
