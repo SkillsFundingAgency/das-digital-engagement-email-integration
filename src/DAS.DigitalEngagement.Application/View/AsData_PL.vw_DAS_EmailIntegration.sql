@@ -1,8 +1,8 @@
-/****** Object:  View [ASData_PL].[vw_DAS_EmailIntegration]    Script Date: 11/03/2026 19:40:31 ******/
+-- Object:  View [ASData_PL].[vw_DAS_EmailIntegration]    Script Date: 11/03/2026 19:40:31 
 DROP VIEW [ASData_PL].[vw_DAS_EmailIntegration]
 GO
 
-/****** Object:  View [ASData_PL].[vw_DAS_EmailIntegration]    Script Date: 11/03/2026 19:40:31 ******/
+-- Object:  View [ASData_PL].[vw_DAS_EmailIntegration]    Script Date: 11/03/2026 19:40:31
 SET ANSI_NULLS ON
 GO
 
