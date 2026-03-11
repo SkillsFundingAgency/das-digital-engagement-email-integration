@@ -82,6 +82,10 @@
     "emailIntegrationSchedule": {
       "type": "string",
       "defaultValue": "0 0 22 * * *"
+    },
+    "performanceDataImportSchedule": {
+      "type": "string",
+      "defaultValue": "0 30 22 * * *"
     }
   },
   "variables": {
@@ -295,6 +299,10 @@
                 {
                   "name": "EmailIntegrationSchedule",
                   "value": "[parameters('emailIntegrationSchedule')]"
+                },
+                {
+                  "name": "PerformanceDataImportSchedule",
+                  "value": "[parameters('performanceDataImportSchedule')]"
                 }
               ]
             }
