@@ -1,8 +1,8 @@
 ﻿{
   "ConnectionString": { "DataMart": "Server=tcp:das-at-shared-sql.database.windows.net,1433;Initial Catalog=das-at-datamgmt-staging-db;Persist Security Info=False;MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;" },
-  "EShotAPIM": {
+  "EmailMarketingAPI": {
     "ApiBaseUrl": "https://rest-api.e-shot.net",
-    "ApiClientId": "*******",
+    "ApiKey": "*******",
     "ApiRetryCount": 6,
     "ChunkSizeMB": 5
   },
@@ -10,7 +10,6 @@
     {
       "ObjectName": "Lead",
       "ViewName": "AsData_PL.vw_DAS_EmailIntegration",
-      "ConfigFileLocation": null,
       "TemplatedUploadId": "1",
       "FieldMapping": "[{\"Source\":\"Email\",\"Target\":\"Email\"},{\"Source\":\"FirstName\",\"Target\":\"FirstName\"},{\"Source\":\"LastName\",\"Target\":\"LastName\"},{\"Source\":\"EmployerAccountID\",\"Target\":\"EmployerAccountID\"},{\"Source\":\"LastLogin\",\"Target\":\"LastLoginDate\"},{\"Source\":\"DateOfLastAPIAutoSync\",\"Target\":\"DateOfLastAPIAutoSync\"}]"
     }

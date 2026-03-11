@@ -29,10 +29,10 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Functions
             _configuration = new ApplicationConfiguration
             {
                 ConnectionString = new ConnectionString { DataMart = "TestConnectionString" },
-                EShotAPIM = new EShotAPIM
+                EmailMarketingAPI = new EmailMarketingAPI
                 {
                     ApiBaseUrl = "https://api.test.com",
-                    ApiClientId = "TestClientId",
+                    ApiKey = "TestClientId",
                     ApiRetryCount = 3,
                     ChunkSizeKB = 1024
                 },
@@ -42,7 +42,6 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Functions
                     {
                         ViewName = "TestView",
                         ObjectName = "TestObject",
-                        Config = "TestConfig",
                         FieldMapping = "TestFieldMapping",
                         TemplatedUploadId = 1
                     }

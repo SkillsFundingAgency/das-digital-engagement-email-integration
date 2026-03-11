@@ -13,7 +13,7 @@ namespace DAS.DigitalEngagement.Models.Infrastructure
     {
         public required ConnectionString ConnectionString { get; set; }
         public Functions? Functions { get; set; }
-        public required EShotAPIM EShotAPIM { get; set; }
+        public required EmailMarketingAPI EmailMarketingAPI { get; set; }
         public required IList<DataMartSettings> DataMart { get; set; } = new List<DataMartSettings>();
     }
 }

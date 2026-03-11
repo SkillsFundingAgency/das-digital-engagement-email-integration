@@ -32,7 +32,7 @@ public class EmailIntegration
         _logger.LogInformation(
             "Connection string: {ConnectionString}, API Base URL: {ApiBaseUrl}",
             _configuration.ConnectionString,
-            _configuration.EShotAPIM?.ApiBaseUrl
+            _configuration.EmailMarketingAPI?.ApiBaseUrl
         );
 
         var reportFilename = $"Data-Mart/Lead/Import-{DateTime.UtcNow.ToString("s", System.Globalization.CultureInfo.InvariantCulture)}";

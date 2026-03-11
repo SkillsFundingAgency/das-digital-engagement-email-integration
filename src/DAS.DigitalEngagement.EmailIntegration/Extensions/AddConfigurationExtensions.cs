@@ -53,8 +53,8 @@ namespace DAS.DigitalEngagement.EmailIntegration.Extensions
             services.AddSingleton(s =>
             {
                 var appConfig = s.GetRequiredService<IOptions<ApplicationConfiguration>>().Value;
-                var eShotAPIM = appConfig.EShotAPIM;
-                return Options.Create(eShotAPIM);
+                var emailMarketingAPI = appConfig.EmailMarketingAPI;
+                return Options.Create(emailMarketingAPI);
             });
 
             services.AddSingleton(sp =>

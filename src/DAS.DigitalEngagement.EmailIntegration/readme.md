@@ -171,9 +171,9 @@ To run locally, add the following to your `local.settings.json`:
   "Functions": {
     "EmailIntegrationSchedule": "0 */5 * * * *"
   },
-  "EShotAPIM": {
+  "emailMarketingAPI": {
     "ApiBaseUrl": "https://rest-api.e-shot.net",
-    "ApiClientId": "********",
+    "ApiKey": "********",
     "ApiRetryCount": 6,
     "ChunkSizeKB": 5
   },
@@ -181,7 +181,6 @@ To run locally, add the following to your `local.settings.json`:
     {
       "ObjectName": "Lead",
       "ViewName": "*****",
-      "ConfigFileLocation": null,
       "TemplatedUploadId": "1",
       "FieldMapping": "[{\"Source\":\"Email\",\"Target\":\"Email\"},{\"Source\":\"FirstName\",\"Target\":\"FirstName\"},{\"Source\":\"LastName\",\"Target\":\"LastName\"},{\"Source\":\"LastSentDate\"}]"
     }
