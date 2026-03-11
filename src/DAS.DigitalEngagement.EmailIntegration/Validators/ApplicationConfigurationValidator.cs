@@ -19,7 +19,7 @@ namespace DAS.DigitalEngagement.EmailIntegration.Validators
 
             ValidateDataMart(options.DataMart, failures);
             ValidateConnectionString(options.ConnectionString, failures);
-            ValidateemailMarketingAPI(options.EmailMarketingAPI, failures);
+            ValidateEmailMarketingAPI(options.EmailMarketingAPI, failures);
 
             return failures.Count == 0 ? ValidateOptionsResult.Success : ValidateOptionsResult.Fail(failures);
         }
@@ -61,7 +61,7 @@ namespace DAS.DigitalEngagement.EmailIntegration.Validators
             AddIfNullOrWhiteSpace(connectionString.DataMart, "ConnectionString.Database: required and cannot be empty.", failures);
         }
 
-        private void ValidateemailMarketingAPI(EmailMarketingAPI? emailMarketingAPI, List<string> failures)
+        private void ValidateEmailMarketingAPI(EmailMarketingAPI? emailMarketingAPI, List<string> failures)
         {
             if (emailMarketingAPI == null)
             {
