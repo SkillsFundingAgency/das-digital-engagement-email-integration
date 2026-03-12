@@ -18,7 +18,7 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Services
         private Mock<HttpMessageHandler> _httpMessageHandlerMock;
         private HttpClient _httpClient;
         private Mock<ILogger<ExternalApiService>> _loggerMock;
-        private IOptions<EShotAPIM> _options;
+        private IOptions<EmailMarketingApi> _options;
 
         [SetUp]
         public void SetUp()
@@ -26,10 +26,10 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Services
             _httpMessageHandlerMock = new Mock<HttpMessageHandler>();
             _httpClient = new HttpClient(_httpMessageHandlerMock.Object);
             _loggerMock = new Mock<ILogger<ExternalApiService>>();
-            _options = Options.Create(new EShotAPIM
+            _options = Options.Create(new EmailMarketingApi
             {
                 ApiBaseUrl = "https://api.test.com",
-                ApiClientId = "test-api-key",
+                ApiKey = "test-api-key",
                 ApiRetryCount = 3,
                 ChunkSizeKB = 1024
             });
@@ -38,7 +38,7 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Services
         [Test]
         public void Constructor_ThrowsArgumentNullException_WhenApiBaseUrlIsNull()
         {
-            var options = Options.Create(new EShotAPIM { ApiBaseUrl = null, ApiClientId = "key", ApiRetryCount = 3, ChunkSizeKB = 1024 });
+            var options = Options.Create(new EmailMarketingApi { ApiBaseUrl = null, ApiKey = "key", ApiRetryCount = 3, ChunkSizeKB = 1024 });
             Assert.Throws<ArgumentNullException>(() =>
                 new ExternalApiService(_httpClient, options, _loggerMock.Object));
         }
@@ -46,7 +46,7 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Services
         [Test]
         public void Constructor_ThrowsArgumentNullException_WhenApiClientIdIsNull()
         {
-            var options = Options.Create(new EShotAPIM { ApiBaseUrl = "url", ApiClientId = null, ApiRetryCount = 3, ChunkSizeKB = 1024 });
+            var options = Options.Create(new EmailMarketingApi { ApiBaseUrl = "url", ApiKey = null, ApiRetryCount = 3, ChunkSizeKB = 1024 });
             Assert.Throws<ArgumentNullException>(() =>
                 new ExternalApiService(_httpClient, options, _loggerMock.Object));
         }

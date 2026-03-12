@@ -17,7 +17,7 @@ namespace DAS.DigitalEngagement.Application.Services
 
         public ExternalApiService(
             HttpClient httpClient,
-            IOptions<EShotAPIM> config,
+            IOptions<EmailMarketingApi> config,
             ILogger<ExternalApiService> logger)
         {
             _httpClient = httpClient;
@@ -25,12 +25,12 @@ namespace DAS.DigitalEngagement.Application.Services
             {
                 throw new ArgumentNullException(nameof(config));
             }
-            if (config.Value.ApiClientId == null)
+            if (config.Value.ApiKey == null)
             {
                 throw new ArgumentNullException(nameof(config));
             }
             _apiUrl = config.Value.ApiBaseUrl;
-            _apiKey = config.Value.ApiClientId;
+            _apiKey = config.Value.ApiKey;
             _logger = logger;
         }
 

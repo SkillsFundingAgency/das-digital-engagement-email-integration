@@ -10,17 +10,17 @@ namespace DAS.DigitalEngagement.Application.Services
         public double maxDensity { get; set; } = 0.95;
 
        
-        private readonly IOptions<EShotAPIM> _eShotAPIMOptions;
+        private readonly IOptions<EmailMarketingApi> _emailMarketingApiOptions;
 
-        public ChunkingService(IOptions<EShotAPIM> eShotAPIMOptions)
+        public ChunkingService(IOptions<EmailMarketingApi> emailMarketingApiOptions)
         {
-            _eShotAPIMOptions = eShotAPIMOptions;
+            _emailMarketingApiOptions = emailMarketingApiOptions;
         }
     
 
         private int CalculateChunkSize(int itemCount, long myBlobLength)
         {
-            var maxSize = _eShotAPIMOptions.Value.ChunkSizeKB * BytesInKB;
+            var maxSize = _emailMarketingApiOptions.Value.ChunkSizeKB * BytesInKB;
 
             // Calculate the total number of items in a chunk. This allows for 5% just in case some items in the list are larger than the average.   
             var totalChunks = (int)Math.Ceiling(myBlobLength / (maxSize * maxDensity));

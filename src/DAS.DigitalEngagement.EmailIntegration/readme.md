@@ -168,12 +168,9 @@ To run locally, add the following to your `local.settings.json`:
   "ConnectionString": {
     "DataMart": "Server=tcp:******,****;Initial Catalog=****;Persist Security Info=False;MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;"
   },
-  "Functions": {
-    "EmailIntegrationSchedule": "0 */5 * * * *"
-  },
-  "EShotAPIM": {
+  "EmailMarketingApi": {
     "ApiBaseUrl": "https://rest-api.e-shot.net",
-    "ApiClientId": "********",
+    "ApiKey": "********",
     "ApiRetryCount": 6,
     "ChunkSizeKB": 5
   },
@@ -181,7 +178,6 @@ To run locally, add the following to your `local.settings.json`:
     {
       "ObjectName": "Lead",
       "ViewName": "*****",
-      "ConfigFileLocation": null,
       "TemplatedUploadId": "1",
       "FieldMapping": "[{\"Source\":\"Email\",\"Target\":\"Email\"},{\"Source\":\"FirstName\",\"Target\":\"FirstName\"},{\"Source\":\"LastName\",\"Target\":\"LastName\"},{\"Source\":\"LastSentDate\"}]"
     }

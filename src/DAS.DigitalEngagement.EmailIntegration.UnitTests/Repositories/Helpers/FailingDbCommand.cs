@@ -9,7 +9,9 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Repositories.Helpers
 {
     public class FailingDbCommand : DbCommand
     {
+#pragma warning disable CS8765 // Nullability of type of parameter doesn't match overridden member (possibly because of nullability attributes).
         public override string CommandText { get; set; } = string.Empty;
+#pragma warning restore CS8765 // Nullability of type of parameter doesn't match overridden member (possibly because of nullability attributes).
         public override int CommandTimeout { get; set; }
         public override CommandType CommandType { get; set; }
 

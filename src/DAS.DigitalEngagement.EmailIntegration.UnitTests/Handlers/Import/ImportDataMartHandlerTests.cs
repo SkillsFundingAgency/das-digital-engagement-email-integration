@@ -38,7 +38,6 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Handlers.Import
                 {
                     ObjectName = "NotLead",
                     ViewName = "SomeView",
-                    Config = "SomeConfig",
                     FieldMapping = "SomeFieldMapping",
                     TemplatedUploadId = 1
                 }
@@ -64,7 +63,6 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Handlers.Import
                 {
                     ObjectName = "Lead",
                     ViewName = "SomeView",
-                    Config = "SomeConfig",
                     FieldMapping = "SomeFieldMapping",
                     TemplatedUploadId = 1
                 }
@@ -91,7 +89,6 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Handlers.Import
                 {
                     ObjectName = "Lead",
                     ViewName = "SomeView",
-                    Config = "SomeConfig",
                     FieldMapping = "SomeFieldMapping",
                     TemplatedUploadId = 1
                 }
@@ -120,7 +117,6 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Handlers.Import
                 {
                     ObjectName = "Lead",
                     ViewName = "SomeView",
-                    Config = "SomeConfig",
                     FieldMapping = "SomeFieldMapping",
                     TemplatedUploadId = 1
                 }

@@ -41,7 +41,6 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Services
                     ObjectName = "Lead",
                     TemplatedUploadId = 123,
                     ViewName = "LeadView",
-                    Config = "DefaultConfig",
                     FieldMapping = "DefaultFieldMapping"
                 }
             };
