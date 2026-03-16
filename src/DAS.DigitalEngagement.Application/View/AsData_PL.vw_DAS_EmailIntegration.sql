@@ -1,13 +1,14 @@
--- Object:  View [ASData_PL].[vw_DAS_EmailIntegration]    Script Date: 11/03/2026 19:40:31 
+/****** Object:  View [ASData_PL].[vw_DAS_EmailIntegration]    Script Date: 16/03/2026 23:37:36 ******/
 DROP VIEW [ASData_PL].[vw_DAS_EmailIntegration]
 GO
 
--- Object:  View [ASData_PL].[vw_DAS_EmailIntegration]    Script Date: 11/03/2026 19:40:31
+/****** Object:  View [ASData_PL].[vw_DAS_EmailIntegration]    Script Date: 16/03/2026 23:37:36 ******/
 SET ANSI_NULLS ON
 GO
 
 SET QUOTED_IDENTIFIER ON
 GO
+
 
 CREATE VIEW [ASData_PL].[vw_DAS_EmailIntegration]
 AS
@@ -24,6 +25,7 @@ WITH AccountUsersRanked AS (
         au.FirstName                    AS EmployerFirstName,
         au.LastName                     AS EmployerLastName,
         acc.Id                          AS EmployerAccountID,
+        acc.ApprenticeshipEmployerType  AS LevyStatus,
         CONVERT(VARCHAR(10), au.LastLogin, 120) AS LastLogin,
         CONVERT(VARCHAR(10), GETDATE(), 120) AS DateOfLastAPIAutoSync,
         ROW_NUMBER() OVER (
@@ -36,16 +38,36 @@ WITH AccountUsersRanked AS (
     INNER JOIN ASData_PL.Acc_Account AS acc
         ON acc.Id = aus.AccountId
 ),
-AccountUsers AS (
+AccountAggregate AS (
     SELECT
         EmployerEmail,
-        EmployerFirstName,
-        EmployerLastName,
-        EmployerAccountID,
-        LastLogin,
-        DateOfLastAPIAutoSync
+        COUNT(DISTINCT EmployerAccountID) AS AccountCount,
+        CASE
+            WHEN MIN(LevyStatus) = 0 AND MAX(LevyStatus) = 0 THEN 'Non Levy'
+            WHEN MIN(LevyStatus) = 1 AND MAX(LevyStatus) = 1 THEN 'Levy'
+            WHEN MIN(LevyStatus) IN (0,1) AND MAX(LevyStatus) IN (0,1)
+                 AND MIN(LevyStatus) <> MAX(LevyStatus)
+                THEN 'Both'
+            ELSE 'Unknown'
+        END AS ConsolidatedLevyStatus
     FROM AccountUsersRanked
-    WHERE rn = 1
+    GROUP BY EmployerEmail
+),
+AccountUsers AS (
+    SELECT
+        aur.EmployerEmail,
+        aur.EmployerFirstName,
+        aur.EmployerLastName,
+        aur.EmployerAccountID,
+        aur.LevyStatus,
+        aur.LastLogin,
+        aur.DateOfLastAPIAutoSync,
+        aa.AccountCount,
+        aa.ConsolidatedLevyStatus
+    FROM AccountUsersRanked aur
+    INNER JOIN AccountAggregate aa
+        ON aa.EmployerEmail = aur.EmployerEmail
+    WHERE aur.rn = 1
 ),
 CampaignUsersRanked AS (
     SELECT
@@ -85,6 +107,12 @@ Merged AS (
         COALESCE(au.EmployerLastName,  cu.CampaignLastName)  AS LastName,
 
         au.EmployerAccountID,
+        au.LevyStatus,
+        au.AccountCount,
+        CASE 
+            WHEN au.EmployerEmail IS NULL THEN 'Unknown'
+            ELSE au.ConsolidatedLevyStatus
+        END AS ConsolidatedLevyStatus,
         au.LastLogin,
         au.DateOfLastAPIAutoSync,
 
@@ -109,6 +137,9 @@ SELECT
     FirstName,
     LastName,
     EmployerAccountID,
+    LevyStatus,
+    AccountCount,
+    ConsolidatedLevyStatus,
     LastLogin,
     DateOfLastAPIAutoSync,
     UkEmployerSize,
@@ -119,6 +150,6 @@ SELECT
     IncludeInUR,
     RecordSource
 FROM Merged;
-GO
 
+GO
 
