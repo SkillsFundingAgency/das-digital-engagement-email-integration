@@ -13,12 +13,43 @@ GO
 CREATE VIEW [ASData_PL].[vw_DAS_EmailIntegration]
 AS
 /*
-Purpose:
-- Unify Account Users and Campaign Users by email.
-- Keep only the most recent record per email from each source.
-- Prefer Account values over Campaign values when both exist.
-- RecordSource flag: 'Account', 'Campaign', or 'Both'. (Debug only)
+Logic of [ASData_PL].[vw_DAS_EmailIntegration]:
+
+- Purpose: Unify Account Users and Campaign Users by email, providing a consolidated view for downstream integration.
+
+1. AccountUsersRanked:
+   - Selects all account users, joining user, user-account settings, and account tables.
+   - Adds the employer's levy status and account ID.
+   - Ranks each user's accounts by account creation date (most recent first).
+
+2. AccountAggregate:
+   - For each email, counts the number of unique accounts (AccountCount).
+   - Determines a consolidated levy status:
+     - 'Non Levy' if all accounts are non-levy.
+     - 'Levy' if all accounts are levy.
+     - 'Both' if the email has both levy and non-levy accounts.
+     - 'Unknown' otherwise.
+
+3. AccountUsers:
+   - Selects the most recent account per email (using the ranking).
+   - Joins in the account count and consolidated levy status.
+
+4. CampaignUsersRanked:
+   - Selects all campaign users, ranking by the most recent sign-up date per email.
+
+5. CampaignUsers:
+   - Selects the most recent campaign user per email.
+
+6. Merged:
+   - Full outer joins AccountUsers and CampaignUsers on email.
+   - For each email, prefers account user data when available, otherwise uses campaign user data.
+   - Sets 'RecordSource' to 'Account', 'Campaign', or 'Both' depending on data presence. (Debug only)
+   - If the email is only in CampaignUsers, sets ConsolidatedLevyStatus to 'Unknown'.
+
+7. Final SELECT:
+   - Returns unified user data, account info, levy status, campaign info, and record source for each unique email.
 */
+
 WITH AccountUsersRanked AS (
     SELECT
         au.Email                        AS EmployerEmail,
@@ -30,7 +61,7 @@ WITH AccountUsersRanked AS (
         CONVERT(VARCHAR(10), GETDATE(), 120) AS DateOfLastAPIAutoSync,
         ROW_NUMBER() OVER (
             PARTITION BY au.Email
-            ORDER BY acc.CreatedDate DESC
+            ORDER BY au.LastLogin DESC
         ) AS rn
     FROM ASData_PL.Acc_User AS au
     INNER JOIN ASData_PL.Acc_UserAccountSettings AS aus
