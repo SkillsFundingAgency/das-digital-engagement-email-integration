@@ -1,8 +1,8 @@
-/****** Object:  View [ASData_PL].[vw_DAS_EmailIntegration]    Script Date: 16/03/2026 23:37:36 ******/
+-- Object:  View [ASData_PL].[vw_DAS_EmailIntegration]    Script Date: 16/03/2026 23:37:36 
 DROP VIEW [ASData_PL].[vw_DAS_EmailIntegration]
 GO
 
-/****** Object:  View [ASData_PL].[vw_DAS_EmailIntegration]    Script Date: 16/03/2026 23:37:36 ******/
+-- Object:  View [ASData_PL].[vw_DAS_EmailIntegration]    Script Date: 16/03/2026 23:37:36 
 SET ANSI_NULLS ON
 GO
 
@@ -168,9 +168,8 @@ SELECT
     FirstName,
     LastName,
     EmployerAccountID,
-    LevyStatus,
     AccountCount,
-    ConsolidatedLevyStatus,
+    ConsolidatedLevyStatus AS LevyStatus,
     LastLogin,
     DateOfLastAPIAutoSync,
     UkEmployerSize,
