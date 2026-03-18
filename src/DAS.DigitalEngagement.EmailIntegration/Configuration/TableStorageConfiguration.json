@@ -11,7 +11,62 @@
       "ObjectName": "Lead",
       "ViewName": "AsData_PL.vw_DAS_EmailIntegration",
       "TemplatedUploadId": "1",
-      "FieldMapping": "[{ \"Source\":\"Email\", \"Target\":\"Email\" },{ \"Source\":\"FirstName\", \"Target\":\"FirstName\" },{ \"Source\":\"LastName\", \"Target\":\"LastName\" },{ \"Source\":\"EmployerAccountID\", \"Target\":\"EmployerAccountID\" },{ \"Source\":\"LastLogin\", \"Target\":\"LastLoginDate\" },{ \"Source\":\"DateOfLastAPIAutoSync\", \"Target\":\"DateOfLastAPIAutoSync\" },{ \"Source\":\"UkEmployerSize\", \"Target\":\"AppsGovFormUKEmployerSize\" },{ \"Source\":\"PrimaryIndustry\", \"Target\":\"AppsGovFormPrimaryIndustry\" },{ \"Source\":\"PrimaryLocation\", \"Target\":\"AppsGovFormPrimaryLocation\" },{ \"Source\":\"AppsgovSignUpDate\", \"Target\":\"AppsGovSignUpDate\" },{ \"Source\":\"PersonOrigin\", \"Target\":\"UserOrigin\" },{ \"Source\":\"IncludeInUR\", \"Target\":\"IncludeInUR\" ],"
+      "FieldMapping": [
+        {
+          "Source": "Email",
+          "Target": "Email"
+        },
+        {
+          "Source": "FirstName",
+          "Target": "FirstName"
+        },
+        {
+          "Source": "LastName",
+          "Target": "LastName"
+        },
+        {
+          "Source": "EmployerAccountID",
+          "Target": "EmployerAccountID"
+        },
+        {
+          "Source": "LastLogin",
+          "Target": "LastLoginDate"
+        },
+        {
+          "Source": "DateOfLastAPIAutoSync",
+          "Target": "DateOfLastAPIAutoSync"
+        },
+        {
+          "Source": "UkEmployerSize",
+          "Target": "AppsGovFormUKEmployerSize"
+        },
+        {
+          "Source": "PrimaryIndustry",
+          "Target": "AppsGovFormPrimaryIndustry"
+        },
+        {
+          "Source": "PrimaryLocation",
+          "Target": "AppsGovFormPrimaryLocation"
+        },
+        {
+          "Source": "AppsgovSignUpDate",
+          "Target": "AppsGovSignUpDate"
+        },
+        {
+          "Source": "PersonOrigin",
+          "Target": "UserOrigin"
+        },
+        {
+          "Source": "IncludeInUR",
+          "Target": "IncludeInUR"
+        },
+        {
+          "Source": "LevyStatus",
+          "Target": "Levystatus"
+        }
+      ]
     }
   ]
 }
+
+
