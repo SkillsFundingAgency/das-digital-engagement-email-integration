@@ -1,14 +1,11 @@
--- Object:  View [ASData_PL].[vw_DAS_EmailIntegration]    Script Date: 16/03/2026 23:37:36 
 DROP VIEW [ASData_PL].[vw_DAS_EmailIntegration]
 GO
 
--- Object:  View [ASData_PL].[vw_DAS_EmailIntegration]    Script Date: 16/03/2026 23:37:36 
 SET ANSI_NULLS ON
 GO
 
 SET QUOTED_IDENTIFIER ON
 GO
-
 
 CREATE VIEW [ASData_PL].[vw_DAS_EmailIntegration]
 AS
@@ -20,9 +17,16 @@ Logic of [ASData_PL].[vw_DAS_EmailIntegration]:
 1. AccountUsersRanked:
    - Selects all account users, joining user, user-account settings, and account tables.
    - Adds the employer's levy status and account ID.
-   - Ranks each user's accounts by account creation date (most recent first).
+   - Ranks each user's accounts by last login date (most recent first).
 
-2. AccountAggregate:
+2. ReservationsSummary:
+   - For each account, counts distinct reservations and determines reservation status flags/text for non-levy accounts.
+
+3. EmailReservationsAggregate:
+   - For each email, aggregates reservation status across all associated accounts.
+   - If all accounts for an email have the same reservation status, returns that value; otherwise, returns blank.
+
+4. AccountLevyAggregate:
    - For each email, counts the number of unique accounts (AccountCount).
    - Determines a consolidated levy status:
      - 'Non Levy' if all accounts are non-levy.
@@ -30,24 +34,24 @@ Logic of [ASData_PL].[vw_DAS_EmailIntegration]:
      - 'Both' if the email has both levy and non-levy accounts.
      - 'Unknown' otherwise.
 
-3. AccountUsers:
+5. AccountUsers:
    - Selects the most recent account per email (using the ranking).
-   - Joins in the account count and consolidated levy status.
+   - Joins in the account count, consolidated levy status, and reservation status.
 
-4. CampaignUsersRanked:
+6. CampaignUsersRanked:
    - Selects all campaign users, ranking by the most recent sign-up date per email.
 
-5. CampaignUsers:
+7. CampaignUsers:
    - Selects the most recent campaign user per email.
 
-6. Merged:
+8. Merged:
    - Full outer joins AccountUsers and CampaignUsers on email.
    - For each email, prefers account user data when available, otherwise uses campaign user data.
-   - Sets 'RecordSource' to 'Account', 'Campaign', or 'Both' depending on data presence. (Debug only)
+   - Sets 'RecordSource' to 'Account', 'Campaign', or 'Both' depending on data presence.
    - If the email is only in CampaignUsers, sets ConsolidatedLevyStatus to 'Unknown'.
 
-7. Final SELECT:
-   - Returns unified user data, account info, levy status, campaign info, and record source for each unique email.
+9. Final SELECT:
+   - Returns unified user data, account info, levy status, reservation status, campaign info, and record source for each unique email.
 */
 
 WITH AccountUsersRanked AS (
@@ -69,7 +73,30 @@ WITH AccountUsersRanked AS (
     INNER JOIN ASData_PL.Acc_Account AS acc
         ON acc.Id = aus.AccountId
 ),
-AccountAggregate AS (
+ReservationsSummary AS (
+    SELECT 
+        [AccountId],
+        COUNT(DISTINCT [Id]) AS Reservations,
+        CASE WHEN COUNT(DISTINCT [Id]) > 0 THEN 1 ELSE 0 END AS [HasReservationsFlag],
+        CASE WHEN COUNT(DISTINCT [Id]) > 0 THEN 'Yes' ELSE 'No' END AS [HasReservationsText]
+    FROM [ASData_PL].[Resv_Reservation]
+    WHERE IsLevyAccount = 0
+    GROUP BY AccountId
+),
+EmailReservationsAggregate AS (
+    SELECT
+        au.Email AS EmployerEmail,
+        CASE WHEN COUNT(DISTINCT rs.HasReservationsText) = 1 THEN MAX(rs.HasReservationsText) ELSE '' END AS HasReservationsText
+    FROM ASData_PL.Acc_User AS au
+    INNER JOIN ASData_PL.Acc_UserAccountSettings AS aus
+        ON aus.UserId = au.Id
+    INNER JOIN ASData_PL.Acc_Account AS acc
+        ON acc.Id = aus.AccountId
+    LEFT JOIN ReservationsSummary rs
+        ON rs.AccountId = acc.Id
+    GROUP BY au.Email
+),
+AccountLevyAggregate AS (
     SELECT
         EmployerEmail,
         COUNT(DISTINCT EmployerAccountID) AS AccountCount,
@@ -93,11 +120,14 @@ AccountUsers AS (
         aur.LevyStatus,
         aur.LastLogin,
         aur.DateOfLastAPIAutoSync,
-        aa.AccountCount,
-        aa.ConsolidatedLevyStatus
+        ala.AccountCount,
+        ala.ConsolidatedLevyStatus,
+        era.HasReservationsText
     FROM AccountUsersRanked aur
-    INNER JOIN AccountAggregate aa
-        ON aa.EmployerEmail = aur.EmployerEmail
+    INNER JOIN AccountLevyAggregate ala
+        ON ala.EmployerEmail = aur.EmployerEmail
+    LEFT JOIN EmailReservationsAggregate era
+        ON era.EmployerEmail = aur.EmployerEmail
     WHERE aur.rn = 1
 ),
 CampaignUsersRanked AS (
@@ -146,6 +176,7 @@ Merged AS (
         END AS ConsolidatedLevyStatus,
         au.LastLogin,
         au.DateOfLastAPIAutoSync,
+        au.HasReservationsText AS ReservedFunding,
 
         cu.UkEmployerSize,
         cu.PrimaryIndustry,
@@ -172,6 +203,7 @@ SELECT
     ConsolidatedLevyStatus AS LevyStatus,
     LastLogin,
     DateOfLastAPIAutoSync,
+    ReservedFunding,
     UkEmployerSize,
     PrimaryIndustry,
     PrimaryLocation,
@@ -182,4 +214,3 @@ SELECT
 FROM Merged;
 
 GO
-

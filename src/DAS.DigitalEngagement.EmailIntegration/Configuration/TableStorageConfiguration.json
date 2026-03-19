@@ -63,10 +63,12 @@
         {
           "Source": "LevyStatus",
           "Target": "Levystatus"
+        },
+        {
+          "Source": "ReservedFunding",
+          "Target": "Reservedfunding"
         }
       ]
     }
   ]
 }
-
-
