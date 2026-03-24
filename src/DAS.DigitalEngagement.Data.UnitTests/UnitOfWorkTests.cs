@@ -403,7 +403,7 @@ public class UnitOfWorkTests
             _unitOfWork.CampaignImportMetadata
         };
 
-        Assert.That(repositories.Length, Is.EqualTo(6));
+        Assert.That(repositories, Has.Length.EqualTo(6));
         Assert.That(repositories.All(r => r != null), Is.True);
     }
 
