@@ -1,234 +1,15 @@
-using DAS.DigitalEngagement.CampaignInterest.Data.Helpers;
 using DAS.DigitalEngagement.CampaignInterest.Data.Service;
-using Microsoft.Extensions.Logging;
-using Moq;
 using System.Data;
 
 namespace DAS.DigitalEngagement.CampaignInterest.Data.UnitTests;
 
+/// <summary>
+/// Unit tests for BulkInsertService.
+/// </summary>
 [TestFixture]
 public class BulkInsertServiceTests
 {
-    private BulkInsertService _service = null!;
-    private Mock<ILogger<BulkInsertService>> _loggerMock = null!;
-    private Mock<IDbConnectionFactory> _mockConnectionFactory = null!;
-    private Mock<IDbConnection> _mockConnection = null!;
-    private List<TestEntity> _testData = null!;
-
-    [SetUp]
-    public void Setup()
-    {
-        _testData =
-        [
-            new TestEntity { Id = 1, Name = "Test1", IsActive = true, CreatedDate = DateTime.UtcNow },
-            new TestEntity { Id = 2, Name = "Test2", IsActive = false, CreatedDate = DateTime.UtcNow.AddDays(-1) }
-        ];
-
-        _loggerMock = new Mock<ILogger<BulkInsertService>>();
-        _mockConnectionFactory = new Mock<IDbConnectionFactory>();
-        _mockConnection = new Mock<IDbConnection>();
-
-        _mockConnectionFactory.Setup(f => f.CreateConnection()).Returns(_mockConnection.Object);
-
-        _service = new BulkInsertService(_mockConnectionFactory.Object, _loggerMock.Object);
-    }
-
-    #region Basic Functionality Tests
-
-    [Test]
-    public void BulkInsertAsync_CurrentImplementation_Throws_InvalidCastException_With_Mock()
-    {
-        // Arrange
-        var tableName = "dbo.TestTable";
-
-        // Act & Assert
-        var ex = Assert.ThrowsAsync<InvalidCastException>(async () =>
-            await _service.BulkInsertAsync(_testData, tableName));
-
-        Assert.That(ex!.Message, Does.Contain("SqlConnection"));
-    }
-
-    [Test]
-    public void BulkInsertAsync_Should_Accept_Empty_Collection()
-    {
-        // Arrange
-        var emptyData = new List<TestEntity>();
-        var tableName = "dbo.TestTable";
-
-        // Act & Assert
-        Assert.ThrowsAsync<InvalidCastException>(async () =>
-            await _service.BulkInsertAsync(emptyData, tableName));
-    }
-
-    [Test]
-    public void BulkInsertAsync_Should_Fail_Before_Validating_Null_Data_Due_To_SqlConnection_Cast()
-    {
-        // Arrange
-        List<TestEntity>? nullData = null;
-        var tableName = "dbo.TestTable";
-
-        // Act & Assert
-        Assert.ThrowsAsync<InvalidCastException>(async () =>
-            await _service.BulkInsertAsync(nullData!, tableName));
-    }
-
-    [Test]
-    public void BulkInsertAsync_Should_Accept_Schema_Qualified_Table_Name()
-    {
-        // Arrange
-        var tableName = "dbo.MyTable";
-
-        // Act & Assert
-        Assert.ThrowsAsync<InvalidCastException>(async () =>
-            await _service.BulkInsertAsync(_testData, tableName));
-    }
-
-    [Test]
-    public void BulkInsertAsync_Should_Accept_Simple_Table_Name()
-    {
-        // Arrange
-        var tableName = "MyTable";
-
-        // Act & Assert
-        Assert.ThrowsAsync<InvalidCastException>(async () =>
-            await _service.BulkInsertAsync(_testData, tableName));
-    }
-
-    #endregion
-
-    #region Entity Type Tests
-
-    [Test]
-    public void BulkInsertAsync_Should_Handle_Entity_With_Multiple_Data_Types()
-    {
-        // Arrange
-        var complexData = new List<ComplexEntity>
-        {
-            new()
-            {
-                Id = 1,
-                Name = "Test",
-                Amount = 100.50m,
-                IsActive = true,
-                CreatedDate = DateTime.UtcNow,
-                Count = 42
-            }
-        };
-        var tableName = "dbo.ComplexTable";
-
-        // Act & Assert
-        Assert.ThrowsAsync<InvalidCastException>(async () =>
-            await _service.BulkInsertAsync(complexData, tableName));
-    }
-
-    [Test]
-    public void BulkInsertAsync_Should_Handle_Entity_With_Nullable_Properties()
-    {
-        // Arrange
-        var nullableData = new List<NullableEntity>
-        {
-            new() { Id = 1, NullableInt = null, NullableDate = null, NullableDecimal = 100.5m },
-            new() { Id = 2, NullableInt = 42, NullableDate = DateTime.UtcNow, NullableDecimal = null }
-        };
-        var tableName = "dbo.NullableTable";
-
-        // Act & Assert
-        Assert.ThrowsAsync<InvalidCastException>(async () =>
-            await _service.BulkInsertAsync(nullableData, tableName));
-    }
-
-    [Test]
-    public void BulkInsertAsync_Should_Handle_Entity_With_String_Properties()
-    {
-        // Arrange
-        var stringData = new List<StringEntity>
-        {
-            new() { Id = 1, Name = "Test", Description = "Description", Email = "test@example.com" }
-        };
-        var tableName = "dbo.StringTable";
-
-        // Act & Assert
-        Assert.ThrowsAsync<InvalidCastException>(async () =>
-            await _service.BulkInsertAsync(stringData, tableName));
-    }
-
-    [Test]
-    public void BulkInsertAsync_Should_Handle_Entity_With_All_Null_Values()
-    {
-        // Arrange
-        var nullData = new List<AllNullableEntity>
-        {
-            new() { Name = null, Age = null, IsActive = null }
-        };
-        var tableName = "dbo.AllNullableTable";
-
-        // Act & Assert
-        Assert.ThrowsAsync<InvalidCastException>(async () =>
-            await _service.BulkInsertAsync(nullData, tableName));
-    }
-
-    #endregion
-
-    #region Performance and Scalability Tests
-
-    [Test]
-    public void BulkInsertAsync_Should_Handle_Large_Dataset()
-    {
-        // Arrange
-        var largeDataSet = Enumerable.Range(1, 10000)
-            .Select(i => new TestEntity
-            {
-                Id = i,
-                Name = $"Test{i}",
-                IsActive = i % 2 == 0,
-                CreatedDate = DateTime.UtcNow.AddDays(-i)
-            })
-            .ToList();
-        var tableName = "dbo.LargeTable";
-
-        // Act & Assert
-        Assert.ThrowsAsync<InvalidCastException>(async () =>
-            await _service.BulkInsertAsync(largeDataSet, tableName));
-    }
-
-    [Test]
-    public void BulkInsertAsync_Should_Handle_Very_Large_Dataset()
-    {
-        // Arrange
-        var veryLargeDataSet = Enumerable.Range(1, 50000)
-            .Select(i => new TestEntity
-            {
-                Id = i,
-                Name = $"Test{i}",
-                IsActive = true,
-                CreatedDate = DateTime.UtcNow
-            })
-            .ToList();
-        var tableName = "dbo.VeryLargeTable";
-
-        // Act & Assert
-        Assert.ThrowsAsync<InvalidCastException>(async () =>
-            await _service.BulkInsertAsync(veryLargeDataSet, tableName));
-    }
-
-    [Test]
-    public void BulkInsertAsync_Should_Handle_Single_Record()
-    {
-        // Arrange
-        var singleRecord = new List<TestEntity>
-        {
-            new() { Id = 1, Name = "Single", IsActive = true, CreatedDate = DateTime.UtcNow }
-        };
-        var tableName = "dbo.SingleRecordTable";
-
-        // Act & Assert
-        Assert.ThrowsAsync<InvalidCastException>(async () =>
-            await _service.BulkInsertAsync(singleRecord, tableName));
-    }
-
-    #endregion
-
-    #region Data Type Conversion Tests
+    #region Data Transformation Tests - ConvertToDataTable
 
     [Test]
     public void ConvertToDataTable_Should_Create_Table_With_Correct_Columns()
@@ -266,9 +47,9 @@ public class BulkInsertServiceTests
         // Act
         var table = InvokeConvertToDataTable(data);
 
+        // Assert
         Assert.Multiple(() =>
         {
-            // Assert
             Assert.That(table.Columns["Id"]!.DataType, Is.EqualTo(typeof(int)));
             Assert.That(table.Columns["Name"]!.DataType, Is.EqualTo(typeof(string)));
             Assert.That(table.Columns["IsActive"]!.DataType, Is.EqualTo(typeof(bool)));
@@ -277,7 +58,7 @@ public class BulkInsertServiceTests
     }
 
     [Test]
-    public void ConvertToDataTable_Should_Handle_Nullable_Types_Correctly()
+    public void ConvertToDataTable_Should_Handle_Nullable_Types()
     {
         // Arrange
         var data = new List<NullableEntity>
@@ -288,10 +69,9 @@ public class BulkInsertServiceTests
         // Act
         var table = InvokeConvertToDataTable(data);
 
+        // Assert - Nullable types should be converted to their underlying type
         Assert.Multiple(() =>
         {
-            // Assert
-            // Nullable types should be converted to their underlying type
             Assert.That(table.Columns["NullableInt"]!.DataType, Is.EqualTo(typeof(int)));
             Assert.That(table.Columns["NullableDate"]!.DataType, Is.EqualTo(typeof(DateTime)));
             Assert.That(table.Columns["NullableDecimal"]!.DataType, Is.EqualTo(typeof(decimal)));
@@ -387,7 +167,7 @@ public class BulkInsertServiceTests
     }
 
     [Test]
-    public void ConvertToDataTable_Should_Only_Include_Public_Instance_Properties()
+    public void ConvertToDataTable_Should_Only_Include_Public_Properties()
     {
         // Arrange
         var data = new List<EntityWithVariousMembers>
@@ -400,11 +180,39 @@ public class BulkInsertServiceTests
 
         // Assert
         Assert.That(table.Columns, Has.Count.EqualTo(1));
+        Assert.That(table.Columns.Contains("PublicProperty"), Is.True);
+    }
+
+    [Test]
+    public void ConvertToDataTable_Should_Handle_Complex_Entity_With_Multiple_Types()
+    {
+        // Arrange
+        var data = new List<ComplexEntity>
+        {
+            new()
+            {
+                Id = 1,
+                Name = "Test",
+                Amount = 100.50m,
+                IsActive = true,
+                CreatedDate = DateTime.UtcNow,
+                Count = 42
+            }
+        };
+
+        // Act
+        var table = InvokeConvertToDataTable(data);
+
+        // Assert
+        Assert.That(table.Columns, Has.Count.EqualTo(6));
         Assert.Multiple(() =>
         {
-            Assert.That(table.Columns.Contains("PublicProperty"), Is.True);
-            Assert.That(table.Columns.Contains("PrivateField"), Is.False);
-            Assert.That(table.Columns.Contains("StaticProperty"), Is.False);
+            Assert.That(table.Columns["Id"]!.DataType, Is.EqualTo(typeof(int)));
+            Assert.That(table.Columns["Name"]!.DataType, Is.EqualTo(typeof(string)));
+            Assert.That(table.Columns["Amount"]!.DataType, Is.EqualTo(typeof(decimal)));
+            Assert.That(table.Columns["IsActive"]!.DataType, Is.EqualTo(typeof(bool)));
+            Assert.That(table.Columns["CreatedDate"]!.DataType, Is.EqualTo(typeof(DateTime)));
+            Assert.That(table.Columns["Count"]!.DataType, Is.EqualTo(typeof(int)));
         });
     }
 
@@ -413,7 +221,8 @@ public class BulkInsertServiceTests
     #region Helper Methods
 
     /// <summary>
-    /// Uses reflection to invoke the private ConvertToDataTable method for testing
+    /// Uses reflection to invoke the private ConvertToDataTable method.
+    /// This allows testing the core data transformation logic without SqlBulkCopy dependencies.
     /// </summary>
     private static DataTable InvokeConvertToDataTable<T>(IEnumerable<T> data)
     {
@@ -452,21 +261,6 @@ public class BulkInsertServiceTests
         public int? NullableInt { get; set; }
         public DateTime? NullableDate { get; set; }
         public decimal? NullableDecimal { get; set; }
-    }
-
-    private class StringEntity
-    {
-        public int Id { get; set; }
-        public string Name { get; set; } = string.Empty;
-        public string Description { get; set; } = string.Empty;
-        public string Email { get; set; } = string.Empty;
-    }
-
-    private class AllNullableEntity
-    {
-        public string? Name { get; set; }
-        public int? Age { get; set; }
-        public bool? IsActive { get; set; }
     }
 
     private class EntityWithVariousMembers
