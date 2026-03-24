@@ -5,6 +5,9 @@ namespace DAS.DigitalEngagement.CampaignInterest.Data.UnitTests;
 
 /// <summary>
 /// Unit tests for BulkInsertService.
+/// Note: BulkInsertAsync cannot be fully tested with mocks because SqlBulkCopy requires a real SqlConnection.
+/// These tests focus on the ConvertToDataTable method which contains the core data transformation logic.
+/// Integration tests should be used to verify the full bulk insert functionality with a real database.
 /// </summary>
 [TestFixture]
 public class BulkInsertServiceTests
@@ -216,6 +219,339 @@ public class BulkInsertServiceTests
         });
     }
 
+    [Test]
+    public void ConvertToDataTable_Should_Handle_String_With_Special_Characters()
+    {
+        // Arrange
+        var data = new List<TestEntity>
+        {
+            new() { Id = 1, Name = "Test's \"Special\" & <Characters> 🎉", IsActive = true, CreatedDate = DateTime.UtcNow }
+        };
+
+        // Act
+        var table = InvokeConvertToDataTable(data);
+
+        // Assert
+        Assert.That(table.Rows, Has.Count.EqualTo(1));
+        Assert.That(table.Rows[0]["Name"], Is.EqualTo("Test's \"Special\" & <Characters> 🎉"));
+    }
+
+    [Test]
+    public void ConvertToDataTable_Should_Handle_Empty_Strings()
+    {
+        // Arrange
+        var data = new List<TestEntity>
+        {
+            new() { Id = 1, Name = string.Empty, IsActive = false, CreatedDate = DateTime.UtcNow }
+        };
+
+        // Act
+        var table = InvokeConvertToDataTable(data);
+
+        // Assert
+        Assert.That(table.Rows[0]["Name"], Is.EqualTo(string.Empty));
+    }
+
+    [Test]
+    public void ConvertToDataTable_Should_Handle_Very_Long_Strings()
+    {
+        // Arrange
+        var longString = new string('A', 10000);
+        var data = new List<TestEntity>
+        {
+            new() { Id = 1, Name = longString, IsActive = true, CreatedDate = DateTime.UtcNow }
+        };
+
+        // Act
+        var table = InvokeConvertToDataTable(data);
+
+        // Assert
+        Assert.That(table.Rows[0]["Name"], Is.EqualTo(longString));
+    }
+
+    [Test]
+    public void ConvertToDataTable_Should_Handle_Min_And_Max_Integer_Values()
+    {
+        // Arrange
+        var data = new List<IntegerEntity>
+        {
+            new() { MinValue = int.MinValue, MaxValue = int.MaxValue, Zero = 0 }
+        };
+
+        // Act
+        var table = InvokeConvertToDataTable(data);
+
+        // Assert
+        Assert.Multiple(() =>
+        {
+            Assert.That(table.Rows[0]["MinValue"], Is.EqualTo(int.MinValue));
+            Assert.That(table.Rows[0]["MaxValue"], Is.EqualTo(int.MaxValue));
+            Assert.That(table.Rows[0]["Zero"], Is.EqualTo(0));
+        });
+    }
+
+    [Test]
+    public void ConvertToDataTable_Should_Handle_Min_And_Max_DateTime_Values()
+    {
+        // Arrange
+        var data = new List<DateEntity>
+        {
+            new() { MinDate = DateTime.MinValue, MaxDate = DateTime.MaxValue, UtcNow = DateTime.UtcNow }
+        };
+
+        // Act
+        var table = InvokeConvertToDataTable(data);
+
+        // Assert
+        Assert.Multiple(() =>
+        {
+            Assert.That(table.Rows[0]["MinDate"], Is.EqualTo(DateTime.MinValue));
+            Assert.That(table.Rows[0]["MaxDate"], Is.EqualTo(DateTime.MaxValue));
+            Assert.That(table.Rows[0]["UtcNow"], Is.Not.EqualTo(DBNull.Value));
+        });
+    }
+
+    [Test]
+    public void ConvertToDataTable_Should_Handle_Min_And_Max_Decimal_Values()
+    {
+        // Arrange
+        var data = new List<DecimalEntity>
+        {
+            new() { MinDecimal = decimal.MinValue, MaxDecimal = decimal.MaxValue, Zero = 0m, SmallValue = 0.0001m }
+        };
+
+        // Act
+        var table = InvokeConvertToDataTable(data);
+
+        // Assert
+        Assert.Multiple(() =>
+        {
+            Assert.That(table.Rows[0]["MinDecimal"], Is.EqualTo(decimal.MinValue));
+            Assert.That(table.Rows[0]["MaxDecimal"], Is.EqualTo(decimal.MaxValue));
+            Assert.That(table.Rows[0]["Zero"], Is.EqualTo(0m));
+            Assert.That(table.Rows[0]["SmallValue"], Is.EqualTo(0.0001m));
+        });
+    }
+
+    [Test]
+    public void ConvertToDataTable_Should_Handle_Mixed_Null_And_Non_Null_Values()
+    {
+        // Arrange
+        var data = new List<NullableEntity>
+        {
+            new() { Id = 1, NullableInt = 42, NullableDate = null, NullableDecimal = 99.99m },
+            new() { Id = 2, NullableInt = null, NullableDate = DateTime.UtcNow, NullableDecimal = null },
+            new() { Id = 3, NullableInt = null, NullableDate = null, NullableDecimal = null }
+        };
+
+        // Act
+        var table = InvokeConvertToDataTable(data);
+
+        // Assert
+        Assert.That(table.Rows, Has.Count.EqualTo(3));
+        Assert.Multiple(() =>
+        {
+            Assert.That(table.Rows[0]["NullableInt"], Is.EqualTo(42));
+            Assert.That(table.Rows[0]["NullableDate"], Is.EqualTo(DBNull.Value));
+            Assert.That(table.Rows[0]["NullableDecimal"], Is.EqualTo(99.99m));
+
+            Assert.That(table.Rows[1]["NullableInt"], Is.EqualTo(DBNull.Value));
+            Assert.That(table.Rows[1]["NullableDate"], Is.Not.EqualTo(DBNull.Value));
+            Assert.That(table.Rows[1]["NullableDecimal"], Is.EqualTo(DBNull.Value));
+
+            Assert.That(table.Rows[2]["NullableInt"], Is.EqualTo(DBNull.Value));
+            Assert.That(table.Rows[2]["NullableDate"], Is.EqualTo(DBNull.Value));
+            Assert.That(table.Rows[2]["NullableDecimal"], Is.EqualTo(DBNull.Value));
+        });
+    }
+
+    [Test]
+    public void ConvertToDataTable_Should_Handle_Guid_Properties()
+    {
+        // Arrange
+        var guid1 = Guid.NewGuid();
+        var guid2 = Guid.NewGuid();
+        var data = new List<GuidEntity>
+        {
+            new() { Id = guid1, Name = "Test1" },
+            new() { Id = guid2, Name = "Test2" }
+        };
+
+        // Act
+        var table = InvokeConvertToDataTable(data);
+
+        // Assert
+        Assert.That(table.Columns, Has.Count.EqualTo(2));
+        Assert.Multiple(() =>
+        {
+            Assert.That(table.Columns["Id"]!.DataType, Is.EqualTo(typeof(Guid)));
+            Assert.That(table.Rows[0]["Id"], Is.EqualTo(guid1));
+            Assert.That(table.Rows[1]["Id"], Is.EqualTo(guid2));
+        });
+    }
+
+    [Test]
+    public void ConvertToDataTable_Should_Handle_Nullable_Guid()
+    {
+        // Arrange
+        var guid = Guid.NewGuid();
+        var data = new List<NullableGuidEntity>
+        {
+            new() { Id = 1, OptionalGuid = guid },
+            new() { Id = 2, OptionalGuid = null }
+        };
+
+        // Act
+        var table = InvokeConvertToDataTable(data);
+
+        // Assert
+        Assert.That(table.Columns["OptionalGuid"]!.DataType, Is.EqualTo(typeof(Guid)));
+        Assert.Multiple(() =>
+        {
+            Assert.That(table.Rows[0]["OptionalGuid"], Is.EqualTo(guid));
+            Assert.That(table.Rows[1]["OptionalGuid"], Is.EqualTo(DBNull.Value));
+        });
+    }
+
+    [Test]
+    public void ConvertToDataTable_Should_Maintain_Property_Order()
+    {
+        // Arrange
+        var data = new List<OrderedEntity>
+        {
+            new() { Alpha = "A", Beta = "B", Gamma = "C", Delta = "D" }
+        };
+
+        // Act
+        var table = InvokeConvertToDataTable(data);
+
+        // Assert
+        Assert.That(table.Columns, Has.Count.EqualTo(4));
+        Assert.Multiple(() =>
+        {
+            Assert.That(table.Columns[0]!.ColumnName, Is.EqualTo("Alpha"));
+            Assert.That(table.Columns[1]!.ColumnName, Is.EqualTo("Beta"));
+            Assert.That(table.Columns[2]!.ColumnName, Is.EqualTo("Gamma"));
+            Assert.That(table.Columns[3]!.ColumnName, Is.EqualTo("Delta"));
+        });
+    }
+
+    [Test]
+    public void ConvertToDataTable_Should_Handle_Boolean_Values()
+    {
+        // Arrange
+        var data = new List<BooleanEntity>
+        {
+            new() { Id = 1, IsActive = true, IsDeleted = false },
+            new() { Id = 2, IsActive = false, IsDeleted = true }
+        };
+
+        // Act
+        var table = InvokeConvertToDataTable(data);
+
+        // Assert
+        Assert.Multiple(() =>
+        {
+            Assert.That(table.Rows[0]["IsActive"], Is.EqualTo(true));
+            Assert.That(table.Rows[0]["IsDeleted"], Is.EqualTo(false));
+            Assert.That(table.Rows[1]["IsActive"], Is.EqualTo(false));
+            Assert.That(table.Rows[1]["IsDeleted"], Is.EqualTo(true));
+        });
+    }
+
+    [Test]
+    public void ConvertToDataTable_Should_Handle_Nullable_Boolean()
+    {
+        // Arrange
+        var data = new List<NullableBooleanEntity>
+        {
+            new() { Id = 1, IsActive = true },
+            new() { Id = 2, IsActive = false },
+            new() { Id = 3, IsActive = null }
+        };
+
+        // Act
+        var table = InvokeConvertToDataTable(data);
+
+        // Assert
+        Assert.Multiple(() =>
+        {
+            Assert.That(table.Rows[0]["IsActive"], Is.EqualTo(true));
+            Assert.That(table.Rows[1]["IsActive"], Is.EqualTo(false));
+            Assert.That(table.Rows[2]["IsActive"], Is.EqualTo(DBNull.Value));
+        });
+    }
+
+    [Test]
+    public void ConvertToDataTable_Should_Handle_Large_Dataset_Efficiently()
+    {
+        // Arrange
+        var data = Enumerable.Range(1, 10000)
+            .Select(i => new TestEntity
+            {
+                Id = i,
+                Name = $"Name{i}",
+                IsActive = i % 2 == 0,
+                CreatedDate = DateTime.UtcNow.AddSeconds(-i)
+            })
+            .ToList();
+
+        // Act
+        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+        var table = InvokeConvertToDataTable(data);
+        stopwatch.Stop();
+
+        // Assert
+        Assert.That(table.Rows, Has.Count.EqualTo(10000));
+        Assert.That(stopwatch.ElapsedMilliseconds, Is.LessThan(5000), 
+            "ConvertToDataTable should process 10,000 rows in less than 5 seconds");
+    }
+
+    [Test]
+    public void ConvertToDataTable_Should_Handle_Entity_With_All_Common_CLR_Types()
+    {
+        // Arrange
+        var data = new List<AllTypesEntity>
+        {
+            new()
+            {
+                ByteValue = 255,
+                ShortValue = short.MaxValue,
+                IntValue = int.MaxValue,
+                LongValue = long.MaxValue,
+                FloatValue = 3.14f,
+                DoubleValue = 3.14159,
+                DecimalValue = 99.99m,
+                BoolValue = true,
+                CharValue = 'A',
+                StringValue = "Test",
+                DateTimeValue = DateTime.UtcNow,
+                GuidValue = Guid.NewGuid()
+            }
+        };
+
+        // Act
+        var table = InvokeConvertToDataTable(data);
+
+        // Assert
+        Assert.That(table.Columns, Has.Count.EqualTo(12));
+        Assert.Multiple(() =>
+        {
+            Assert.That(table.Columns["ByteValue"]!.DataType, Is.EqualTo(typeof(byte)));
+            Assert.That(table.Columns["ShortValue"]!.DataType, Is.EqualTo(typeof(short)));
+            Assert.That(table.Columns["IntValue"]!.DataType, Is.EqualTo(typeof(int)));
+            Assert.That(table.Columns["LongValue"]!.DataType, Is.EqualTo(typeof(long)));
+            Assert.That(table.Columns["FloatValue"]!.DataType, Is.EqualTo(typeof(float)));
+            Assert.That(table.Columns["DoubleValue"]!.DataType, Is.EqualTo(typeof(double)));
+            Assert.That(table.Columns["DecimalValue"]!.DataType, Is.EqualTo(typeof(decimal)));
+            Assert.That(table.Columns["BoolValue"]!.DataType, Is.EqualTo(typeof(bool)));
+            Assert.That(table.Columns["CharValue"]!.DataType, Is.EqualTo(typeof(char)));
+            Assert.That(table.Columns["StringValue"]!.DataType, Is.EqualTo(typeof(string)));
+            Assert.That(table.Columns["DateTimeValue"]!.DataType, Is.EqualTo(typeof(DateTime)));
+            Assert.That(table.Columns["GuidValue"]!.DataType, Is.EqualTo(typeof(Guid)));
+        });
+    }
+
     #endregion
 
     #region Helper Methods
@@ -267,6 +603,77 @@ public class BulkInsertServiceTests
     {
         public string PublicProperty { get; set; } = string.Empty;
         public static string StaticProperty { get; set; } = string.Empty;
+    }
+
+    private class IntegerEntity
+    {
+        public int MinValue { get; set; }
+        public int MaxValue { get; set; }
+        public int Zero { get; set; }
+    }
+
+    private class DateEntity
+    {
+        public DateTime MinDate { get; set; }
+        public DateTime MaxDate { get; set; }
+        public DateTime UtcNow { get; set; }
+    }
+
+    private class DecimalEntity
+    {
+        public decimal MinDecimal { get; set; }
+        public decimal MaxDecimal { get; set; }
+        public decimal Zero { get; set; }
+        public decimal SmallValue { get; set; }
+    }
+
+    private class GuidEntity
+    {
+        public Guid Id { get; set; }
+        public string Name { get; set; } = string.Empty;
+    }
+
+    private class NullableGuidEntity
+    {
+        public int Id { get; set; }
+        public Guid? OptionalGuid { get; set; }
+    }
+
+    private class OrderedEntity
+    {
+        public string Alpha { get; set; } = string.Empty;
+        public string Beta { get; set; } = string.Empty;
+        public string Gamma { get; set; } = string.Empty;
+        public string Delta { get; set; } = string.Empty;
+    }
+
+    private class BooleanEntity
+    {
+        public int Id { get; set; }
+        public bool IsActive { get; set; }
+        public bool IsDeleted { get; set; }
+    }
+
+    private class NullableBooleanEntity
+    {
+        public int Id { get; set; }
+        public bool? IsActive { get; set; }
+    }
+
+    private class AllTypesEntity
+    {
+        public byte ByteValue { get; set; }
+        public short ShortValue { get; set; }
+        public int IntValue { get; set; }
+        public long LongValue { get; set; }
+        public float FloatValue { get; set; }
+        public double DoubleValue { get; set; }
+        public decimal DecimalValue { get; set; }
+        public bool BoolValue { get; set; }
+        public char CharValue { get; set; }
+        public string StringValue { get; set; } = string.Empty;
+        public DateTime DateTimeValue { get; set; }
+        public Guid GuidValue { get; set; }
     }
 
     #endregion

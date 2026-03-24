@@ -9,9 +9,6 @@ namespace DAS.DigitalEngagement.CampaignInterest.Data.UnitTests.Repositories;
 
 /// <summary>
 /// Unit tests for CampaignsRepository.
-/// Note: Repository methods cannot be fully tested with mocks because Dapper extensions require a real SqlConnection.
-/// These tests verify that the repository can be instantiated and validates input parameters.
-/// Integration tests should be used to verify the full database interaction functionality.
 /// </summary>
 [TestFixture]
 public class CampaignsRepositoryTests
