@@ -1,4 +1,5 @@
 ﻿using DAS.DigitalEngagement.Application.Services.Interfaces;
+using DAS.DigitalEngagement.Models.Campaigns;
 using DAS.DigitalEngagement.Models.Import;
 using DAS.DigitalEngagement.Models.Infrastructure;
 using Microsoft.Extensions.Logging;
@@ -60,7 +61,6 @@ namespace DAS.DigitalEngagement.Application.Services
             return content;
         }
 
-       
         public async Task<BatchResultDetail> PostDataAsync(string endpoint, string csvBodyString)
         {
             var result = new BatchResultDetail
@@ -112,6 +112,23 @@ namespace DAS.DigitalEngagement.Application.Services
             }
 
             return result;
+        }
+
+        //(endpoint = https://rest-api.e-shot.net/Sends?$filter=SubaccountID eq 2&$select=ID,Name,SendCompletedDate,ContactCount)
+        public async Task<IEnumerable<Send>> GetSendsForSubAccountAsync(int subAccountId, CancellationToken cancellationToken = default)
+        {
+            // Build the OData filter query
+            var endpoint = $"Sends?$filter=SubaccountID eq {subAccountId}&$select=ID,Name,SendCompletedDate,ContactCount";
+
+            var content = await GetDataAsync(endpoint);
+
+            // Deserialize the JSON response into a list of Send objects
+            var sends = System.Text.Json.JsonSerializer.Deserialize<List<Send>>(content, new System.Text.Json.JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true
+            });
+
+            return sends ?? new List<Send>();
         }
     }
 }
