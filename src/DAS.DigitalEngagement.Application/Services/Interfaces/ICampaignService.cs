@@ -7,7 +7,7 @@ public interface ICampaignService
     /// <summary>
     /// Retrieves all Sends (sent campaigns) for a specific sub-account from e-shot.
     /// </summary>
-    /// <param name="subAccountId">The e-shot sub-account identifier</param>
+    /// <param name="subAccountId">The e-shot sub-account identifier (optional)</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Collection of Send objects containing campaign performance data</returns>
     Task<IEnumerable<Send>> GetAllSendsAsync(int? subAccountId = null, CancellationToken cancellationToken = default);

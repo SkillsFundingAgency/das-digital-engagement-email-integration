@@ -72,11 +72,6 @@ public class DisplayedContact
     public string? ClientFamily { get; set; }
 }
 
-public class ContactInfo
-{
-    public string? Email { get; set; }
-}
-
 public class UserAgentInfo
 {
     public required int ID { get; set; }

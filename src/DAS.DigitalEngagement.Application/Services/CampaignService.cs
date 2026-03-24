@@ -206,7 +206,8 @@ namespace DAS.DigitalEngagement.Application.Services
                 throw;
             }
         }
-      
+
+        #region Private helper methods
         private string BuildDisplayedContactsEndpoint(int sendId, int skip, int top)
         {
             var filter = Uri.EscapeDataString($"SendID eq {sendId}");
@@ -662,5 +663,6 @@ namespace DAS.DigitalEngagement.Application.Services
                 throw;
             }
         }
+        #endregion 
     }
 }
