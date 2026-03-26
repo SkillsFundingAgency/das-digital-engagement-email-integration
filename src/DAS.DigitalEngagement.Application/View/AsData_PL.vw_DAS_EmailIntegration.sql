@@ -57,22 +57,24 @@ Logic of [ASData_PL].[vw_DAS_EmailIntegration]:
 WITH AccountUsersRanked AS (
     SELECT
         au.Email                        AS EmployerEmail,
-        au.FirstName                    AS EmployerFirstName,
-        au.LastName                     AS EmployerLastName,
         acc.Id                          AS EmployerAccountID,
         acc.ApprenticeshipEmployerType  AS LevyStatus,
         CONVERT(VARCHAR(10), au.LastLogin, 120) AS LastLogin,
         CONVERT(VARCHAR(10), GETDATE(), 120) AS DateOfLastAPIAutoSync,
+
+        -- pick ANY record by Email using a stable column (au.Id)
         ROW_NUMBER() OVER (
             PARTITION BY au.Email
-            ORDER BY au.LastLogin DESC
+            ORDER BY au.Id
         ) AS rn
+
     FROM ASData_PL.Acc_User AS au
     INNER JOIN ASData_PL.Acc_UserAccountSettings AS aus
         ON aus.UserId = au.Id
     INNER JOIN ASData_PL.Acc_Account AS acc
         ON acc.Id = aus.AccountId
 ),
+
 ReservationsSummary AS (
     SELECT 
         [AccountId],
@@ -83,10 +85,15 @@ ReservationsSummary AS (
     WHERE IsLevyAccount = 0
     GROUP BY AccountId
 ),
+
 EmailReservationsAggregate AS (
     SELECT
         au.Email AS EmployerEmail,
-        CASE WHEN COUNT(DISTINCT rs.HasReservationsText) = 1 THEN MAX(rs.HasReservationsText) ELSE '' END AS HasReservationsText
+        CASE 
+            WHEN COUNT(DISTINCT rs.HasReservationsText) = 1 
+                THEN MAX(rs.HasReservationsText) 
+            ELSE '' 
+        END AS HasReservationsText
     FROM ASData_PL.Acc_User AS au
     INNER JOIN ASData_PL.Acc_UserAccountSettings AS aus
         ON aus.UserId = au.Id
@@ -96,6 +103,21 @@ EmailReservationsAggregate AS (
         ON rs.AccountId = acc.Id
     GROUP BY au.Email
 ),
+
+-- Ensures FirstName/LastName are only returned when identical for all duplicates
+EmailNameAggregate AS (
+    SELECT
+        au.Email AS EmployerEmail,
+        IIF(COUNT(DISTINCT au.FirstName) = 1, MAX(au.FirstName), '') 
+            AS EmployerFirstName,
+
+        IIF(COUNT(DISTINCT au.LastName) = 1, MAX(au.LastName), '') 
+            AS EmployerLastName
+
+    FROM ASData_PL.Acc_User AS au
+    GROUP BY au.Email
+),
+
 AccountLevyAggregate AS (
     SELECT
         EmployerEmail,
@@ -111,11 +133,12 @@ AccountLevyAggregate AS (
     FROM AccountUsersRanked
     GROUP BY EmployerEmail
 ),
+
 AccountUsers AS (
     SELECT
         aur.EmployerEmail,
-        aur.EmployerFirstName,
-        aur.EmployerLastName,
+        ena.EmployerFirstName,
+        IIF(ISNULL(ena.EmployerFirstName, '') = '', '', ena.EmployerLastName) AS EmployerLastName,
         aur.EmployerAccountID,
         aur.LevyStatus,
         aur.LastLogin,
@@ -128,12 +151,13 @@ AccountUsers AS (
         ON ala.EmployerEmail = aur.EmployerEmail
     LEFT JOIN EmailReservationsAggregate era
         ON era.EmployerEmail = aur.EmployerEmail
+    LEFT JOIN EmailNameAggregate ena
+        ON ena.EmployerEmail = aur.EmployerEmail
     WHERE aur.rn = 1
 ),
+
 CampaignUsersRanked AS (
     SELECT
-        cud.FirstName                 AS CampaignFirstName,
-        cud.LastName                  AS CampaignLastName,
         cud.Email                     AS CampaignEmail,
         cud.UkEmployerSize,
         cud.PrimaryIndustry,
@@ -147,19 +171,37 @@ CampaignUsersRanked AS (
         ) AS rn
     FROM ASData_PL.CPG_UserData AS cud
 ),
+
+-- Aggregate First/Last Name only if all values match
+CampaignNameAggregate AS (
+    SELECT
+        cud.Email AS CampaignEmail,
+        IIF(COUNT(DISTINCT cud.FirstName) = 1, MAX(cud.FirstName), '')
+            AS CampaignFirstName,
+        IIF(COUNT(DISTINCT cud.LastName) = 1, MAX(cud.LastName), '') 
+            AS CampaignLastName
+    FROM ASData_PL.CPG_UserData AS cud
+    GROUP BY cud.Email
+),
+
 CampaignUsers AS (
     SELECT
-        CampaignFirstName,
-        CampaignLastName,
-        CampaignEmail,
-        UkEmployerSize,
-        PrimaryIndustry,
-        PrimaryLocation,
-        AppsgovSignUpDate,
-        PersonOrigin,
-        IncludeInUR
-    FROM CampaignUsersRanked
-    WHERE rn = 1
+        -- First name after duplicate-handling
+        cna.CampaignFirstName,
+        -- Last name only if FirstName is not blank
+        IIF(ISNULL(cna.CampaignFirstName, '') = '', '', cna.CampaignLastName)
+        AS CampaignLastName,
+        cur.CampaignEmail,
+        cur.UkEmployerSize,
+        cur.PrimaryIndustry,
+        cur.PrimaryLocation,
+        cur.AppsgovSignUpDate,
+        cur.PersonOrigin,
+        cur.IncludeInUR
+    FROM CampaignUsersRanked cur
+    LEFT JOIN CampaignNameAggregate cna
+        ON cna.CampaignEmail = cur.CampaignEmail
+    WHERE cur.rn = 1
 ),
 Merged AS (
     SELECT
