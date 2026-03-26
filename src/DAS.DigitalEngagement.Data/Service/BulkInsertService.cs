@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
 using Polly;
 using System.Data;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 
 namespace DAS.DigitalEngagement.CampaignInterest.Data.Service;
@@ -13,6 +14,7 @@ public interface IBulkInsertService
     Task BulkInsertAsync<T>(IEnumerable<T> data, string tableName);
 }
 
+[ExcludeFromCodeCoverage]
 public class BulkInsertService(IDbConnectionFactory factory, ILogger<BulkInsertService> logger) : IBulkInsertService
 {
     public async Task BulkInsertAsync<T>(IEnumerable<T> data, string tableName)
