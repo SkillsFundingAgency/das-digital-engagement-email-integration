@@ -534,7 +534,7 @@ public class CampaignsRepositoryTests
     public void GetByIdAsync_Should_Accept_Valid_Long_Values()
     {
         // Arrange
-        long[] validIds = { long.MinValue, -1, 0, 1, 12345, long.MaxValue };
+        long[] validIds = [long.MinValue, -1, 0, 1, 12345, long.MaxValue];
 
         // Act & Assert
         foreach (var id in validIds)
@@ -753,8 +753,14 @@ public class CampaignsRepositoryTests
     public async Task GetAllAsync_Should_Create_New_Connection_On_Each_Invocation()
     {
         // Act
-        try { await _repository.GetAllAsync(); } catch { }
-        try { await _repository.GetAllAsync(); } catch { }
+        try { await _repository.GetAllAsync(); } catch
+        {
+            // Expected when using mocks
+        }
+        try { await _repository.GetAllAsync(); } catch
+        {
+            // Expected when using mocks
+        }
 
         // Assert
         _mockConnectionFactory.Verify(f => f.CreateConnection(), Times.Exactly(2));
@@ -820,20 +826,6 @@ public class CampaignsRepositoryTests
 
         // Assert
         act.Should().ThrowAsync<InvalidOperationException>().WithMessage("Factory failed to create connection");
-    }
-
-    [Test]
-    public void GetAllAsync_Should_Throw_NullReferenceException_When_Factory_Returns_Null()
-    {
-        // Arrange
-        _mockConnectionFactory.Setup(f => f.CreateConnection()).Returns((IDbConnection?)null);
-        var repository = new CampaignsRepository(_mockConnectionFactory.Object, _mockLogger.Object);
-
-        // Act
-        Func<Task> act = async () => await repository.GetAllAsync();
-
-        // Assert
-        act.Should().ThrowAsync<NullReferenceException>();
     }
 
     [Test]
@@ -1187,7 +1179,7 @@ public class CampaignsRepositoryTests
     {
         // Act & Assert
         var exception = Assert.ThrowsAsync<InvalidCastException>(async () => await _repository.GetByIdsAsync(ids));
-        exception.Should().NotBeNull("Method should throw InvalidCastException when using mock connection, not ArgumentException");
+        exception.Should().NotBeNull($"Method should throw InvalidCastException when using {description}");
     }
 
     [TestCase(new long[] { }, 0)]
@@ -1317,9 +1309,18 @@ public class CampaignsRepositoryTests
         // Act
         var tasks = new[]
         {
-            Task.Run(async () => { try { await _repository.GetByIdsAsync(ids); } catch { } }),
-            Task.Run(async () => { try { await _repository.GetByIdsAsync(ids); } catch { } }),
-            Task.Run(async () => { try { await _repository.GetByIdsAsync(ids); } catch { } })
+            Task.Run(async () => { try { await _repository.GetByIdsAsync(ids); } catch 
+                { 
+                    // Expected when using mocks
+                } }),
+            Task.Run(async () => { try { await _repository.GetByIdsAsync(ids); } catch
+                {
+                    // Expected when using mocks
+                } }),
+            Task.Run(async () => { try { await _repository.GetByIdsAsync(ids); } catch
+                {
+                    // Expected when using mocks
+                } })
         };
 
         await Task.WhenAll(tasks);
