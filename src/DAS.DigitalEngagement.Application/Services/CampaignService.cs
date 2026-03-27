@@ -28,9 +28,12 @@ namespace DAS.DigitalEngagement.Application.Services
             {
                 _logger.LogInformation("Retrieving Sends for sub-account {SubAccountId}", subAccountId);
 
-                var endpoint = subAccountId != null ? 
-                    $"Sends?$filter={Uri.EscapeDataString($"SubAccountID eq {subAccountId}")}" 
-                    : $"Sends";
+                var endpoint = $"Sends?$expand={Uri.EscapeDataString("SubAccount($select=Name),Campaign($select=FirstSendDate,LastSendDate)")}";
+
+                if (subAccountId != null)
+                {
+                    endpoint += $"&$filter={Uri.EscapeDataString($"SubAccountID eq {subAccountId}")}";
+                }
 
                 var response = await _externalApiService.GetDataAsync(endpoint);
                 var sends = ParseSendsFromResponse(response);
@@ -42,6 +45,48 @@ namespace DAS.DigitalEngagement.Application.Services
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Failed to retrieve Sends for sub-account {SubAccountId}", subAccountId);
+                throw;
+            }
+        }
+
+        public async Task<IEnumerable<UserAgentInfo>> GetUserAgentInfoForSendAsync(int sendId, CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                _logger.LogInformation("Retrieving user agent information for Send {SendId}", sendId);
+
+                var userAgentInfos = new List<UserAgentInfo>();
+                int skip = 0;
+                bool hasMorePages = true;
+
+                while (hasMorePages)
+                {
+                    var endpoint = BuildUserAgentEndpoint(sendId, skip, _pageSize);
+                    var response = await _externalApiService.GetDataAsync(endpoint);
+                    var userAgents = ParseUserAgentInfoFromResponse(response);
+
+                    userAgentInfos.AddRange(userAgents);
+
+                    _logger.LogInformation("Retrieved {UserAgentCount} user agent records for Send {SendId} at skip={Skip}", userAgents.Count(), sendId, skip);
+
+                    // Determine if there are more pages
+                    if (userAgents.Count() < _pageSize)
+                    {
+                        hasMorePages = false;
+                    }
+                    else
+                    {
+                        skip += _pageSize;
+                    }
+                }
+
+                _logger.LogInformation("Successfully retrieved {UserAgentCount} unique user agent information for Send {SendId}", userAgentInfos.Count, sendId);
+
+                return userAgentInfos;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to retrieve user agent information for Send {SendId}", sendId);
                 throw;
             }
         }
@@ -102,7 +147,7 @@ namespace DAS.DigitalEngagement.Application.Services
                 {
                     var endpoint = BuildClickedLinkContactsEndpoint(sendId, skip, _pageSize);
                     var response = await _externalApiService.GetDataAsync(endpoint);
-                    var contacts = ParseClickedLinkContactsFromResponse(response, userAgentInfo, out var nextLink);
+                    var contacts = ParseClickedLinkContactsFromResponse(response, userAgentInfo);
 
                     clickedLinkContacts.AddRange(contacts);
 
@@ -138,18 +183,28 @@ namespace DAS.DigitalEngagement.Application.Services
                 _logger.LogInformation("Retrieving bounced email contacts for Send {SendId}", sendId);
 
                 var bouncedContacts = new List<BouncedContact>();
-                var endpoint = BuildBouncedContactsEndpoint(sendId);
 
                 // Handle pagination
-                while (!string.IsNullOrEmpty(endpoint))
+                int skip = 0;
+                bool hasMorePages = true;
+
+                while (hasMorePages)
                 {
+                    var endpoint = BuildBouncedContactsEndpoint(sendId, skip, _pageSize);
                     var response = await _externalApiService.GetDataAsync(endpoint);
-                    var contacts = ParseBouncedContactsFromResponse(response, out var nextLink);
+                    var contacts = ParseBouncedContactsFromResponse(response);
 
                     bouncedContacts.AddRange(contacts);
 
-                    // Continue with next page if available
-                    endpoint = nextLink;
+                    // Determine if there are more pages
+                    if (contacts.Count() < _pageSize)
+                    {
+                        hasMorePages = false;
+                    }
+                    else
+                    {
+                        skip += _pageSize;
+                    }
                 }
 
                 _logger.LogInformation("Successfully retrieved {ContactCount} bounced email contacts for Send {SendId}", bouncedContacts.Count, sendId);
@@ -179,7 +234,7 @@ namespace DAS.DigitalEngagement.Application.Services
                     var endpoint = BuildUnsubscribedContactsEndpoint(sendId, skip, _pageSize);
 
                     var response = await _externalApiService.GetDataAsync(endpoint);
-                    var contacts = ParseUnsubscribedContactsFromResponse(response, out var nextLink);
+                    var contacts = ParseUnsubscribedContactsFromResponse(response);
 
                     unsubscribedContacts.AddRange(contacts);
 
@@ -234,14 +289,15 @@ namespace DAS.DigitalEngagement.Application.Services
             return $"ClickedContacts?$expand={expand}&$filter={filter}&$orderby={orderBy}&$skip={skip}&$top={top}";
         }
 
-        private string BuildBouncedContactsEndpoint(int sendId)
+        private string BuildBouncedContactsEndpoint(int sendId, int skip, int top)
         {
             var filter = Uri.EscapeDataString($"SendID eq {sendId}");
             var select = Uri.EscapeDataString("ID,BounceReason,BounceType,BounceDate,SendID,CampaignID,ResponseText");
             var expand = Uri.EscapeDataString("Contact($select=Email)");
+            var orderBy = Uri.EscapeDataString("ID");
 
             //return $"BouncedContacts?$select={select}&$filter={filter}";
-            return $"BouncedContacts?$select={select}&$expand={expand}&$filter={filter}";
+            return $"BouncedContacts?$select={select}&$expand={expand}&$filter={filter}&$orderby={orderBy}&$skip={skip}&$top={top}";
         }
 
         private string BuildUnsubscribedContactsEndpoint(int sendId, int skip, int top)
@@ -323,21 +379,12 @@ namespace DAS.DigitalEngagement.Application.Services
             }
         }
 
-        private IEnumerable<ClickedLinkContact> ParseClickedLinkContactsFromResponse(string jsonResponse, IEnumerable<UserAgentInfo> userAgentInfos, out string? nextLink)
+        private IEnumerable<ClickedLinkContact> ParseClickedLinkContactsFromResponse(string jsonResponse, IEnumerable<UserAgentInfo> userAgentInfos)
         {
-            nextLink = null;
-
             try
             {
                 var jsonNode = JsonNode.Parse(jsonResponse);
                 var valueArray = jsonNode?["value"]?.AsArray();
-
-                //// Check for next page link
-                //var nextLinkNode = jsonNode?["@odata.nextLink"];
-                //if (nextLinkNode != null)
-                //{
-                //    nextLink = nextLinkNode.GetValue<string>();
-                //}
 
                 if (valueArray == null || valueArray.Count == 0)
                 {
@@ -394,21 +441,12 @@ namespace DAS.DigitalEngagement.Application.Services
             }
         }
 
-        private IEnumerable<BouncedContact> ParseBouncedContactsFromResponse(string jsonResponse, out string? nextLink)
+        private IEnumerable<BouncedContact> ParseBouncedContactsFromResponse(string jsonResponse)
         {
-            nextLink = null;
-
             try
             {
                 var jsonNode = JsonNode.Parse(jsonResponse);
                 var valueArray = jsonNode?["value"]?.AsArray();
-
-                // Check for next page link
-                var nextLinkNode = jsonNode?["@odata.nextLink"];
-                if (nextLinkNode != null)
-                {
-                    nextLink = nextLinkNode.GetValue<string>();
-                }
 
                 if (valueArray == null || valueArray.Count == 0)
                 {
@@ -451,21 +489,12 @@ namespace DAS.DigitalEngagement.Application.Services
             }
         }
 
-        private IEnumerable<UnsubscribedContact> ParseUnsubscribedContactsFromResponse(string jsonResponse, out string? nextLink)
+        private IEnumerable<UnsubscribedContact> ParseUnsubscribedContactsFromResponse(string jsonResponse)
         {
-            nextLink = null;
-
             try
             {
                 var jsonNode = JsonNode.Parse(jsonResponse);
                 var valueArray = jsonNode?["value"]?.AsArray();
-
-                // Check for next page link
-                var nextLinkNode = jsonNode?["@odata.nextLink"];
-                if (nextLinkNode != null)
-                {
-                    nextLink = nextLinkNode.GetValue<string>();
-                }
 
                 if (valueArray == null || valueArray.Count == 0)
                 {
@@ -537,13 +566,13 @@ namespace DAS.DigitalEngagement.Application.Services
                         ContactCount = item?["ContactCount"]?.GetValue<int>() ?? 0,
                         CreatedBy = item?["CreatedBy"]?.GetValue<string>(),
                         CreatedDate = item?["CreatedDate"]?.GetValue<string>(),
-                        FirstSendDate = item?["FirstSendDate"]?.GetValue<string>(),
-                        LastSendDate = item?["LastSendDate"]?.GetValue<string>(),
+                        FirstSendDate = item?["Campaign"]?["FirstSendDate"]?.GetValue<string>(),
+                        LastSendDate = item?["Campaign"]?["LastSendDate"]?.GetValue<string>(),
                         FromEmail = item?["FromEmail"]?.GetValue<string>(),
                         FromName = item?["FromName"]?.GetValue<string>(),
                         ReplyEmail = item?["ReplyEmail"]?.GetValue<string>(),
                         SubjectLine = item?["SubjectLine"]?.GetValue<string>(),
-                        Account = item?["Account"]?.GetValue<string>()
+                        Account = item?["Subaccount"]?["Name"]?.GetValue<string>()
                     };
 
                     if (send.ID > 0 && !string.IsNullOrEmpty(send.SendCompletedDate))
@@ -561,48 +590,6 @@ namespace DAS.DigitalEngagement.Application.Services
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error parsing Sends from e-shot response");
-                throw;
-            }
-        }
-
-        public async Task<IEnumerable<UserAgentInfo>> GetUserAgentInfoForSendAsync(int sendId, CancellationToken cancellationToken = default)
-        {
-            try
-            {
-                _logger.LogInformation("Retrieving user agent information for Send {SendId}", sendId);
-
-                var userAgentInfos = new List<UserAgentInfo>();
-                int skip = 0;
-                bool hasMorePages = true;
-
-                while (hasMorePages)
-                {
-                    var endpoint = BuildUserAgentEndpoint(sendId, skip, _pageSize);
-                    var response = await _externalApiService.GetDataAsync(endpoint);
-                    var userAgents = ParseUserAgentInfoFromResponse(response);
-
-                    userAgentInfos.AddRange(userAgents);
-
-                    _logger.LogInformation("Retrieved {UserAgentCount} user agent records for Send {SendId} at skip={Skip}", userAgents.Count(), sendId, skip);
-
-                    // Determine if there are more pages
-                    if (userAgents.Count() < _pageSize)
-                    {
-                        hasMorePages = false;
-                    }
-                    else
-                    {
-                        skip += _pageSize;
-                    }
-                }
-
-                _logger.LogInformation("Successfully retrieved {UserAgentCount} unique user agent information for Send {SendId}", userAgentInfos.Count, sendId);
-
-                return userAgentInfos;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Failed to retrieve user agent information for Send {SendId}", sendId);
                 throw;
             }
         }

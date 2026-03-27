@@ -20,13 +20,11 @@ public class ImportCampaignPerformanceHandler : IImportCampaignPerformanceHandle
     {
         _logger.LogInformation("Starting campaign performance import");
 
-        //TODO - FOR LOCAL ONLY, delete before merging - use sub-account 3 for lots of small sends, 5 for one hugh send
-        var subAccountId = 5;
-
         try
         {
+            //TODO - set subAccountId = null for production. For local/testing, use sub-account 3 for lots of small sends, 5 for one hugh send
             var sends = await _campaignService.GetAllSendsAsync(
-                subAccountId: subAccountId, 
+                subAccountId: null, 
                 cancellationToken: cancellationToken);
 
             if (!sends.Any())
@@ -35,31 +33,31 @@ public class ImportCampaignPerformanceHandler : IImportCampaignPerformanceHandle
                 return;
             }
 
-            _logger.LogInformation("Retrieved {SendCount} sends for sub-account {SubAccountId}", sends.Count(), subAccountId);
+            _logger.LogInformation("Retrieved {SendCount} sends", sends.Count());
 
             foreach (var send in sends)
             {
-                _logger.LogInformation("Processing Send {SendId} for sub-account {SubAccountId}", send.ID, subAccountId);
+                _logger.LogInformation("Processing Send {SendId} for sub-account {Account}", send.ID, send.Account);
 
                 var userAgentInfo = await _campaignService.GetUserAgentInfoForSendAsync(send.ID, cancellationToken);
-                _logger.LogInformation("Retrieved {UserAgentCount} unique user agent records for Send {SendId} in sub-account {SubAccountId}", userAgentInfo.Count(), send.ID, subAccountId);
+                _logger.LogInformation("Retrieved {UserAgentCount} unique user agent records for Send {SendId} in sub-account {Account}", userAgentInfo.Count(), send.ID, send.Account);
 
                 var displayedContacts = await _campaignService.GetDisplayedContactsForSendAsync(send.ID, userAgentInfo, cancellationToken);
-                _logger.LogInformation("Retrieved {ContactCount} displayed contacts for Send {SendId} in sub-account {SubAccountId}", displayedContacts.Count(), send.ID, subAccountId);
+                _logger.LogInformation("Retrieved {ContactCount} displayed contacts for Send {SendId} in sub-account {Account}", displayedContacts.Count(), send.ID, send.Account);
 
                 var clickedLinkContacts = await _campaignService.GetClickedLinkContactsForSendAsync(send.ID, userAgentInfo, cancellationToken);
-                _logger.LogInformation("Retrieved {ContactCount} clicked link contacts for Send {SendId} in sub-account {SubAccountId}", clickedLinkContacts.Count(), send.ID, subAccountId);
+                _logger.LogInformation("Retrieved {ContactCount} clicked link contacts for Send {SendId} in sub-account {Account}", clickedLinkContacts.Count(), send.ID, send.Account);
 
                 var bouncedEmailContacts = await _campaignService.GetBouncedEmailContactsForSendAsync(send.ID, cancellationToken);
-                _logger.LogInformation("Retrieved {ContactCount} bounced email contacts for Send {SendId} in sub-account {SubAccountId}", bouncedEmailContacts.Count(), send.ID, subAccountId);
+                _logger.LogInformation("Retrieved {ContactCount} bounced email contacts for Send {SendId} in sub-account {Account}", bouncedEmailContacts.Count(), send.ID, send.Account);
 
                 var unsubscribedContacts = await _campaignService.GetUnsubscribedContactsForSendAsync(send.ID, cancellationToken);
-                _logger.LogInformation("Retrieved {ContactCount} unsubscribed contacts for Send {SendId} in sub-account {SubAccountId}", unsubscribedContacts.Count(), send.ID, subAccountId);
+                _logger.LogInformation("Retrieved {ContactCount} unsubscribed contacts for Send {SendId} in sub-account {Account}", unsubscribedContacts.Count(), send.ID, send.Account);
             }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error processing sub-account {SubAccountId}", subAccountId);
+            _logger.LogError(ex, "Error importing campaign performance data");
             throw;
         }
 

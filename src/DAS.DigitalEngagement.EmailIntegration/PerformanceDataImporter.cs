@@ -1,6 +1,7 @@
 using DAS.DigitalEngagement.Application.Handlers.Campaigns;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging;
+using System.Diagnostics;
 
 namespace DAS.DigitalEngagement.EmailIntegration;
 
@@ -20,14 +21,24 @@ public class PerformanceDataImporter
     {
         _logger.LogInformation("Performance Data Importer started at: {DateTime}", DateTime.Now);
 
+        var stopwatch = Stopwatch.StartNew();
+
         try
-        {            
+        {
             await _importCampaignPerformanceHandler.Handle();
-            _logger.LogInformation("Performance data import ran successfully.");
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error importing performance data");
+        }
+        finally
+        {
+            stopwatch.Stop();
+
+            _logger.LogInformation(
+                "Performance data import finished in {ElapsedMs} ms ({ElapsedSeconds} seconds).",
+                stopwatch.ElapsedMilliseconds,
+                stopwatch.Elapsed.TotalSeconds);
         }
 
         if (myTimer.IsPastDue)
