@@ -1,6 +1,5 @@
 ﻿using DAS.DigitalEngagement.CampaignInterest.Data.Helpers;
 using Microsoft.Data.SqlClient;
-using NUnit.Framework;
 using System.Data;
 
 namespace DAS.DigitalEngagement.CampaignInterest.Data.UnitTests;

@@ -1,30 +1,16 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Data;
-using System.Linq;
-using System.Reflection;
-using System.Threading.Tasks;
-
-using Dapper;
-using DAS.DigitalEngagement.CampaignInterest.Data.Helpers;
+﻿using DAS.DigitalEngagement.CampaignInterest.Data.Helpers;
 using DAS.DigitalEngagement.CampaignInterest.Data.Models;
 using DAS.DigitalEngagement.CampaignInterest.Data.Repositories;
 using FluentAssertions;
-using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Logging;
 using Moq;
-using NUnit.Framework;
+using System.Data;
+using System.Threading.Tasks;
 
 namespace DAS.DigitalEngagement.CampaignInterest.Data.UnitTests.Repositories;
 
-
-
-
 /// <summary>
 /// Unit tests for CampaignsRepository.
-/// Note: Repository methods cannot be fully tested with mocks because Dapper extensions require a real SqlConnection.
-/// These tests verify that the repository can be instantiated, validates input parameters, and handles edge cases.
-/// Integration tests should be used to verify the full database interaction functionality with stored procedures.
 /// </summary>
 [TestFixture]
 public class CampaignsRepositoryTests
@@ -33,7 +19,8 @@ public class CampaignsRepositoryTests
     private Mock<IDbConnectionFactory> _mockConnectionFactory = null!;
     private Mock<IDbConnection> _mockConnection = null!;
     private Mock<ILogger<CampaignsRepository>> _mockLogger = null!;
-
+    private Campaigns campaign = null!;
+    
     [SetUp]
     public void Setup()
     {
@@ -44,8 +31,28 @@ public class CampaignsRepositoryTests
         _mockConnectionFactory.Setup(f => f.CreateConnection()).Returns(_mockConnection.Object);
 
         _repository = new CampaignsRepository(_mockConnectionFactory.Object, _mockLogger.Object);
-    }
 
+        campaign = new Campaigns
+        {
+            Id = 12345,
+            ExternalId = 100,
+            Name = "Test Campaign",
+            Type = "Email",
+            CreatedBy = "TestUser",
+            CreatedOn = DateTime.UtcNow,
+            ModifiedBy = "TestUser",
+            ModifiedOn = DateTime.UtcNow,
+            FirstSendDate = DateTime.UtcNow,
+            LastSendDate = DateTime.UtcNow,
+            FromEmailAddress = "test@example.com",
+            FromName = "Test Sender",
+            ReplyEmailAddress = "reply@example.com",
+            Subject = "Test Subject",
+            SubStatus = "Active",
+            ContactCount = 100,
+            Account = "TestAccount"
+        };
+    }
 
     [Test]
     public void Constructor_Should_Create_Instance_With_Valid_Dependencies()
@@ -66,11 +73,8 @@ public class CampaignsRepositoryTests
 
         // Assert
         Assert.That(repository, Is.Not.Null);
-        _mockConnectionFactory.Verify(f => f.CreateConnection(), Times.Never,
-            "Constructor should not create connection immediately");
+        _mockConnectionFactory.Verify(f => f.CreateConnection(), Times.Never, "Constructor should not create connection immediately");
     }
-
-
 
     [Test]
     public void UpsertAsync_Should_Throw_ArgumentNullException_When_Campaign_Is_Null()
@@ -79,8 +83,7 @@ public class CampaignsRepositoryTests
         Campaigns? campaign = null;
 
         // Act & Assert
-        var exception = Assert.ThrowsAsync<ArgumentNullException>(async () =>
-            await _repository.UpsertAsync(campaign!));
+        var exception = Assert.ThrowsAsync<ArgumentNullException>(async () => await _repository.UpsertAsync(campaign!));
 
         Assert.That(exception!.ParamName, Is.EqualTo("campaign"));
     }
@@ -88,28 +91,6 @@ public class CampaignsRepositoryTests
     [Test]
     public void UpsertAsync_Should_Accept_Valid_Campaign()
     {
-        // Arrange
-        var campaign = new Campaigns
-        {
-            Id = 12345,
-            ExternalId = 100,
-            Name = "Test Campaign",
-            Type = "Email",
-            CreatedBy = "TestUser",
-            CreatedOn = DateTime.UtcNow,
-            ModifiedBy = "TestUser",
-            ModifiedOn = DateTime.UtcNow,
-            FirstSendDate = DateTime.UtcNow,
-            LastSendDate = DateTime.UtcNow,
-            FromEmailAddress = "test@example.com",
-            FromName = "Test Sender",
-            ReplyEmailAddress = "reply@example.com",
-            Subject = "Test Subject",
-            SubStatus = "Active",
-            ContactCount = 100,
-            Account = "TestAccount"
-        };
-
         // Act & Assert
         Assert.DoesNotThrowAsync(async () =>
         {
@@ -127,28 +108,6 @@ public class CampaignsRepositoryTests
     [Test]
     public void UpsertAsync_Should_Accept_Campaign_With_Null_Optional_Fields()
     {
-        // Arrange
-        var campaign = new Campaigns
-        {
-            Id = 12345,
-            ExternalId = 100,
-            Name = "Test Campaign",
-            Type = "Email",
-            CreatedBy = "TestUser",
-            CreatedOn = DateTime.UtcNow,
-            ModifiedBy = "TestUser",
-            ModifiedOn = null, // Nullable
-            FirstSendDate = DateTime.UtcNow,
-            LastSendDate = null, // Nullable
-            FromEmailAddress = "test@example.com",
-            FromName = "Test Sender",
-            ReplyEmailAddress = "reply@example.com",
-            Subject = "Test Subject",
-            SubStatus = "Active",
-            ContactCount = 0,
-            Account = "TestAccount"
-        };
-
         // Act & Assert
         Assert.DoesNotThrowAsync(async () =>
         {
@@ -167,7 +126,6 @@ public class CampaignsRepositoryTests
     public void UpsertAsync_Should_Accept_Campaign_With_Zero_ContactCount()
     {
         // Arrange
-        var campaign = CreateValidCampaign();
         campaign.ContactCount = 0;
 
         // Act & Assert
@@ -188,7 +146,6 @@ public class CampaignsRepositoryTests
     public void UpsertAsync_Should_Accept_Campaign_With_Large_ContactCount()
     {
         // Arrange
-        var campaign = CreateValidCampaign();
         campaign.ContactCount = int.MaxValue;
 
         // Act & Assert
@@ -204,8 +161,6 @@ public class CampaignsRepositoryTests
             }
         });
     }
-
-
 
     [Test]
     public void GetByIdAsync_Should_Accept_Positive_Id()
@@ -286,8 +241,6 @@ public class CampaignsRepositoryTests
             }
         });
     }
-
-
 
     [Test]
     public void GetByIdsAsync_Should_Accept_Empty_Collection()
@@ -409,8 +362,6 @@ public class CampaignsRepositoryTests
         });
     }
 
-
-
     [Test]
     public void GetAllAsync_Should_Not_Require_Parameters()
     {
@@ -427,8 +378,6 @@ public class CampaignsRepositoryTests
             }
         });
     }
-
-
 
     [Test]
     public void Repository_Should_Implement_All_Interface_Methods()
@@ -448,11 +397,8 @@ public class CampaignsRepositoryTests
 
         // Assert
         Assert.That(implementationMethods, Is.EquivalentTo(interfaceMethods));
-        Assert.That(implementationMethods, Has.Count.EqualTo(4),
-            "Repository should implement exactly 4 methods: GetByIdAsync, GetAllAsync, GetByIdsAsync, UpsertAsync");
+        Assert.That(implementationMethods, Has.Count.EqualTo(4), "Repository should implement exactly 4 methods: GetByIdAsync, GetAllAsync, GetByIdsAsync, UpsertAsync");
     }
-
-
 
     [Test]
     public async Task Repository_Should_Use_Factory_When_Calling_Methods()
@@ -485,9 +431,6 @@ public class CampaignsRepositoryTests
     [Test]
     public async Task UpsertAsync_Should_Call_Factory_CreateConnection_Once()
     {
-        // Arrange
-        var campaign = CreateValidCampaign();
-
         // Act
         try
         {
@@ -499,8 +442,7 @@ public class CampaignsRepositoryTests
         }
 
         // Assert
-        _mockConnectionFactory.Verify(f => f.CreateConnection(), Times.Once,
-            "Repository should use factory to create connection when calling UpsertAsync");
+        _mockConnectionFactory.Verify(f => f.CreateConnection(), Times.Once, "Repository should use factory to create connection when calling UpsertAsync");
     }
 
     [Test]
@@ -517,8 +459,7 @@ public class CampaignsRepositoryTests
         }
 
         // Assert
-        _mockConnectionFactory.Verify(f => f.CreateConnection(), Times.Once,
-            "Repository should use factory to create connection when calling GetAllAsync");
+        _mockConnectionFactory.Verify(f => f.CreateConnection(), Times.Once, "Repository should use factory to create connection when calling GetAllAsync");
     }
 
     [Test]
@@ -542,14 +483,9 @@ public class CampaignsRepositoryTests
             "Repository should use factory to create connection when calling GetByIdsAsync");
     }
 
-
-
     [Test]
     public async Task UpsertAsync_Should_Log_Information_Before_Connection_Is_Created()
     {
-        // Arrange
-        var campaign = CreateValidCampaign();
-
         // Act
         try
         {
@@ -649,8 +585,6 @@ public class CampaignsRepositoryTests
             Times.Once);
     }
 
-
-
     [Test]
     public void UpsertAsync_Should_Not_Create_Connection_When_Campaign_Is_Null()
     {
@@ -665,10 +599,6 @@ public class CampaignsRepositoryTests
     [Test]
     public void UpsertAsync_Should_Throw_InvalidCastException_When_Factory_Returns_Mock_Connection()
     {
-        // Mock<IDbConnection> cannot be cast to SqlConnection; this is the boundary where
-        // unit tests end and integration tests begin for this repository
-        var campaign = CreateValidCampaign();
-
         Assert.ThrowsAsync<InvalidCastException>(async () => await _repository.UpsertAsync(campaign));
 
         // Factory was called before the cast failed
@@ -694,8 +624,7 @@ public class CampaignsRepositoryTests
     [Test]
     public void GetByIdsAsync_Should_Throw_InvalidCastException_When_Factory_Returns_Mock_Connection()
     {
-        Assert.ThrowsAsync<InvalidCastException>(async () =>
-            await _repository.GetByIdsAsync([1L]));
+        Assert.ThrowsAsync<InvalidCastException>(async () => await _repository.GetByIdsAsync([1L]));
 
         _mockConnectionFactory.Verify(f => f.CreateConnection(), Times.Once);
     }
@@ -722,7 +651,7 @@ public class CampaignsRepositoryTests
     public async Task All_Four_Methods_Each_Create_Their_Own_Independent_Connection()
     {
         // Act - each method must use its own connection; no connection state is shared
-        try { await _repository.UpsertAsync(CreateValidCampaign()); }
+        try { await _repository.UpsertAsync(campaign); }
         catch (InvalidCastException)
         {
             // Expected when using mocks
@@ -748,13 +677,10 @@ public class CampaignsRepositoryTests
             "Each repository method should create its own independent connection; none are shared");
     }
 
-
-
     [Test]
     public void UpsertAsync_Should_Accept_Campaign_With_Min_DateTime_Values()
     {
         // Arrange
-        var campaign = CreateValidCampaign();
         campaign.CreatedOn = DateTime.MinValue;
         campaign.FirstSendDate = DateTime.MinValue;
         campaign.ModifiedOn = DateTime.MinValue;
@@ -778,7 +704,6 @@ public class CampaignsRepositoryTests
     public void UpsertAsync_Should_Accept_Campaign_With_Max_DateTime_Values()
     {
         // Arrange
-        var campaign = CreateValidCampaign();
         campaign.CreatedOn = DateTime.MaxValue;
         campaign.FirstSendDate = DateTime.MaxValue;
         campaign.ModifiedOn = DateTime.MaxValue;
@@ -802,7 +727,6 @@ public class CampaignsRepositoryTests
     public void UpsertAsync_Should_Accept_Campaign_With_Long_String_Values()
     {
         // Arrange
-        var campaign = CreateValidCampaign();
         campaign.Name = new string('A', 1000);
         campaign.Subject = new string('B', 1000);
         campaign.FromEmailAddress = "very.long.email.address" + new string('x', 100) + "@example.com";
@@ -825,7 +749,6 @@ public class CampaignsRepositoryTests
     public void UpsertAsync_Should_Accept_Campaign_With_Special_Characters_In_Strings()
     {
         // Arrange
-        var campaign = CreateValidCampaign();
         campaign.Name = "Test's Campaign \"Special\" & <Characters> 🎉";
         campaign.Subject = "Re: Test's \"Subject\" with & <HTML> tags";
 
@@ -847,10 +770,10 @@ public class CampaignsRepositoryTests
     public void UpsertAsync_Should_Accept_Campaign_With_Zero_And_Negative_ExternalId()
     {
         // Arrange
-        var campaign1 = CreateValidCampaign();
+        var campaign1 = campaign;
         campaign1.ExternalId = 0;
 
-        var campaign2 = CreateValidCampaign();
+        var campaign2 = campaign;
         campaign2.ExternalId = -1;
 
         // Act & Assert
@@ -868,38 +791,6 @@ public class CampaignsRepositoryTests
         });
     }
 
-
-
-    private static Campaigns CreateValidCampaign()
-    {
-        return new Campaigns
-        {
-            Id = 12345,
-            ExternalId = 100,
-            Name = "Test Campaign",
-            Type = "Email",
-            CreatedBy = "TestUser",
-            CreatedOn = DateTime.UtcNow,
-            ModifiedBy = "TestUser",
-            ModifiedOn = DateTime.UtcNow,
-            FirstSendDate = DateTime.UtcNow,
-            LastSendDate = DateTime.UtcNow,
-            FromEmailAddress = "test@example.com",
-            FromName = "Test Sender",
-            ReplyEmailAddress = "reply@example.com",
-            Subject = "Test Subject",
-            SubStatus = "Active",
-            ContactCount = 100,
-            Account = "TestAccount"
-        };
-    }
-
-
-    /// <summary>
-    /// Tests that GetByIdAsync accepts the minimum long value (long.MinValue) without throwing unexpected exceptions.
-    /// This test verifies boundary value handling for the id parameter.
-    /// Expected: Method should not throw unexpected exceptions (InvalidCastException is expected when using mocks).
-    /// </summary>
     [Test]
     public void GetByIdAsync_Should_Accept_Min_Long_Value()
     {
@@ -932,10 +823,6 @@ public class CampaignsRepositoryTests
         });
     }
 
-    /// <summary>
-    /// Tests that GetByIdsAsync throws ArgumentNullException when ids parameter is null.
-    /// This validates null parameter handling before any database operations.
-    /// </summary>
     [Test]
     public void GetByIdsAsync_Should_Throw_ArgumentNullException_When_Ids_Is_Null()
     {
@@ -949,10 +836,6 @@ public class CampaignsRepositoryTests
         act.Should().ThrowAsync<ArgumentNullException>();
     }
 
-    /// <summary>
-    /// Tests that GetByIdsAsync correctly handles collection containing long.MinValue.
-    /// Verifies that extreme negative boundary values are processed without error.
-    /// </summary>
     [Test]
     public void GetByIdsAsync_Should_Accept_Collection_With_MinValue()
     {
@@ -973,10 +856,6 @@ public class CampaignsRepositoryTests
         });
     }
 
-    /// <summary>
-    /// Tests that GetByIdsAsync correctly handles collection containing long.MaxValue.
-    /// Verifies that extreme positive boundary values are processed without error.
-    /// </summary>
     [Test]
     public void GetByIdsAsync_Should_Accept_Collection_With_MaxValue()
     {
@@ -997,10 +876,6 @@ public class CampaignsRepositoryTests
         });
     }
 
-    /// <summary>
-    /// Tests that GetByIdsAsync correctly handles collection with both extreme boundary values.
-    /// Verifies that long.MinValue and long.MaxValue can coexist in the same collection.
-    /// </summary>
     [Test]
     public void GetByIdsAsync_Should_Accept_Collection_With_Both_MinValue_And_MaxValue()
     {
@@ -1021,10 +896,6 @@ public class CampaignsRepositoryTests
         });
     }
 
-    /// <summary>
-    /// Tests that GetByIdsAsync correctly handles collection containing only zero values.
-    /// Verifies that zero, a common boundary value, is properly processed.
-    /// </summary>
     [Test]
     public void GetByIdsAsync_Should_Accept_Collection_With_Only_Zeros()
     {
@@ -1045,10 +916,6 @@ public class CampaignsRepositoryTests
         });
     }
 
-    /// <summary>
-    /// Tests that GetByIdsAsync logs the correct count when ids collection contains boundary values.
-    /// Verifies that Count() extension method works correctly with extreme long values.
-    /// </summary>
     [Test]
     public async Task GetByIdsAsync_Should_Log_Correct_Count_For_Collection_With_Boundary_Values()
     {
@@ -1077,10 +944,6 @@ public class CampaignsRepositoryTests
             Times.Once);
     }
 
-    /// <summary>
-    /// Tests that GetByIdsAsync creates comma-separated string correctly for boundary values.
-    /// Verifies string.Join behavior with extreme long values by checking log output.
-    /// </summary>
     [Test]
     public async Task GetByIdsAsync_Should_Create_Correct_String_Format_For_Boundary_Values()
     {
@@ -1109,11 +972,6 @@ public class CampaignsRepositoryTests
             "String.Join should execute successfully before logging");
     }
 
-    /// <summary>
-    /// Tests that GetByIdsAsync handles a very large collection of ids.
-    /// Verifies that string.Join can handle extremely large collections without issues.
-    /// Expected result: No exception thrown during string concatenation or logging.
-    /// </summary>
     [Test]
     public void GetByIdsAsync_Should_Handle_Very_Large_Id_Collection_Without_String_Join_Error()
     {
@@ -1134,10 +992,6 @@ public class CampaignsRepositoryTests
         });
     }
 
-    /// <summary>
-    /// Tests that GetByIdsAsync calls factory.CreateConnection exactly once for boundary value collection.
-    /// Verifies dependency injection and factory usage with extreme values.
-    /// </summary>
     [Test]
     public async Task GetByIdsAsync_Should_Call_Factory_Once_For_Boundary_Values()
     {
@@ -1158,11 +1012,6 @@ public class CampaignsRepositoryTests
         _mockConnectionFactory.Verify(x => x.CreateConnection(), Times.Once);
     }
 
-    /// <summary>
-    /// Tests that GetByIdsAsync properly handles negative ids in the collection.
-    /// Verifies that negative values (which may represent invalid ids in domain logic)
-    /// are still processed by the method without throwing at the repository level.
-    /// </summary>
     [Test]
     public void GetByIdsAsync_Should_Accept_All_Negative_Ids()
     {
@@ -1183,11 +1032,6 @@ public class CampaignsRepositoryTests
         });
     }
 
-    /// <summary>
-    /// Tests that UpsertAsync accepts campaign with int.MinValue for ExternalId.
-    /// Verifies that extreme negative boundary value for int is handled without exception.
-    /// Expected: Method should not throw ArgumentException for valid boundary value.
-    /// </summary>
     [Test]
     public void UpsertAsync_Should_Accept_Campaign_With_MinValue_ExternalId()
     {
@@ -1198,37 +1042,15 @@ public class CampaignsRepositoryTests
         mockConnectionFactory.Setup(f => f.CreateConnection()).Returns(mockConnection.Object);
         var repository = new CampaignsRepository(mockConnectionFactory.Object, mockLogger.Object);
 
-        var campaign = new Campaigns
-        {
-            Id = 1,
-            ExternalId = int.MinValue,
-            Name = "Test Campaign",
-            Type = "Email",
-            CreatedBy = "System",
-            CreatedOn = DateTime.UtcNow,
-            ModifiedBy = "System",
-            FirstSendDate = DateTime.UtcNow,
-            FromEmailAddress = "test@example.com",
-            FromName = "Test",
-            ReplyEmailAddress = "reply@example.com",
-            Subject = "Test Subject",
-            SubStatus = "Active",
-            ContactCount = 100,
-            Account = "TestAccount"
-        };
+        campaign.ExternalId = int.MinValue;
 
         // Act
-        Func<System.Threading.Tasks.Task> act = async () => await repository.UpsertAsync(campaign);
+        Func<Task> act = async () => await repository.UpsertAsync(campaign);
 
         // Assert
         act.Should().ThrowAsync<InvalidCastException>();
     }
 
-    /// <summary>
-    /// Tests that UpsertAsync accepts campaign with int.MaxValue for ExternalId.
-    /// Verifies that extreme positive boundary value for int is handled without exception.
-    /// Expected: Method should not throw ArgumentException for valid boundary value.
-    /// </summary>
     [Test]
     public void UpsertAsync_Should_Accept_Campaign_With_MaxValue_ExternalId()
     {
@@ -1239,37 +1061,15 @@ public class CampaignsRepositoryTests
         mockConnectionFactory.Setup(f => f.CreateConnection()).Returns(mockConnection.Object);
         var repository = new CampaignsRepository(mockConnectionFactory.Object, mockLogger.Object);
 
-        var campaign = new Campaigns
-        {
-            Id = 1,
-            ExternalId = int.MaxValue,
-            Name = "Test Campaign",
-            Type = "Email",
-            CreatedBy = "System",
-            CreatedOn = DateTime.UtcNow,
-            ModifiedBy = "System",
-            FirstSendDate = DateTime.UtcNow,
-            FromEmailAddress = "test@example.com",
-            FromName = "Test",
-            ReplyEmailAddress = "reply@example.com",
-            Subject = "Test Subject",
-            SubStatus = "Active",
-            ContactCount = 100,
-            Account = "TestAccount"
-        };
+        campaign.ExternalId = int.MaxValue;
 
         // Act
-        Func<System.Threading.Tasks.Task> act = async () => await repository.UpsertAsync(campaign);
+        Func<Task> act = async () => await repository.UpsertAsync(campaign);
 
         // Assert
         act.Should().ThrowAsync<InvalidCastException>();
     }
 
-    /// <summary>
-    /// Tests that UpsertAsync accepts campaign with int.MinValue for ContactCount.
-    /// Verifies that extreme negative boundary value for int ContactCount is handled.
-    /// Expected: Method should not throw ArgumentException (business validation should happen elsewhere).
-    /// </summary>
     [Test]
     public void UpsertAsync_Should_Accept_Campaign_With_MinValue_ContactCount()
     {
@@ -1963,11 +1763,6 @@ public class CampaignsRepositoryTests
             "Log message should contain the exact stored procedure name");
     }
 
-    /// <summary>
-    /// Tests that GetAllAsync does not swallow exceptions from logger.
-    /// This verifies proper exception propagation when logging fails.
-    /// Expected: Exception from logger should propagate to the caller.
-    /// </summary>
     [Test]
     public void GetAllAsync_Should_Propagate_Exception_When_Logger_Throws()
     {
@@ -1995,11 +1790,6 @@ public class CampaignsRepositoryTests
             .WithMessage("Logger failure");
     }
 
-    /// <summary>
-    /// Tests that GetAllAsync method signature returns the correct Task type.
-    /// This validates that the method returns a Task containing IEnumerable of Campaigns.
-    /// Expected: Method should return Task&lt;IEnumerable&lt;Campaigns&gt;&gt;.
-    /// </summary>
     [Test]
     public void GetAllAsync_Should_Have_Correct_Return_Type_Signature()
     {
@@ -2021,11 +1811,6 @@ public class CampaignsRepositoryTests
         result.Should().BeAssignableTo<Task<IEnumerable<Campaigns>>>();
     }
 
-    /// <summary>
-    /// Tests that GetAllAsync can be called multiple times in sequence without issues.
-    /// This verifies that the method does not maintain state between calls.
-    /// Expected: Each call should independently use the factory and logger.
-    /// </summary>
     [Test]
     public async Task GetAllAsync_Should_Handle_Multiple_Sequential_Calls()
     {
@@ -2065,14 +1850,6 @@ public class CampaignsRepositoryTests
             Times.Exactly(5));
     }
 
-
-    /// <summary>
-    /// Tests that GetByIdAsync accepts various boundary and edge case values for the id parameter.
-    /// This parameterized test verifies that the method handles long.MinValue, long.MaxValue, zero,
-    /// positive, and negative values without throwing ArgumentException.
-    /// Expected: Method should accept all valid long values and only throw InvalidCastException when using mock connections.
-    /// </summary>
-    /// <param name="id">The campaign id to test.</param>
     [TestCase(long.MinValue)]
     [TestCase(long.MaxValue)]
     [TestCase(0L)]
@@ -2105,12 +1882,6 @@ public class CampaignsRepositoryTests
         });
     }
 
-    /// <summary>
-    /// Tests that GetByIdAsync logs the correct information including the id value and stored procedure name.
-    /// This parameterized test verifies that the log message contains the correct id and stored procedure.
-    /// Expected: Logger should be called with LogLevel.Information and message containing id and "dbo.Usp_Campaigns_Get".
-    /// </summary>
-    /// <param name="id">The campaign id to test.</param>
     [TestCase(1L)]
     [TestCase(long.MinValue)]
     [TestCase(long.MaxValue)]
@@ -2150,12 +1921,6 @@ public class CampaignsRepositoryTests
             Times.Once);
     }
 
-    /// <summary>
-    /// Tests that GetByIdAsync calls the factory CreateConnection method exactly once.
-    /// This parameterized test verifies factory usage for various id values.
-    /// Expected: CreateConnection should be invoked exactly once per method call.
-    /// </summary>
-    /// <param name="id">The campaign id to test.</param>
     [TestCase(1L)]
     [TestCase(long.MinValue)]
     [TestCase(long.MaxValue)]
@@ -2184,11 +1949,6 @@ public class CampaignsRepositoryTests
         mockConnectionFactory.Verify(x => x.CreateConnection(), Times.Once);
     }
 
-    /// <summary>
-    /// Tests that GetByIdAsync throws InvalidCastException when factory returns a mock connection.
-    /// This verifies that the method requires a real SqlConnection (not just IDbConnection).
-    /// Expected: InvalidCastException should be thrown when casting IDbConnection to SqlConnection.
-    /// </summary>
     [Test]
     public void GetByIdAsync_Should_Throw_InvalidCastException_With_Mock_Connection()
     {
@@ -2205,11 +1965,6 @@ public class CampaignsRepositoryTests
         Assert.ThrowsAsync<InvalidCastException>(async () => await repository.GetByIdAsync(1L));
     }
 
-    /// <summary>
-    /// Tests that GetByIdAsync returns a Task with the correct return type.
-    /// Verifies the method signature matches the interface contract.
-    /// Expected: Method should return Task&lt;Campaigns?&gt;.
-    /// </summary>
     [Test]
     public void GetByIdAsync_Should_Return_Task_Of_Nullable_Campaigns()
     {
@@ -2230,11 +1985,6 @@ public class CampaignsRepositoryTests
         result.Should().BeAssignableTo<Task<Campaigns?>>();
     }
 
-    /// <summary>
-    /// Tests that GetByIdAsync creates a new connection for each invocation.
-    /// Verifies that connections are not reused across multiple calls.
-    /// Expected: CreateConnection should be called exactly twice for two invocations.
-    /// </summary>
     [Test]
     public async Task GetByIdAsync_Should_Create_New_Connection_For_Each_Invocation()
     {
@@ -2270,11 +2020,6 @@ public class CampaignsRepositoryTests
         mockConnectionFactory.Verify(x => x.CreateConnection(), Times.Exactly(2));
     }
 
-    /// <summary>
-    /// Tests that GetByIdAsync correctly formats extreme long values when converting to string.
-    /// Verifies that id.ToString() works correctly for boundary values in the log message.
-    /// Expected: Log should contain the correctly formatted string representation of extreme long values.
-    /// </summary>
     [TestCase(long.MinValue, "-9223372036854775808")]
     [TestCase(long.MaxValue, "9223372036854775807")]
     [TestCase(0L, "0")]
@@ -2310,11 +2055,6 @@ public class CampaignsRepositoryTests
             Times.Once);
     }
 
-    /// <summary>
-    /// Tests that GetByIdsAsync correctly formats comma-separated string for empty collection.
-    /// Verifies string.Join behavior with empty enumerable by checking log output contains "".
-    /// Expected: Empty string should be created and logged without throwing exceptions.
-    /// </summary>
     [Test]
     public async Task GetByIdsAsync_Should_Create_Empty_String_For_Empty_Collection()
     {
@@ -2348,11 +2088,6 @@ public class CampaignsRepositoryTests
             It.IsAny<Func<It.IsAnyType, Exception?, string>>()), Times.Once);
     }
 
-    /// <summary>
-    /// Tests that GetByIdsAsync handles IEnumerable that requires multiple enumerations correctly.
-    /// String.Join and Count() both enumerate the collection, verifying no issues with deferred execution.
-    /// Expected: Method should handle collections that can be enumerated multiple times.
-    /// </summary>
     [Test]
     public void GetByIdsAsync_Should_Handle_Multiple_Enumerations_Of_Collection()
     {
@@ -2373,11 +2108,6 @@ public class CampaignsRepositoryTests
         });
     }
 
-    /// <summary>
-    /// Tests that GetByIdsAsync correctly creates comma-separated string with single ID.
-    /// Verifies string.Join produces correct format "123" for single element.
-    /// Expected: Single ID should be converted to string without commas.
-    /// </summary>
     [Test]
     public async Task GetByIdsAsync_Should_Create_Correct_String_For_Single_Id()
     {
@@ -2409,11 +2139,6 @@ public class CampaignsRepositoryTests
             It.IsAny<Func<It.IsAnyType, Exception?, string>>()), Times.Once);
     }
 
-    /// <summary>
-    /// Tests that GetByIdsAsync properly handles a collection containing only long.MaxValue.
-    /// Verifies string conversion of extreme positive boundary value.
-    /// Expected: long.MaxValue should be correctly converted to string representation.
-    /// </summary>
     [Test]
     public void GetByIdsAsync_Should_Handle_Collection_With_Only_MaxValue()
     {
@@ -2436,11 +2161,6 @@ public class CampaignsRepositoryTests
         _mockConnectionFactory.Verify(f => f.CreateConnection(), Times.Once);
     }
 
-    /// <summary>
-    /// Tests that GetByIdsAsync properly handles a collection containing only long.MinValue.
-    /// Verifies string conversion of extreme negative boundary value.
-    /// Expected: long.MinValue should be correctly converted to string representation.
-    /// </summary>
     [Test]
     public void GetByIdsAsync_Should_Handle_Collection_With_Only_MinValue()
     {
@@ -2463,11 +2183,6 @@ public class CampaignsRepositoryTests
         _mockConnectionFactory.Verify(f => f.CreateConnection(), Times.Once);
     }
 
-    /// <summary>
-    /// Tests that GetByIdsAsync uses the correct stored procedure name constant.
-    /// Verifies the stored procedure name "dbo.Usp_Campaigns_Get" is used in logging.
-    /// Expected: Log message should reference the correct stored procedure name.
-    /// </summary>
     [Test]
     public async Task GetByIdsAsync_Should_Use_Correct_Stored_Procedure_Name()
     {
@@ -2501,11 +2216,6 @@ public class CampaignsRepositoryTests
             It.IsAny<Func<It.IsAnyType, Exception?, string>>()), Times.Once);
     }
 
-    /// <summary>
-    /// Tests that GetByIdsAsync returns Task type (not void).
-    /// Validates the method signature matches the interface contract.
-    /// Expected: Method should return Task with IEnumerable of Campaigns.
-    /// </summary>
     [Test]
     public void GetByIdsAsync_Should_Return_Task_Type()
     {
@@ -2520,29 +2230,18 @@ public class CampaignsRepositoryTests
         result.Should().BeAssignableTo<Task<IEnumerable<Campaigns>>>();
     }
 
-    /// <summary>
-    /// Helper method to capture log message values for assertion.
-    /// </summary>
     private static bool CaptureLogMessage(object state, List<string> messages)
     {
         messages.Add(state.ToString() ?? string.Empty);
         return true;
     }
 
-    /// <summary>
-    /// Helper method to capture log values for assertion.
-    /// </summary>
     private static bool CaptureLogValues(object state, List<object?> values)
     {
         values.Add(state);
         return true;
     }
 
-    /// <summary>
-    /// Tests that UpsertAsync throws ArgumentNullException when campaign parameter is null.
-    /// This validates the null guard clause at the method entry point.
-    /// Expected: ArgumentNullException with parameter name "campaign".
-    /// </summary>
     [Test]
     public void UpsertAsync_NullCampaign_ThrowsArgumentNullException()
     {
@@ -2559,11 +2258,6 @@ public class CampaignsRepositoryTests
             .WithParameterName("campaign");
     }
 
-    /// <summary>
-    /// Tests that UpsertAsync accepts a valid campaign object with all required properties populated.
-    /// This validates the happy path scenario with typical valid input.
-    /// Expected: Method executes without throwing ArgumentException.
-    /// </summary>
     [Test]
     public void UpsertAsync_ValidCampaign_DoesNotThrowArgumentException()
     {
@@ -2574,701 +2268,11 @@ public class CampaignsRepositoryTests
         var mockLogger = new Mock<ILogger<CampaignsRepository>>();
         var repository = new CampaignsRepository(mockConnectionFactory.Object, mockLogger.Object);
 
-        var campaign = new Campaigns
-        {
-            Id = 1,
-            ExternalId = 100,
-            Name = "Test Campaign",
-            Type = "Email",
-            CreatedBy = "TestUser",
-            CreatedOn = DateTime.UtcNow,
-            ModifiedBy = "TestUser",
-            ModifiedOn = DateTime.UtcNow,
-            FirstSendDate = DateTime.UtcNow,
-            LastSendDate = DateTime.UtcNow,
-            FromEmailAddress = "test@example.com",
-            FromName = "Test Sender",
-            ReplyEmailAddress = "reply@example.com",
-            Subject = "Test Subject",
-            SubStatus = "Active",
-            ContactCount = 100,
-            Account = "TestAccount"
-        };
-
         // Act
         Func<Task> act = async () => await repository.UpsertAsync(campaign);
 
         // Assert
         act.Should().NotThrowAsync<ArgumentException>();
-    }
-
-    /// <summary>
-    /// Tests that UpsertAsync accepts campaign with null values for nullable DateTime properties.
-    /// This validates handling of optional fields (ModifiedOn, LastSendDate).
-    /// Expected: Method executes without throwing ArgumentException or NullReferenceException.
-    /// </summary>
-    [Test]
-    public void UpsertAsync_CampaignWithNullOptionalDateTimes_DoesNotThrowException()
-    {
-        // Arrange
-        var mockConnectionFactory = new Mock<IDbConnectionFactory>();
-        var mockConnection = new Mock<IDbConnection>();
-        mockConnectionFactory.Setup(f => f.CreateConnection()).Returns(mockConnection.Object);
-        var mockLogger = new Mock<ILogger<CampaignsRepository>>();
-        var repository = new CampaignsRepository(mockConnectionFactory.Object, mockLogger.Object);
-
-        var campaign = new Campaigns
-        {
-            Id = 1,
-            ExternalId = 100,
-            Name = "Test Campaign",
-            Type = "Email",
-            CreatedBy = "TestUser",
-            CreatedOn = DateTime.UtcNow,
-            ModifiedBy = "TestUser",
-            ModifiedOn = null,
-            FirstSendDate = DateTime.UtcNow,
-            LastSendDate = null,
-            FromEmailAddress = "test@example.com",
-            FromName = "Test Sender",
-            ReplyEmailAddress = "reply@example.com",
-            Subject = "Test Subject",
-            SubStatus = "Active",
-            ContactCount = 100,
-            Account = "TestAccount"
-        };
-
-        // Act
-        Func<Task> act = async () => await repository.UpsertAsync(campaign);
-
-        // Assert
-        act.Should().NotThrowAsync<ArgumentException>();
-        act.Should().NotThrowAsync<NullReferenceException>();
-    }
-
-    /// <summary>
-    /// Tests that UpsertAsync accepts campaign with int.MaxValue for ExternalId.
-    /// This validates handling of maximum positive boundary value for int type.
-    /// Expected: Method executes without throwing OverflowException or ArgumentOutOfRangeException.
-    /// </summary>
-    [Test]
-    public void UpsertAsync_CampaignWithMaxExternalId_DoesNotThrowException()
-    {
-        // Arrange
-        var mockConnectionFactory = new Mock<IDbConnectionFactory>();
-        var mockConnection = new Mock<IDbConnection>();
-        mockConnectionFactory.Setup(f => f.CreateConnection()).Returns(mockConnection.Object);
-        var mockLogger = new Mock<ILogger<CampaignsRepository>>();
-        var repository = new CampaignsRepository(mockConnectionFactory.Object, mockLogger.Object);
-
-        var campaign = new Campaigns
-        {
-            Id = 1,
-            ExternalId = int.MaxValue,
-            Name = "Test Campaign",
-            Type = "Email",
-            CreatedBy = "TestUser",
-            CreatedOn = DateTime.UtcNow,
-            ModifiedBy = "TestUser",
-            FirstSendDate = DateTime.UtcNow,
-            FromEmailAddress = "test@example.com",
-            FromName = "Test Sender",
-            ReplyEmailAddress = "reply@example.com",
-            Subject = "Test Subject",
-            SubStatus = "Active",
-            ContactCount = 0,
-            Account = "TestAccount"
-        };
-
-        // Act
-        Func<Task> act = async () => await repository.UpsertAsync(campaign);
-
-        // Assert
-        act.Should().NotThrowAsync<OverflowException>();
-        act.Should().NotThrowAsync<ArgumentOutOfRangeException>();
-    }
-
-    /// <summary>
-    /// Tests that UpsertAsync accepts campaign with int.MinValue for ExternalId.
-    /// This validates handling of minimum negative boundary value for int type.
-    /// Expected: Method executes without throwing OverflowException or ArgumentOutOfRangeException.
-    /// </summary>
-    [Test]
-    public void UpsertAsync_CampaignWithMinExternalId_DoesNotThrowException()
-    {
-        // Arrange
-        var mockConnectionFactory = new Mock<IDbConnectionFactory>();
-        var mockConnection = new Mock<IDbConnection>();
-        mockConnectionFactory.Setup(f => f.CreateConnection()).Returns(mockConnection.Object);
-        var mockLogger = new Mock<ILogger<CampaignsRepository>>();
-        var repository = new CampaignsRepository(mockConnectionFactory.Object, mockLogger.Object);
-
-        var campaign = new Campaigns
-        {
-            Id = 1,
-            ExternalId = int.MinValue,
-            Name = "Test Campaign",
-            Type = "Email",
-            CreatedBy = "TestUser",
-            CreatedOn = DateTime.UtcNow,
-            ModifiedBy = "TestUser",
-            FirstSendDate = DateTime.UtcNow,
-            FromEmailAddress = "test@example.com",
-            FromName = "Test Sender",
-            ReplyEmailAddress = "reply@example.com",
-            Subject = "Test Subject",
-            SubStatus = "Active",
-            ContactCount = 0,
-            Account = "TestAccount"
-        };
-
-        // Act
-        Func<Task> act = async () => await repository.UpsertAsync(campaign);
-
-        // Assert
-        act.Should().NotThrowAsync<OverflowException>();
-        act.Should().NotThrowAsync<ArgumentOutOfRangeException>();
-    }
-
-    /// <summary>
-    /// Tests that UpsertAsync accepts campaign with int.MaxValue for ContactCount.
-    /// This validates handling of maximum positive boundary value for ContactCount property.
-    /// Expected: Method executes without throwing OverflowException or ArgumentOutOfRangeException.
-    /// </summary>
-    [Test]
-    public void UpsertAsync_CampaignWithMaxContactCount_DoesNotThrowException()
-    {
-        // Arrange
-        var mockConnectionFactory = new Mock<IDbConnectionFactory>();
-        var mockConnection = new Mock<IDbConnection>();
-        mockConnectionFactory.Setup(f => f.CreateConnection()).Returns(mockConnection.Object);
-        var mockLogger = new Mock<ILogger<CampaignsRepository>>();
-        var repository = new CampaignsRepository(mockConnectionFactory.Object, mockLogger.Object);
-
-        var campaign = new Campaigns
-        {
-            Id = 1,
-            ExternalId = 100,
-            Name = "Test Campaign",
-            Type = "Email",
-            CreatedBy = "TestUser",
-            CreatedOn = DateTime.UtcNow,
-            ModifiedBy = "TestUser",
-            FirstSendDate = DateTime.UtcNow,
-            FromEmailAddress = "test@example.com",
-            FromName = "Test Sender",
-            ReplyEmailAddress = "reply@example.com",
-            Subject = "Test Subject",
-            SubStatus = "Active",
-            ContactCount = int.MaxValue,
-            Account = "TestAccount"
-        };
-
-        // Act
-        Func<Task> act = async () => await repository.UpsertAsync(campaign);
-
-        // Assert
-        act.Should().NotThrowAsync<OverflowException>();
-        act.Should().NotThrowAsync<ArgumentOutOfRangeException>();
-    }
-
-    /// <summary>
-    /// Tests that UpsertAsync accepts campaign with int.MinValue for ContactCount.
-    /// This validates handling of minimum negative boundary value for ContactCount property.
-    /// Expected: Method executes without throwing OverflowException or ArgumentOutOfRangeException.
-    /// </summary>
-    [Test]
-    public void UpsertAsync_CampaignWithMinContactCount_DoesNotThrowException()
-    {
-        // Arrange
-        var mockConnectionFactory = new Mock<IDbConnectionFactory>();
-        var mockConnection = new Mock<IDbConnection>();
-        mockConnectionFactory.Setup(f => f.CreateConnection()).Returns(mockConnection.Object);
-        var mockLogger = new Mock<ILogger<CampaignsRepository>>();
-        var repository = new CampaignsRepository(mockConnectionFactory.Object, mockLogger.Object);
-
-        var campaign = new Campaigns
-        {
-            Id = 1,
-            ExternalId = 100,
-            Name = "Test Campaign",
-            Type = "Email",
-            CreatedBy = "TestUser",
-            CreatedOn = DateTime.UtcNow,
-            ModifiedBy = "TestUser",
-            FirstSendDate = DateTime.UtcNow,
-            FromEmailAddress = "test@example.com",
-            FromName = "Test Sender",
-            ReplyEmailAddress = "reply@example.com",
-            Subject = "Test Subject",
-            SubStatus = "Active",
-            ContactCount = int.MinValue,
-            Account = "TestAccount"
-        };
-
-        // Act
-        Func<Task> act = async () => await repository.UpsertAsync(campaign);
-
-        // Assert
-        act.Should().NotThrowAsync<OverflowException>();
-        act.Should().NotThrowAsync<ArgumentOutOfRangeException>();
-    }
-
-    /// <summary>
-    /// Tests that UpsertAsync accepts campaign with long.MaxValue for Id.
-    /// This validates handling of maximum positive boundary value for long Id property.
-    /// Expected: Method executes without throwing OverflowException or ArgumentOutOfRangeException.
-    /// </summary>
-    [Test]
-    public void UpsertAsync_CampaignWithMaxId_DoesNotThrowException()
-    {
-        // Arrange
-        var mockConnectionFactory = new Mock<IDbConnectionFactory>();
-        var mockConnection = new Mock<IDbConnection>();
-        mockConnectionFactory.Setup(f => f.CreateConnection()).Returns(mockConnection.Object);
-        var mockLogger = new Mock<ILogger<CampaignsRepository>>();
-        var repository = new CampaignsRepository(mockConnectionFactory.Object, mockLogger.Object);
-
-        var campaign = new Campaigns
-        {
-            Id = long.MaxValue,
-            ExternalId = 100,
-            Name = "Test Campaign",
-            Type = "Email",
-            CreatedBy = "TestUser",
-            CreatedOn = DateTime.UtcNow,
-            ModifiedBy = "TestUser",
-            FirstSendDate = DateTime.UtcNow,
-            FromEmailAddress = "test@example.com",
-            FromName = "Test Sender",
-            ReplyEmailAddress = "reply@example.com",
-            Subject = "Test Subject",
-            SubStatus = "Active",
-            ContactCount = 0,
-            Account = "TestAccount"
-        };
-
-        // Act
-        Func<Task> act = async () => await repository.UpsertAsync(campaign);
-
-        // Assert
-        act.Should().NotThrowAsync<OverflowException>();
-        act.Should().NotThrowAsync<ArgumentOutOfRangeException>();
-    }
-
-    /// <summary>
-    /// Tests that UpsertAsync accepts campaign with long.MinValue for Id.
-    /// This validates handling of minimum negative boundary value for long Id property.
-    /// Expected: Method executes without throwing OverflowException or ArgumentOutOfRangeException.
-    /// </summary>
-    [Test]
-    public void UpsertAsync_CampaignWithMinId_DoesNotThrowException()
-    {
-        // Arrange
-        var mockConnectionFactory = new Mock<IDbConnectionFactory>();
-        var mockConnection = new Mock<IDbConnection>();
-        mockConnectionFactory.Setup(f => f.CreateConnection()).Returns(mockConnection.Object);
-        var mockLogger = new Mock<ILogger<CampaignsRepository>>();
-        var repository = new CampaignsRepository(mockConnectionFactory.Object, mockLogger.Object);
-
-        var campaign = new Campaigns
-        {
-            Id = long.MinValue,
-            ExternalId = 100,
-            Name = "Test Campaign",
-            Type = "Email",
-            CreatedBy = "TestUser",
-            CreatedOn = DateTime.UtcNow,
-            ModifiedBy = "TestUser",
-            FirstSendDate = DateTime.UtcNow,
-            FromEmailAddress = "test@example.com",
-            FromName = "Test Sender",
-            ReplyEmailAddress = "reply@example.com",
-            Subject = "Test Subject",
-            SubStatus = "Active",
-            ContactCount = 0,
-            Account = "TestAccount"
-        };
-
-        // Act
-        Func<Task> act = async () => await repository.UpsertAsync(campaign);
-
-        // Assert
-        act.Should().NotThrowAsync<OverflowException>();
-        act.Should().NotThrowAsync<ArgumentOutOfRangeException>();
-    }
-
-    /// <summary>
-    /// Tests that UpsertAsync accepts campaign with zero for Id.
-    /// This validates handling of zero boundary value for long Id property.
-    /// Expected: Method executes without throwing ArgumentOutOfRangeException.
-    /// </summary>
-    [Test]
-    public void UpsertAsync_CampaignWithZeroId_DoesNotThrowException()
-    {
-        // Arrange
-        var mockConnectionFactory = new Mock<IDbConnectionFactory>();
-        var mockConnection = new Mock<IDbConnection>();
-        mockConnectionFactory.Setup(f => f.CreateConnection()).Returns(mockConnection.Object);
-        var mockLogger = new Mock<ILogger<CampaignsRepository>>();
-        var repository = new CampaignsRepository(mockConnectionFactory.Object, mockLogger.Object);
-
-        var campaign = new Campaigns
-        {
-            Id = 0,
-            ExternalId = 100,
-            Name = "Test Campaign",
-            Type = "Email",
-            CreatedBy = "TestUser",
-            CreatedOn = DateTime.UtcNow,
-            ModifiedBy = "TestUser",
-            FirstSendDate = DateTime.UtcNow,
-            FromEmailAddress = "test@example.com",
-            FromName = "Test Sender",
-            ReplyEmailAddress = "reply@example.com",
-            Subject = "Test Subject",
-            SubStatus = "Active",
-            ContactCount = 0,
-            Account = "TestAccount"
-        };
-
-        // Act
-        Func<Task> act = async () => await repository.UpsertAsync(campaign);
-
-        // Assert
-        act.Should().NotThrowAsync<ArgumentOutOfRangeException>();
-    }
-
-    /// <summary>
-    /// Tests that UpsertAsync accepts campaign with DateTime.MinValue for required DateTime properties.
-    /// This validates handling of minimum DateTime boundary values.
-    /// Expected: Method executes without throwing ArgumentOutOfRangeException.
-    /// </summary>
-    [Test]
-    public void UpsertAsync_CampaignWithMinDateTime_DoesNotThrowException()
-    {
-        // Arrange
-        var mockConnectionFactory = new Mock<IDbConnectionFactory>();
-        var mockConnection = new Mock<IDbConnection>();
-        mockConnectionFactory.Setup(f => f.CreateConnection()).Returns(mockConnection.Object);
-        var mockLogger = new Mock<ILogger<CampaignsRepository>>();
-        var repository = new CampaignsRepository(mockConnectionFactory.Object, mockLogger.Object);
-
-        var campaign = new Campaigns
-        {
-            Id = 1,
-            ExternalId = 100,
-            Name = "Test Campaign",
-            Type = "Email",
-            CreatedBy = "TestUser",
-            CreatedOn = DateTime.MinValue,
-            ModifiedBy = "TestUser",
-            FirstSendDate = DateTime.MinValue,
-            FromEmailAddress = "test@example.com",
-            FromName = "Test Sender",
-            ReplyEmailAddress = "reply@example.com",
-            Subject = "Test Subject",
-            SubStatus = "Active",
-            ContactCount = 0,
-            Account = "TestAccount"
-        };
-
-        // Act
-        Func<Task> act = async () => await repository.UpsertAsync(campaign);
-
-        // Assert
-        act.Should().NotThrowAsync<ArgumentOutOfRangeException>();
-    }
-
-    /// <summary>
-    /// Tests that UpsertAsync accepts campaign with DateTime.MaxValue for required DateTime properties.
-    /// This validates handling of maximum DateTime boundary values.
-    /// Expected: Method executes without throwing ArgumentOutOfRangeException.
-    /// </summary>
-    [Test]
-    public void UpsertAsync_CampaignWithMaxDateTime_DoesNotThrowException()
-    {
-        // Arrange
-        var mockConnectionFactory = new Mock<IDbConnectionFactory>();
-        var mockConnection = new Mock<IDbConnection>();
-        mockConnectionFactory.Setup(f => f.CreateConnection()).Returns(mockConnection.Object);
-        var mockLogger = new Mock<ILogger<CampaignsRepository>>();
-        var repository = new CampaignsRepository(mockConnectionFactory.Object, mockLogger.Object);
-
-        var campaign = new Campaigns
-        {
-            Id = 1,
-            ExternalId = 100,
-            Name = "Test Campaign",
-            Type = "Email",
-            CreatedBy = "TestUser",
-            CreatedOn = DateTime.MaxValue,
-            ModifiedBy = "TestUser",
-            FirstSendDate = DateTime.MaxValue,
-            FromEmailAddress = "test@example.com",
-            FromName = "Test Sender",
-            ReplyEmailAddress = "reply@example.com",
-            Subject = "Test Subject",
-            SubStatus = "Active",
-            ContactCount = 0,
-            Account = "TestAccount"
-        };
-
-        // Act
-        Func<Task> act = async () => await repository.UpsertAsync(campaign);
-
-        // Assert
-        act.Should().NotThrowAsync<ArgumentOutOfRangeException>();
-    }
-
-    /// <summary>
-    /// Tests that UpsertAsync accepts campaign with empty strings for all string properties.
-    /// This validates handling of empty string edge case (not null, but zero length).
-    /// Expected: Method executes without throwing ArgumentException.
-    /// </summary>
-    [Test]
-    public void UpsertAsync_CampaignWithEmptyStrings_DoesNotThrowException()
-    {
-        // Arrange
-        var mockConnectionFactory = new Mock<IDbConnectionFactory>();
-        var mockConnection = new Mock<IDbConnection>();
-        mockConnectionFactory.Setup(f => f.CreateConnection()).Returns(mockConnection.Object);
-        var mockLogger = new Mock<ILogger<CampaignsRepository>>();
-        var repository = new CampaignsRepository(mockConnectionFactory.Object, mockLogger.Object);
-
-        var campaign = new Campaigns
-        {
-            Id = 1,
-            ExternalId = 100,
-            Name = string.Empty,
-            Type = string.Empty,
-            CreatedBy = string.Empty,
-            CreatedOn = DateTime.UtcNow,
-            ModifiedBy = string.Empty,
-            FirstSendDate = DateTime.UtcNow,
-            FromEmailAddress = string.Empty,
-            FromName = string.Empty,
-            ReplyEmailAddress = string.Empty,
-            Subject = string.Empty,
-            SubStatus = string.Empty,
-            ContactCount = 0,
-            Account = string.Empty
-        };
-
-        // Act
-        Func<Task> act = async () => await repository.UpsertAsync(campaign);
-
-        // Assert
-        act.Should().NotThrowAsync<ArgumentException>();
-    }
-
-    /// <summary>
-    /// Tests that UpsertAsync accepts campaign with whitespace-only strings for all string properties.
-    /// This validates handling of whitespace string edge case.
-    /// Expected: Method executes without throwing ArgumentException.
-    /// </summary>
-    [Test]
-    public void UpsertAsync_CampaignWithWhitespaceStrings_DoesNotThrowException()
-    {
-        // Arrange
-        var mockConnectionFactory = new Mock<IDbConnectionFactory>();
-        var mockConnection = new Mock<IDbConnection>();
-        mockConnectionFactory.Setup(f => f.CreateConnection()).Returns(mockConnection.Object);
-        var mockLogger = new Mock<ILogger<CampaignsRepository>>();
-        var repository = new CampaignsRepository(mockConnectionFactory.Object, mockLogger.Object);
-
-        var campaign = new Campaigns
-        {
-            Id = 1,
-            ExternalId = 100,
-            Name = "   ",
-            Type = "   ",
-            CreatedBy = "   ",
-            CreatedOn = DateTime.UtcNow,
-            ModifiedBy = "   ",
-            FirstSendDate = DateTime.UtcNow,
-            FromEmailAddress = "   ",
-            FromName = "   ",
-            ReplyEmailAddress = "   ",
-            Subject = "   ",
-            SubStatus = "   ",
-            ContactCount = 0,
-            Account = "   "
-        };
-
-        // Act
-        Func<Task> act = async () => await repository.UpsertAsync(campaign);
-
-        // Assert
-        act.Should().NotThrowAsync<ArgumentException>();
-    }
-
-    /// <summary>
-    /// Tests that UpsertAsync accepts campaign with very long strings (10000 characters).
-    /// This validates handling of extremely long string values.
-    /// Expected: Method executes without throwing ArgumentException or OverflowException.
-    /// </summary>
-    [Test]
-    public void UpsertAsync_CampaignWithVeryLongStrings_DoesNotThrowException()
-    {
-        // Arrange
-        var mockConnectionFactory = new Mock<IDbConnectionFactory>();
-        var mockConnection = new Mock<IDbConnection>();
-        mockConnectionFactory.Setup(f => f.CreateConnection()).Returns(mockConnection.Object);
-        var mockLogger = new Mock<ILogger<CampaignsRepository>>();
-        var repository = new CampaignsRepository(mockConnectionFactory.Object, mockLogger.Object);
-
-        var longString = new string('A', 10000);
-        var campaign = new Campaigns
-        {
-            Id = 1,
-            ExternalId = 100,
-            Name = longString,
-            Type = longString,
-            CreatedBy = longString,
-            CreatedOn = DateTime.UtcNow,
-            ModifiedBy = longString,
-            FirstSendDate = DateTime.UtcNow,
-            FromEmailAddress = longString,
-            FromName = longString,
-            ReplyEmailAddress = longString,
-            Subject = longString,
-            SubStatus = longString,
-            ContactCount = 0,
-            Account = longString
-        };
-
-        // Act
-        Func<Task> act = async () => await repository.UpsertAsync(campaign);
-
-        // Assert
-        act.Should().NotThrowAsync<ArgumentException>();
-        act.Should().NotThrowAsync<OverflowException>();
-    }
-
-    /// <summary>
-    /// Tests that UpsertAsync accepts campaign with special characters in string properties.
-    /// This validates handling of strings containing special characters like quotes, newlines, etc.
-    /// Expected: Method executes without throwing ArgumentException or FormatException.
-    /// </summary>
-    [Test]
-    public void UpsertAsync_CampaignWithSpecialCharactersInStrings_DoesNotThrowException()
-    {
-        // Arrange
-        var mockConnectionFactory = new Mock<IDbConnectionFactory>();
-        var mockConnection = new Mock<IDbConnection>();
-        mockConnectionFactory.Setup(f => f.CreateConnection()).Returns(mockConnection.Object);
-        var mockLogger = new Mock<ILogger<CampaignsRepository>>();
-        var repository = new CampaignsRepository(mockConnectionFactory.Object, mockLogger.Object);
-
-        var specialString = "Test'\"\\<>;\n\r\t";
-        var campaign = new Campaigns
-        {
-            Id = 1,
-            ExternalId = 100,
-            Name = specialString,
-            Type = specialString,
-            CreatedBy = specialString,
-            CreatedOn = DateTime.UtcNow,
-            ModifiedBy = specialString,
-            FirstSendDate = DateTime.UtcNow,
-            FromEmailAddress = specialString,
-            FromName = specialString,
-            ReplyEmailAddress = specialString,
-            Subject = specialString,
-            SubStatus = specialString,
-            ContactCount = 0,
-            Account = specialString
-        };
-
-        // Act
-        Func<Task> act = async () => await repository.UpsertAsync(campaign);
-
-        // Assert
-        act.Should().NotThrowAsync<ArgumentException>();
-        act.Should().NotThrowAsync<FormatException>();
-    }
-
-    /// <summary>
-    /// Tests that UpsertAsync accepts campaign with zero ContactCount.
-    /// This validates handling of zero boundary value for ContactCount.
-    /// Expected: Method executes without throwing ArgumentOutOfRangeException.
-    /// </summary>
-    [Test]
-    public void UpsertAsync_CampaignWithZeroContactCount_DoesNotThrowException()
-    {
-        // Arrange
-        var mockConnectionFactory = new Mock<IDbConnectionFactory>();
-        var mockConnection = new Mock<IDbConnection>();
-        mockConnectionFactory.Setup(f => f.CreateConnection()).Returns(mockConnection.Object);
-        var mockLogger = new Mock<ILogger<CampaignsRepository>>();
-        var repository = new CampaignsRepository(mockConnectionFactory.Object, mockLogger.Object);
-
-        var campaign = new Campaigns
-        {
-            Id = 1,
-            ExternalId = 100,
-            Name = "Test Campaign",
-            Type = "Email",
-            CreatedBy = "TestUser",
-            CreatedOn = DateTime.UtcNow,
-            ModifiedBy = "TestUser",
-            FirstSendDate = DateTime.UtcNow,
-            FromEmailAddress = "test@example.com",
-            FromName = "Test Sender",
-            ReplyEmailAddress = "reply@example.com",
-            Subject = "Test Subject",
-            SubStatus = "Active",
-            ContactCount = 0,
-            Account = "TestAccount"
-        };
-
-        // Act
-        Func<Task> act = async () => await repository.UpsertAsync(campaign);
-
-        // Assert
-        act.Should().NotThrowAsync<ArgumentOutOfRangeException>();
-    }
-
-    /// <summary>
-    /// Tests that UpsertAsync accepts campaign with negative ContactCount.
-    /// This validates handling of negative values for ContactCount.
-    /// Expected: Method executes without throwing ArgumentOutOfRangeException.
-    /// </summary>
-    [Test]
-    public void UpsertAsync_CampaignWithNegativeContactCount_DoesNotThrowException()
-    {
-        // Arrange
-        var mockConnectionFactory = new Mock<IDbConnectionFactory>();
-        var mockConnection = new Mock<IDbConnection>();
-        mockConnectionFactory.Setup(f => f.CreateConnection()).Returns(mockConnection.Object);
-        var mockLogger = new Mock<ILogger<CampaignsRepository>>();
-        var repository = new CampaignsRepository(mockConnectionFactory.Object, mockLogger.Object);
-
-        var campaign = new Campaigns
-        {
-            Id = 1,
-            ExternalId = 100,
-            Name = "Test Campaign",
-            Type = "Email",
-            CreatedBy = "TestUser",
-            CreatedOn = DateTime.UtcNow,
-            ModifiedBy = "TestUser",
-            FirstSendDate = DateTime.UtcNow,
-            FromEmailAddress = "test@example.com",
-            FromName = "Test Sender",
-            ReplyEmailAddress = "reply@example.com",
-            Subject = "Test Subject",
-            SubStatus = "Active",
-            ContactCount = -100,
-            Account = "TestAccount"
-        };
-
-        // Act
-        Func<Task> act = async () => await repository.UpsertAsync(campaign);
-
-        // Assert
-        act.Should().NotThrowAsync<ArgumentOutOfRangeException>();
     }
 
     /// <summary>
@@ -5155,7 +4159,7 @@ public class CampaignsRepositoryTests
         {
             // Expected when using mock connection
         }
-        
+
         try
         {
             await repository.GetByIdsAsync(ids);
@@ -5164,7 +4168,7 @@ public class CampaignsRepositoryTests
         {
             // Expected when using mock connection
         }
-        
+
         try
         {
             await repository.GetByIdsAsync(ids);
