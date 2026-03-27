@@ -26,6 +26,7 @@ public class PerformanceDataImporter
         try
         {
             await _importCampaignPerformanceHandler.Handle();
+            _logger.LogInformation("Performance data import ran successfully.");
         }
         catch (Exception ex)
         {
