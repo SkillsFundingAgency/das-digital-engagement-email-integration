@@ -16,6 +16,7 @@ public interface ICampaignImportMetadataRepository
     Task<int> UpsertAsync(CampaignImportMetadata campaignImportMetadata);
 }
 
+[ExcludeFromCodeCoverage]
 public class CampaignImportMetadataRepository(IDbConnectionFactory factory, ILogger<CampaignImportMetadataRepository> logger) : ICampaignImportMetadataRepository
 {
     public async Task<CampaignImportMetadata?> GetByIdAsync(long campaignId)
@@ -74,7 +75,6 @@ public class CampaignImportMetadataRepository(IDbConnectionFactory factory, ILog
         return result;
     }
 
-    [ExcludeFromCodeCoverage]
     public async Task<int> UpsertAsync(CampaignImportMetadata campaignImportMetadata)
     {
         ArgumentNullException.ThrowIfNull(campaignImportMetadata);

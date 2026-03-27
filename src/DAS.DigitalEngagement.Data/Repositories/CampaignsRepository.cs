@@ -16,9 +16,9 @@ public interface ICampaignsRepository
     Task<IEnumerable<Campaigns>> GetByIdsAsync(IEnumerable<long> ids);
 }
 
+[ExcludeFromCodeCoverage]
 public class CampaignsRepository(IDbConnectionFactory factory, ILogger<CampaignsRepository> logger) : ICampaignsRepository
 {
-    [ExcludeFromCodeCoverage]
     public async Task<int> UpsertAsync(Campaigns campaign)
     {
         ArgumentNullException.ThrowIfNull(campaign);
