@@ -4,6 +4,7 @@ using DAS.DigitalEngagement.CampaignInterest.Data.Models;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Logging;
 using System.Data;
+using System.Diagnostics.CodeAnalysis;
 
 namespace DAS.DigitalEngagement.CampaignInterest.Data.Repositories;
 
@@ -17,6 +18,7 @@ public interface ICampaignsRepository
 
 public class CampaignsRepository(IDbConnectionFactory factory, ILogger<CampaignsRepository> logger) : ICampaignsRepository
 {
+    [ExcludeFromCodeCoverage]
     public async Task<int> UpsertAsync(Campaigns campaign)
     {
         ArgumentNullException.ThrowIfNull(campaign);

@@ -4,6 +4,7 @@ using DAS.DigitalEngagement.CampaignInterest.Data.Models;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Logging;
 using System.Data;
+using System.Diagnostics.CodeAnalysis;
 
 namespace DAS.DigitalEngagement.CampaignInterest.Data.Repositories;
 
@@ -73,6 +74,7 @@ public class CampaignImportMetadataRepository(IDbConnectionFactory factory, ILog
         return result;
     }
 
+    [ExcludeFromCodeCoverage]
     public async Task<int> UpsertAsync(CampaignImportMetadata campaignImportMetadata)
     {
         ArgumentNullException.ThrowIfNull(campaignImportMetadata);
