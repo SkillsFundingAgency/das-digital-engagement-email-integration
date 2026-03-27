@@ -53,7 +53,7 @@ namespace DAS.DigitalEngagement.Application.Repositories
 
                 using (var cmd = conn.CreateCommand())
                 {
-                    cmd.CommandText = $"SELECT TOP 100 * FROM [ASData_PL].[vw_DAS_EmailIntegration]";
+                    cmd.CommandText = $"SELECT * FROM [ASData_PL].[vw_DAS_EmailIntegration]";
 
                     using (var reader = await cmd.ExecuteReaderAsync(CancellationToken.None))
                     {
