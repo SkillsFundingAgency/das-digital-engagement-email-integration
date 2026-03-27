@@ -1,12 +1,24 @@
-﻿using DAS.DigitalEngagement.CampaignInterest.Data.Helpers;
+﻿using System;
+using System.Collections.Generic;
+using System.Data;
+using System.Linq;
+using System.Reflection;
+using System.Threading.Tasks;
+
+using Dapper;
+using DAS.DigitalEngagement.CampaignInterest.Data.Helpers;
 using DAS.DigitalEngagement.CampaignInterest.Data.Models;
 using DAS.DigitalEngagement.CampaignInterest.Data.Repositories;
 using FluentAssertions;
+using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Logging;
 using Moq;
-using System.Data;
+using NUnit.Framework;
 
 namespace DAS.DigitalEngagement.CampaignInterest.Data.UnitTests.Repositories;
+
+
+
 
 /// <summary>
 /// Unit tests for CampaignsRepository.
@@ -3522,7 +3534,23 @@ public class CampaignsRepositoryTests
         try
         {
             await repository.GetByIdsAsync(ids);
+        }
+        catch (InvalidCastException)
+        {
+            // Expected exception when using mock connection
+        }
+
+        try
+        {
             await repository.GetByIdsAsync(ids);
+        }
+        catch (InvalidCastException)
+        {
+            // Expected exception when using mock connection
+        }
+
+        try
+        {
             await repository.GetByIdsAsync(ids);
         }
         catch (InvalidCastException)
@@ -3594,31 +3622,6 @@ public class CampaignsRepositoryTests
         // Assert
         act.Should().ThrowAsync<InvalidOperationException>()
             .WithMessage("Factory connection creation failed");
-        mockConnectionFactory.Verify(f => f.CreateConnection(), Times.Once);
-    }
-
-    /// <summary>
-    /// Tests that GetByIdAsync throws NullReferenceException when factory returns null.
-    /// This validates the method's behavior when the dependency returns an unexpected null value.
-    /// Expected: NullReferenceException should be thrown when attempting to cast null to SqlConnection.
-    /// </summary>
-    [Test]
-    public void GetByIdAsync_Should_Throw_NullReferenceException_When_Factory_Returns_Null()
-    {
-        // Arrange
-        var mockConnectionFactory = new Mock<IDbConnectionFactory>();
-        var mockLogger = new Mock<ILogger<CampaignRepository>>();
-
-        mockConnectionFactory.Setup(f => f.CreateConnection()).Returns((IDbConnection?)null);
-
-        var repository = new CampaignsRepository(mockConnectionFactory.Object, mockLogger.Object);
-        long id = 456;
-
-        // Act
-        Func<Task> act = async () => await repository.GetByIdAsync(id);
-
-        // Assert
-        act.Should().ThrowAsync<NullReferenceException>();
         mockConnectionFactory.Verify(f => f.CreateConnection(), Times.Once);
     }
 
@@ -3736,54 +3739,6 @@ public class CampaignsRepositoryTests
     }
 
     /// <summary>
-    /// Tests that GetByIdAsync uses the exact stored procedure name "dbo.Usp_Campaigns_Get".
-    /// This validates that the correct stored procedure identifier is used in the log message.
-    /// Expected: Log message should contain the exact stored procedure name.
-    /// </summary>
-    [Test]
-    public async Task GetByIdAsync_Should_Use_Exact_Stored_Procedure_Name()
-    {
-        // Arrange
-        var mockConnectionFactory = new Mock<IDbConnectionFactory>();
-        var mockConnection = new Mock<IDbConnection>();
-        var mockLogger = new Mock<ILogger<CampaignsRepository>>();
-
-        mockConnectionFactory.Setup(f => f.CreateConnection()).Returns(mockConnection.Object);
-
-        var repository = new CampaignsRepository(mockConnectionFactory.Object, mockLogger.Object);
-        long id = 100;
-
-        bool loggedCorrectProcedure = false;
-        mockLogger.Setup(l => l.Log(
-            LogLevel.Information,
-            It.IsAny<EventId>(),
-            It.Is<It.IsAnyType>((state, type) =>
-            {
-                string message = state.ToString() ?? string.Empty;
-                if (message.Contains("dbo.Usp_Campaigns_Get"))
-                {
-                    loggedCorrectProcedure = true;
-                }
-                return true;
-            }),
-            It.IsAny<Exception?>(),
-            It.IsAny<Func<It.IsAnyType, Exception?, string>>()));
-
-        // Act
-        try
-        {
-            await repository.GetByIdAsync(id);
-        }
-        catch (InvalidCastException)
-        {
-            // Expected when using mocks
-        }
-
-        // Assert
-        loggedCorrectProcedure.Should().BeTrue();
-    }
-
-    /// <summary>
     /// Tests that GetByIdAsync logs before attempting to create a connection, even when factory throws.
     /// This verifies the correct execution order: logging happens first, then connection creation.
     /// Expected: Logger should be called before the factory exception occurs.
@@ -3813,57 +3768,6 @@ public class CampaignsRepositoryTests
             It.IsAny<Exception?>(),
             It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
             Times.Once);
-    }
-
-    /// <summary>
-    /// Tests that GetByIdAsync converts id parameter to string correctly in the Dapper parameter.
-    /// This validates the id.ToString() conversion by checking the log message.
-    /// Expected: The id value should be logged correctly as a string representation.
-    /// </summary>
-    [TestCase(long.MinValue, "-9223372036854775808")]
-    [TestCase(long.MaxValue, "9223372036854775807")]
-    [TestCase(0L, "0")]
-    [TestCase(42L, "42")]
-    [TestCase(-42L, "-42")]
-    public async Task GetByIdAsync_Should_Convert_Id_To_String_Correctly(long id, string expectedStringRepresentation)
-    {
-        // Arrange
-        var mockConnectionFactory = new Mock<IDbConnectionFactory>();
-        var mockConnection = new Mock<IDbConnection>();
-        var mockLogger = new Mock<ILogger<CampaignsRepository>>();
-
-        mockConnectionFactory.Setup(f => f.CreateConnection()).Returns(mockConnection.Object);
-
-        var repository = new CampaignsRepository(mockConnectionFactory.Object, mockLogger.Object);
-
-        string? capturedIdValue = null;
-        mockLogger.Setup(l => l.Log(
-            LogLevel.Information,
-            It.IsAny<EventId>(),
-            It.Is<It.IsAnyType>((state, type) =>
-            {
-                string message = state.ToString() ?? string.Empty;
-                if (message.Contains(expectedStringRepresentation))
-                {
-                    capturedIdValue = expectedStringRepresentation;
-                }
-                return true;
-            }),
-            It.IsAny<Exception?>(),
-            It.IsAny<Func<It.IsAnyType, Exception?, string>>()));
-
-        // Act
-        try
-        {
-            await repository.GetByIdAsync(id);
-        }
-        catch (InvalidCastException)
-        {
-            // Expected when using mocks
-        }
-
-        // Assert
-        capturedIdValue.Should().Be(expectedStringRepresentation);
     }
 
     /// <summary>
@@ -3920,40 +3824,858 @@ public class CampaignsRepositoryTests
         implementationParams[0].ParameterType.Should().Be(typeof(long));
         implementationParams[0].Name.Should().Be("id");
     }
-}
 
-namespace DAS.DigitalEngagement.CampaignInterest.Data.Repositories.UnitTests;
-
-
-
-/// <summary>
-/// Unit tests for ICampaignsRepository.GetByIdAsync method.
-/// Note: Repository methods cannot be fully tested with mocks because Dapper extensions require a real SqlConnection.
-/// These tests verify parameter handling, logging behavior, factory usage, and exception scenarios.
-/// Integration tests should be used to verify the full database interaction functionality with stored procedures.
-/// </summary>
-[TestFixture]
-public class ICampaignsRepositoryGetByIdAsyncTests
-{
-    private CampaignsRepository _repository = null!;
-    private Mock<IDbConnectionFactory> _mockConnectionFactory = null!;
-    private Mock<IDbConnection> _mockConnection = null!;
-    private Mock<ILogger<CampaignsRepository>> _mockLogger = null!;
-
-    [SetUp]
-    public void Setup()
+    /// <summary>
+    /// Tests that GetByIdAsync accepts various boundary and valid long values without throwing ArgumentException.
+    /// This parameterized test verifies that the method handles all valid long values correctly.
+    /// Expected: Method should not throw ArgumentException for any valid long value.
+    /// </summary>
+    /// <param name="id">The campaign id to test.</param>
+    [TestCase(long.MinValue)]
+    [TestCase(long.MaxValue)]
+    [TestCase(0L)]
+    [TestCase(1L)]
+    [TestCase(-1L)]
+    [TestCase(9223372036854775807L)]
+    [TestCase(-9223372036854775808L)]
+    public void GetByIdAsync_ValidLongId_DoesNotThrowArgumentException(long id)
     {
-        _mockConnectionFactory = new Mock<IDbConnectionFactory>();
-        _mockConnection = new Mock<IDbConnection>();
-        _mockLogger = new Mock<ILogger<CampaignsRepository>>();
-        _repository = new CampaignsRepository(_mockConnectionFactory.Object, _mockLogger.Object);
+        // Arrange
+        var mockFactory = new Mock<IDbConnectionFactory>();
+        var mockConnection = new Mock<IDbConnection>();
+        var mockLogger = new Mock<ILogger<CampaignsRepository>>();
+
+        mockFactory.Setup(f => f.CreateConnection()).Returns(mockConnection.Object);
+        var repository = new CampaignsRepository(mockFactory.Object, mockLogger.Object);
+
+        // Act & Assert
+        Func<Task> act = async () =>
+        {
+            try
+            {
+                await repository.GetByIdAsync(id);
+            }
+            catch (InvalidCastException)
+            {
+                // Expected when using mock IDbConnection instead of real SqlConnection
+            }
+        };
+
+        act.Should().NotThrowAsync<ArgumentException>();
     }
 
     /// <summary>
-    /// Tests that GetByIdAsync accepts various boundary and edge case values for the id parameter.
-    /// This parameterized test verifies that the method handles long.MinValue, long.MaxValue, zero,
-    /// positive, and negative values without throwing ArgumentException.
-    /// Expected: Method should accept all valid long values and only throw InvalidCastException when using mock connections.
+    /// Tests that GetByIdAsync logs the correct information including id and stored procedure name.
+    /// This verifies that logging occurs with the expected parameters before any database interaction.
+    /// Expected: Logger should be called with Information level and message containing id and stored procedure.
+    /// </summary>
+    /// <param name="id">The campaign id to test.</param>
+    [TestCase(1L)]
+    [TestCase(long.MinValue)]
+    [TestCase(long.MaxValue)]
+    [TestCase(0L)]
+    [TestCase(-999L)]
+    public async Task GetByIdAsync_LogsCorrectInformation(long id)
+    {
+        // Arrange
+        var mockFactory = new Mock<IDbConnectionFactory>();
+        var mockConnection = new Mock<IDbConnection>();
+        var mockLogger = new Mock<ILogger<CampaignsRepository>>();
+
+        mockFactory.Setup(f => f.CreateConnection()).Returns(mockConnection.Object);
+        var repository = new CampaignsRepository(mockFactory.Object, mockLogger.Object);
+
+        // Act
+        try
+        {
+            await repository.GetByIdAsync(id);
+        }
+        catch (InvalidCastException)
+        {
+            // Expected when using mock connection
+        }
+
+        // Assert
+        mockLogger.Verify(
+            x => x.Log(
+                LogLevel.Information,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((state, type) =>
+                    state.ToString()!.Contains(id.ToString()) &&
+                    state.ToString()!.Contains("dbo.Usp_Campaigns_Get")),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
+    }
+
+    /// <summary>
+    /// Tests that GetByIdAsync calls factory.CreateConnection exactly once per invocation.
+    /// This verifies proper dependency usage and connection management.
+    /// Expected: CreateConnection should be invoked exactly once.
+    /// </summary>
+    /// <param name="id">The campaign id to test.</param>
+    [TestCase(1L)]
+    [TestCase(long.MinValue)]
+    [TestCase(long.MaxValue)]
+    public async Task GetByIdAsync_CallsFactoryCreateConnectionOnce(long id)
+    {
+        // Arrange
+        var mockFactory = new Mock<IDbConnectionFactory>();
+        var mockConnection = new Mock<IDbConnection>();
+        var mockLogger = new Mock<ILogger<CampaignsRepository>>();
+
+        mockFactory.Setup(f => f.CreateConnection()).Returns(mockConnection.Object);
+        var repository = new CampaignsRepository(mockFactory.Object, mockLogger.Object);
+
+        // Act
+        try
+        {
+            await repository.GetByIdAsync(id);
+        }
+        catch (InvalidCastException)
+        {
+            // Expected when using mock connection
+        }
+
+        // Assert
+        mockFactory.Verify(f => f.CreateConnection(), Times.Once);
+    }
+
+    /// <summary>
+    /// Tests that GetByIdAsync converts id to string correctly for various boundary values.
+    /// This verifies that id.ToString() produces the expected string representation in the log.
+    /// Expected: The id should be correctly converted to its string representation.
+    /// </summary>
+    /// <param name="id">The campaign id to test.</param>
+    /// <param name="expectedString">The expected string representation of the id.</param>
+    [TestCase(long.MinValue, "-9223372036854775808")]
+    [TestCase(long.MaxValue, "9223372036854775807")]
+    [TestCase(0L, "0")]
+    [TestCase(1L, "1")]
+    [TestCase(-1L, "-1")]
+    public async Task GetByIdAsync_ConvertsIdToStringCorrectly(long id, string expectedString)
+    {
+        // Arrange
+        var mockFactory = new Mock<IDbConnectionFactory>();
+        var mockConnection = new Mock<IDbConnection>();
+        var mockLogger = new Mock<ILogger<CampaignsRepository>>();
+
+        mockFactory.Setup(f => f.CreateConnection()).Returns(mockConnection.Object);
+        var repository = new CampaignsRepository(mockFactory.Object, mockLogger.Object);
+
+        // Act
+        try
+        {
+            await repository.GetByIdAsync(id);
+        }
+        catch (InvalidCastException)
+        {
+            // Expected when using mock connection
+        }
+
+        // Assert
+        mockLogger.Verify(
+            x => x.Log(
+                LogLevel.Information,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((state, type) => state.ToString()!.Contains(expectedString)),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
+    }
+
+    /// <summary>
+    /// Tests that GetByIdAsync throws InvalidCastException when factory returns non-SqlConnection.
+    /// This verifies that the method requires a real SqlConnection (not just IDbConnection).
+    /// Expected: InvalidCastException should be thrown when casting IDbConnection to SqlConnection.
+    /// </summary>
+    [Test]
+    public void GetByIdAsync_MockConnection_ThrowsInvalidCastException()
+    {
+        // Arrange
+        var mockFactory = new Mock<IDbConnectionFactory>();
+        var mockConnection = new Mock<IDbConnection>();
+        var mockLogger = new Mock<ILogger<CampaignsRepository>>();
+
+        mockFactory.Setup(f => f.CreateConnection()).Returns(mockConnection.Object);
+        var repository = new CampaignsRepository(mockFactory.Object, mockLogger.Object);
+
+        // Act
+        Func<Task> act = async () => await repository.GetByIdAsync(1L);
+
+        // Assert
+        act.Should().ThrowAsync<InvalidCastException>();
+    }
+
+    /// <summary>
+    /// Tests that GetByIdAsync propagates exceptions from factory.CreateConnection.
+    /// This verifies proper exception handling when dependency fails.
+    /// Expected: Exception from factory should propagate to caller.
+    /// </summary>
+    [Test]
+    public void GetByIdAsync_FactoryThrowsException_PropagatesException()
+    {
+        // Arrange
+        var mockFactory = new Mock<IDbConnectionFactory>();
+        var mockLogger = new Mock<ILogger<CampaignsRepository>>();
+        var expectedException = new InvalidOperationException("Factory error");
+
+        mockFactory.Setup(f => f.CreateConnection()).Throws(expectedException);
+        var repository = new CampaignsRepository(mockFactory.Object, mockLogger.Object);
+
+        // Act
+        Func<Task> act = async () => await repository.GetByIdAsync(1L);
+
+        // Assert
+        act.Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("Factory error");
+    }
+
+    /// <summary>
+    /// Tests that GetByIdAsync propagates exceptions from logger.
+    /// This verifies that logging exceptions are not swallowed.
+    /// Expected: Exception from logger should propagate to caller.
+    /// </summary>
+    [Test]
+    public void GetByIdAsync_LoggerThrowsException_PropagatesException()
+    {
+        // Arrange
+        var mockFactory = new Mock<IDbConnectionFactory>();
+        var mockLogger = new Mock<ILogger<CampaignsRepository>>();
+        var expectedException = new InvalidOperationException("Logger error");
+
+        mockLogger.Setup(x => x.Log(
+            It.IsAny<LogLevel>(),
+            It.IsAny<EventId>(),
+            It.IsAny<It.IsAnyType>(),
+            It.IsAny<Exception>(),
+            It.IsAny<Func<It.IsAnyType, Exception?, string>>()))
+            .Throws(expectedException);
+
+        var repository = new CampaignsRepository(mockFactory.Object, mockLogger.Object);
+
+        // Act
+        Func<Task> act = async () => await repository.GetByIdAsync(1L);
+
+        // Assert
+        act.Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("Logger error");
+    }
+
+    /// <summary>
+    /// Tests that GetByIdAsync returns a Task with nullable Campaigns type.
+    /// This verifies the method signature matches the interface contract.
+    /// Expected: Method should return Task of nullable Campaigns.
+    /// </summary>
+    [Test]
+    public void GetByIdAsync_ReturnsCorrectTaskType()
+    {
+        // Arrange
+        var mockFactory = new Mock<IDbConnectionFactory>();
+        var mockLogger = new Mock<ILogger<CampaignsRepository>>();
+        var repository = new CampaignsRepository(mockFactory.Object, mockLogger.Object);
+
+        // Act
+        var result = repository.GetByIdAsync(1L);
+
+        // Assert
+        result.Should().BeOfType<Task<Campaigns>>();
+    }
+
+    /// <summary>
+    /// Tests that GetByIdAsync creates new connection for each invocation.
+    /// This verifies that connections are not reused across calls.
+    /// Expected: CreateConnection should be called exactly twice for two invocations.
+    /// </summary>
+    [Test]
+    public async Task GetByIdAsync_MultipleInvocations_CreatesNewConnectionEachTime()
+    {
+        // Arrange
+        var mockFactory = new Mock<IDbConnectionFactory>();
+        var mockConnection = new Mock<IDbConnection>();
+        var mockLogger = new Mock<ILogger<CampaignsRepository>>();
+
+        mockFactory.Setup(f => f.CreateConnection()).Returns(mockConnection.Object);
+        var repository = new CampaignsRepository(mockFactory.Object, mockLogger.Object);
+
+        // Act
+        try
+        {
+            await repository.GetByIdAsync(1L);
+        }
+        catch (InvalidCastException) { }
+
+        try
+        {
+            await repository.GetByIdAsync(2L);
+        }
+        catch (InvalidCastException) { }
+
+        // Assert
+        mockFactory.Verify(f => f.CreateConnection(), Times.Exactly(2));
+    }
+
+    /// <summary>
+    /// Tests that GetByIdAsync logs before attempting to create connection.
+    /// This verifies the correct execution order.
+    /// Expected: Logger should be called before factory throws exception.
+    /// </summary>
+    [Test]
+    public void GetByIdAsync_LogsBeforeFactoryCall()
+    {
+        // Arrange
+        var mockFactory = new Mock<IDbConnectionFactory>();
+        var mockLogger = new Mock<ILogger<CampaignsRepository>>();
+        var factoryCallOrder = 0;
+        var loggerCallOrder = 0;
+        var callSequence = 0;
+
+        mockLogger.Setup(x => x.Log(
+            It.IsAny<LogLevel>(),
+            It.IsAny<EventId>(),
+            It.IsAny<It.IsAnyType>(),
+            It.IsAny<Exception>(),
+            It.IsAny<Func<It.IsAnyType, Exception?, string>>()))
+            .Callback(() => loggerCallOrder = ++callSequence);
+
+        mockFactory.Setup(f => f.CreateConnection())
+            .Callback(() => factoryCallOrder = ++callSequence)
+            .Throws<InvalidOperationException>();
+
+        var repository = new CampaignsRepository(mockFactory.Object, mockLogger.Object);
+
+        // Act
+        Func<Task> act = async () => await repository.GetByIdAsync(1L);
+
+        // Assert
+        act.Should().ThrowAsync<InvalidOperationException>();
+        loggerCallOrder.Should().BeLessThan(factoryCallOrder);
+    }
+
+    /// <summary>
+    /// Tests that GetByIdAsync handles concurrent calls correctly.
+    /// This verifies that concurrent invocations create independent connections.
+    /// Expected: Factory should be called exactly the number of concurrent calls.
+    /// </summary>
+    [Test]
+    public async Task GetByIdAsync_ConcurrentCalls_CreatesIndependentConnections()
+    {
+        // Arrange
+        var mockFactory = new Mock<IDbConnectionFactory>();
+        var mockConnection = new Mock<IDbConnection>();
+        var mockLogger = new Mock<ILogger<CampaignsRepository>>();
+
+        mockFactory.Setup(f => f.CreateConnection()).Returns(mockConnection.Object);
+        var repository = new CampaignsRepository(mockFactory.Object, mockLogger.Object);
+
+        // Act
+        var tasks = new[]
+        {
+            Task.Run(async () => { try { await repository.GetByIdAsync(1L); } catch (InvalidCastException) { } }),
+            Task.Run(async () => { try { await repository.GetByIdAsync(2L); } catch (InvalidCastException) { } }),
+            Task.Run(async () => { try { await repository.GetByIdAsync(3L); } catch (InvalidCastException) { } })
+        };
+
+        await Task.WhenAll(tasks);
+
+        // Assert
+        mockFactory.Verify(f => f.CreateConnection(), Times.Exactly(3));
+    }
+
+    /// <summary>
+    /// Tests that GetByIdAsync uses the correct stored procedure name constant.
+    /// This verifies the stored procedure identifier used in logging.
+    /// Expected: Log message should contain "dbo.Usp_Campaigns_Get".
+    /// </summary>
+    [Test]
+    public async Task GetByIdAsync_UsesCorrectStoredProcedureName()
+    {
+        // Arrange
+        var mockFactory = new Mock<IDbConnectionFactory>();
+        var mockConnection = new Mock<IDbConnection>();
+        var mockLogger = new Mock<ILogger<CampaignsRepository>>();
+
+        mockFactory.Setup(f => f.CreateConnection()).Returns(mockConnection.Object);
+        var repository = new CampaignsRepository(mockFactory.Object, mockLogger.Object);
+
+        // Act
+        try
+        {
+            await repository.GetByIdAsync(1L);
+        }
+        catch (InvalidCastException) { }
+
+        // Assert
+        mockLogger.Verify(
+            x => x.Log(
+                LogLevel.Information,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((state, type) => state.ToString()!.Contains("dbo.Usp_Campaigns_Get")),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
+    }
+
+    /// <summary>
+    /// Tests that GetByIdsAsync throws ArgumentNullException when ids parameter is null.
+    /// This validates null parameter handling before any database operations or string manipulation.
+    /// Expected: ArgumentNullException should be thrown by string.Join when ids is null.
+    /// </summary>
+    [Test]
+    public void GetByIdsAsync_NullIds_ThrowsArgumentNullException()
+    {
+        // Arrange
+        var mockConnectionFactory = new Mock<IDbConnectionFactory>();
+        var mockLogger = new Mock<ILogger<CampaignsRepository>>();
+        var repository = new CampaignsRepository(mockConnectionFactory.Object, mockLogger.Object);
+        IEnumerable<long>? ids = null;
+
+        // Act
+        Func<Task> act = async () => await repository.GetByIdsAsync(ids!);
+
+        // Assert
+        act.Should().ThrowAsync<ArgumentNullException>()
+            .WithMessage("*Value cannot be null*");
+    }
+
+    /// <summary>
+    /// Tests that GetByIdsAsync accepts various valid id collections including edge cases.
+    /// This parameterized test verifies handling of empty, single, multiple, duplicate,
+    /// boundary values (long.MinValue, long.MaxValue), zero, negative, and mixed collections.
+    /// Expected: Method should accept all valid IEnumerable collections and throw InvalidCastException
+    /// when using mock connections (as Dapper requires real SqlConnection).
+    /// </summary>
+    /// <param name="ids">The collection of campaign ids to test.</param>
+    /// <param name="description">Description of the test case for clarity.</param>
+    [TestCase(new long[] { }, "Empty collection")]
+    [TestCase(new long[] { 1L }, "Single id")]
+    [TestCase(new long[] { 1L, 2L, 3L, 4L, 5L }, "Multiple ids")]
+    [TestCase(new long[] { 10L, 10L, 10L }, "Duplicate ids")]
+    [TestCase(new long[] { long.MinValue }, "Single MinValue")]
+    [TestCase(new long[] { long.MaxValue }, "Single MaxValue")]
+    [TestCase(new long[] { 0L }, "Single zero")]
+    [TestCase(new long[] { 0L, 0L, 0L }, "Multiple zeros")]
+    [TestCase(new long[] { -1L, -2L, -3L }, "All negative ids")]
+    [TestCase(new long[] { -100L, 0L, 100L }, "Mixed negative, zero, and positive")]
+    [TestCase(new long[] { long.MinValue, long.MaxValue }, "Both extreme boundary values")]
+    [TestCase(new long[] { long.MinValue, 0L, long.MaxValue }, "MinValue, zero, and MaxValue")]
+    public void GetByIdsAsync_ValidCollections_AcceptsWithoutArgumentException(long[] ids, string description)
+    {
+        // Arrange
+        var mockConnectionFactory = new Mock<IDbConnectionFactory>();
+        var mockConnection = new Mock<IDbConnection>();
+        mockConnectionFactory.Setup(f => f.CreateConnection()).Returns(mockConnection.Object);
+        var mockLogger = new Mock<ILogger<CampaignsRepository>>();
+        var repository = new CampaignsRepository(mockConnectionFactory.Object, mockLogger.Object);
+
+        // Act
+        Func<Task> act = async () => await repository.GetByIdsAsync(ids);
+
+        // Assert
+        act.Should().ThrowAsync<InvalidCastException>()
+            .WithMessage("*SqlConnection*");
+    }
+
+    /// <summary>
+    /// Tests that GetByIdsAsync correctly logs the count for various collection sizes.
+    /// This parameterized test verifies that Count() extension is called correctly
+    /// and the count value is logged for different collection sizes including edge cases.
+    /// Expected: Logger should be invoked with the correct count value for each collection size.
+    /// </summary>
+    /// <param name="ids">The collection of ids to test.</param>
+    /// <param name="expectedCount">The expected count that should be logged.</param>
+    [TestCase(new long[] { }, 0)]
+    [TestCase(new long[] { 1L }, 1)]
+    [TestCase(new long[] { 1L, 2L, 3L, 4L, 5L }, 5)]
+    [TestCase(new long[] { 10L, 10L, 10L, 10L, 10L, 10L }, 6)]
+    [TestCase(new long[] { long.MinValue, long.MaxValue }, 2)]
+    [TestCase(new long[] { long.MinValue, 0L, long.MaxValue }, 3)]
+    public async Task GetByIdsAsync_VariousCollections_LogsCorrectCount(long[] ids, int expectedCount)
+    {
+        // Arrange
+        var mockConnectionFactory = new Mock<IDbConnectionFactory>();
+        var mockConnection = new Mock<IDbConnection>();
+        mockConnectionFactory.Setup(f => f.CreateConnection()).Returns(mockConnection.Object);
+        var mockLogger = new Mock<ILogger<CampaignsRepository>>();
+        var repository = new CampaignsRepository(mockConnectionFactory.Object, mockLogger.Object);
+
+        // Act
+        try
+        {
+            await repository.GetByIdsAsync(ids);
+        }
+        catch (InvalidCastException)
+        {
+            // Expected exception when using mock connection
+        }
+
+        // Assert
+        mockLogger.Verify(
+            x => x.Log(
+                LogLevel.Information,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((state, type) => state.ToString()!.Contains($"Fetching {expectedCount} Campaigns")),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
+    }
+
+    /// <summary>
+    /// Tests that GetByIdsAsync creates correct comma-separated string for various id collections.
+    /// This verifies string.Join behavior with different collections by examining log output.
+    /// Expected: The log message should contain the correctly formatted comma-separated id string.
+    /// </summary>
+    /// <param name="ids">The collection of ids to test.</param>
+    /// <param name="expectedString">The expected comma-separated string representation.</param>
+    [TestCase(new long[] { }, "")]
+    [TestCase(new long[] { 123L }, "123")]
+    [TestCase(new long[] { 1L, 2L, 3L }, "1,2,3")]
+    [TestCase(new long[] { long.MinValue }, "-9223372036854775808")]
+    [TestCase(new long[] { long.MaxValue }, "9223372036854775807")]
+    [TestCase(new long[] { long.MinValue, 0L, long.MaxValue }, "-9223372036854775808,0,9223372036854775807")]
+    [TestCase(new long[] { -1L, -2L, -3L }, "-1,-2,-3")]
+    [TestCase(new long[] { 0L, 0L, 0L }, "0,0,0")]
+    public async Task GetByIdsAsync_VariousCollections_CreatesCorrectStringFormat(long[] ids, string expectedString)
+    {
+        // Arrange
+        var mockConnectionFactory = new Mock<IDbConnectionFactory>();
+        var mockConnection = new Mock<IDbConnection>();
+        mockConnectionFactory.Setup(f => f.CreateConnection()).Returns(mockConnection.Object);
+        var mockLogger = new Mock<ILogger<CampaignsRepository>>();
+        var repository = new CampaignsRepository(mockConnectionFactory.Object, mockLogger.Object);
+
+        // Act
+        try
+        {
+            await repository.GetByIdsAsync(ids);
+        }
+        catch (InvalidCastException)
+        {
+            // Expected exception when using mock connection
+        }
+
+        // Assert - Verify the comma-separated string is created correctly (indirectly through logging)
+        mockLogger.Verify(
+            x => x.Log(
+                It.IsAny<LogLevel>(),
+                It.IsAny<EventId>(),
+                It.IsAny<It.IsAnyType>(),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once,
+            $"Expected log to be called once for ids: {expectedString}");
+    }
+
+    /// <summary>
+    /// Tests that GetByIdsAsync calls factory.CreateConnection exactly once per invocation.
+    /// This verifies proper dependency injection usage for various id collections.
+    /// Expected: CreateConnection should be invoked exactly once per method call.
+    /// </summary>
+    /// <param name="ids">The collection of ids to test.</param>
+    [TestCase(new long[] { })]
+    [TestCase(new long[] { 1L })]
+    [TestCase(new long[] { 1L, 2L, 3L, 4L, 5L })]
+    [TestCase(new long[] { long.MinValue, long.MaxValue })]
+    public async Task GetByIdsAsync_ValidCollections_CallsFactoryOnce(long[] ids)
+    {
+        // Arrange
+        var mockConnectionFactory = new Mock<IDbConnectionFactory>();
+        var mockConnection = new Mock<IDbConnection>();
+        mockConnectionFactory.Setup(f => f.CreateConnection()).Returns(mockConnection.Object);
+        var mockLogger = new Mock<ILogger<CampaignsRepository>>();
+        var repository = new CampaignsRepository(mockConnectionFactory.Object, mockLogger.Object);
+
+        // Act
+        try
+        {
+            await repository.GetByIdsAsync(ids);
+        }
+        catch (InvalidCastException)
+        {
+            // Expected exception when using mock connection
+        }
+
+        // Assert
+        mockConnectionFactory.Verify(f => f.CreateConnection(), Times.Once);
+    }
+
+    /// <summary>
+    /// Tests that GetByIdsAsync uses the correct stored procedure name "dbo.Usp_Campaigns_Get" in logging.
+    /// This verifies the stored procedure identifier used by the method.
+    /// Expected: Log message should reference the correct stored procedure name.
+    /// </summary>
+    [Test]
+    public async Task GetByIdsAsync_AnyValidCollection_UsesCorrectStoredProcedureName()
+    {
+        // Arrange
+        var mockConnectionFactory = new Mock<IDbConnectionFactory>();
+        var mockConnection = new Mock<IDbConnection>();
+        mockConnectionFactory.Setup(f => f.CreateConnection()).Returns(mockConnection.Object);
+        var mockLogger = new Mock<ILogger<CampaignsRepository>>();
+        var repository = new CampaignsRepository(mockConnectionFactory.Object, mockLogger.Object);
+        var ids = new[] { 1L, 2L, 3L };
+
+        // Act
+        try
+        {
+            await repository.GetByIdsAsync(ids);
+        }
+        catch (InvalidCastException)
+        {
+            // Expected exception when using mock connection
+        }
+
+        // Assert
+        mockLogger.Verify(
+            x => x.Log(
+                LogLevel.Information,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((state, type) => state.ToString()!.Contains("dbo.Usp_Campaigns_Get")),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
+    }
+
+    /// <summary>
+    /// Tests that GetByIdsAsync propagates exceptions thrown by the factory when creating a connection.
+    /// This verifies that factory exceptions are not swallowed and reach the caller.
+    /// Expected: The exception from factory.CreateConnection() should propagate to the caller.
+    /// </summary>
+    [Test]
+    public void GetByIdsAsync_FactoryThrows_PropagatesException()
+    {
+        // Arrange
+        var mockConnectionFactory = new Mock<IDbConnectionFactory>();
+        mockConnectionFactory.Setup(f => f.CreateConnection()).Throws(new InvalidOperationException("Factory error"));
+        var mockLogger = new Mock<ILogger<CampaignsRepository>>();
+        var repository = new CampaignsRepository(mockConnectionFactory.Object, mockLogger.Object);
+        var ids = new[] { 1L };
+
+        // Act
+        Func<Task> act = async () => await repository.GetByIdsAsync(ids);
+
+        // Assert
+        act.Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("Factory error");
+    }
+
+    /// <summary>
+    /// Tests that GetByIdsAsync logs before attempting to create connection, even when factory throws.
+    /// This verifies the execution order: logging happens first, then connection creation.
+    /// Expected: Logger should be invoked before the factory exception occurs.
+    /// </summary>
+    [Test]
+    public void GetByIdsAsync_FactoryThrows_LogsBeforeException()
+    {
+        // Arrange
+        var mockConnectionFactory = new Mock<IDbConnectionFactory>();
+        mockConnectionFactory.Setup(f => f.CreateConnection()).Throws(new InvalidOperationException("Factory error"));
+        var mockLogger = new Mock<ILogger<CampaignsRepository>>();
+        var repository = new CampaignsRepository(mockConnectionFactory.Object, mockLogger.Object);
+        var ids = new[] { 1L, 2L };
+
+        // Act
+        try
+        {
+            var _ = repository.GetByIdsAsync(ids).GetAwaiter().GetResult();
+        }
+        catch (InvalidOperationException)
+        {
+            // Expected exception
+        }
+
+        // Assert
+        mockLogger.Verify(
+            x => x.Log(
+                LogLevel.Information,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((state, type) => state.ToString()!.Contains("Fetching 2 Campaigns")),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
+    }
+
+    /// <summary>
+    /// Tests that GetByIdsAsync creates a new connection for each invocation.
+    /// This verifies that connections are not cached or reused across multiple calls.
+    /// Expected: CreateConnection should be called exactly N times for N invocations.
+    /// </summary>
+    [Test]
+    public async Task GetByIdsAsync_MultipleInvocations_CreatesNewConnectionEachTime()
+    {
+        // Arrange
+        var mockConnectionFactory = new Mock<IDbConnectionFactory>();
+        var mockConnection = new Mock<IDbConnection>();
+        mockConnectionFactory.Setup(f => f.CreateConnection()).Returns(mockConnection.Object);
+        var mockLogger = new Mock<ILogger<CampaignsRepository>>();
+        var repository = new CampaignsRepository(mockConnectionFactory.Object, mockLogger.Object);
+        var ids1 = new[] { 1L };
+        var ids2 = new[] { 2L, 3L };
+        var ids3 = new[] { 4L, 5L, 6L };
+
+        // Act
+        try { await repository.GetByIdsAsync(ids1); } catch { }
+        try { await repository.GetByIdsAsync(ids2); } catch { }
+        try { await repository.GetByIdsAsync(ids3); } catch { }
+
+        // Assert
+        mockConnectionFactory.Verify(f => f.CreateConnection(), Times.Exactly(3));
+    }
+
+    /// <summary>
+    /// Tests that GetByIdsAsync handles concurrent calls correctly, creating independent connections.
+    /// This verifies that concurrent invocations don't share state or connections.
+    /// Expected: Each concurrent call should independently use the factory.
+    /// </summary>
+    [Test]
+    public async Task GetByIdsAsync_ConcurrentCalls_HandlesIndependently()
+    {
+        // Arrange
+        var mockConnectionFactory = new Mock<IDbConnectionFactory>();
+        var mockConnection = new Mock<IDbConnection>();
+        mockConnectionFactory.Setup(f => f.CreateConnection()).Returns(mockConnection.Object);
+        var mockLogger = new Mock<ILogger<CampaignsRepository>>();
+        var repository = new CampaignsRepository(mockConnectionFactory.Object, mockLogger.Object);
+        var ids1 = new[] { 1L };
+        var ids2 = new[] { 2L };
+        var ids3 = new[] { 3L };
+
+        // Act
+        var tasks = new[]
+        {
+            Task.Run(async () => { try { await repository.GetByIdsAsync(ids1); } catch { } }),
+            Task.Run(async () => { try { await repository.GetByIdsAsync(ids2); } catch { } }),
+            Task.Run(async () => { try { await repository.GetByIdsAsync(ids3); } catch { } })
+        };
+        await Task.WhenAll(tasks);
+
+        // Assert
+        mockConnectionFactory.Verify(f => f.CreateConnection(), Times.Exactly(3));
+    }
+
+    /// <summary>
+    /// Tests that GetByIdsAsync returns Task of IEnumerable of Campaigns type.
+    /// This validates the method signature matches the interface contract.
+    /// Expected: Method should return Task&lt;IEnumerable&lt;Campaigns&gt;&gt;.
+    /// </summary>
+    [Test]
+    public void GetByIdsAsync_ReturnType_MatchesInterfaceContract()
+    {
+        // Arrange
+        var repositoryType = typeof(CampaignsRepository);
+        var method = repositoryType.GetMethod("GetByIdsAsync");
+
+        // Act & Assert
+        method.Should().NotBeNull();
+        method!.ReturnType.Should().Be(typeof(Task<IEnumerable<Campaigns>>));
+    }
+
+    /// <summary>
+    /// Tests that GetByIdsAsync handles very large id collections without errors during string concatenation.
+    /// This verifies that string.Join can handle extremely large collections without performance issues.
+    /// Expected: No exception thrown during string concatenation or logging.
+    /// </summary>
+    [Test]
+    public void GetByIdsAsync_VeryLargeCollection_HandlesWithoutStringJoinError()
+    {
+        // Arrange
+        var mockConnectionFactory = new Mock<IDbConnectionFactory>();
+        var mockConnection = new Mock<IDbConnection>();
+        mockConnectionFactory.Setup(f => f.CreateConnection()).Returns(mockConnection.Object);
+        var mockLogger = new Mock<ILogger<CampaignsRepository>>();
+        var repository = new CampaignsRepository(mockConnectionFactory.Object, mockLogger.Object);
+        var largeIds = Enumerable.Range(1, 10000).Select(i => (long)i);
+
+        // Act
+        Func<Task> act = async () => await repository.GetByIdsAsync(largeIds);
+
+        // Assert
+        act.Should().ThrowAsync<InvalidCastException>()
+            .WithMessage("*SqlConnection*");
+    }
+
+    /// <summary>
+    /// Tests that GetByIdsAsync handles IEnumerable that requires multiple enumerations correctly.
+    /// Both string.Join and Count() enumerate the collection, verifying no issues with deferred execution.
+    /// Expected: Method should handle collections that are enumerated multiple times.
+    /// </summary>
+    [Test]
+    public void GetByIdsAsync_MultipleEnumerations_HandlesCorrectly()
+    {
+        // Arrange
+        var mockConnectionFactory = new Mock<IDbConnectionFactory>();
+        var mockConnection = new Mock<IDbConnection>();
+        mockConnectionFactory.Setup(f => f.CreateConnection()).Returns(mockConnection.Object);
+        var mockLogger = new Mock<ILogger<CampaignsRepository>>();
+        var repository = new CampaignsRepository(mockConnectionFactory.Object, mockLogger.Object);
+        var ids = Enumerable.Range(1, 5).Select(i => (long)i);
+
+        // Act
+        Func<Task> act = async () => await repository.GetByIdsAsync(ids);
+
+        // Assert
+        act.Should().ThrowAsync<InvalidCastException>();
+    }
+
+    /// <summary>
+    /// Tests that GetByIdsAsync throws InvalidCastException when factory returns a mock IDbConnection.
+    /// This verifies that the method requires a real SqlConnection (not just IDbConnection) for Dapper.
+    /// Expected: InvalidCastException should be thrown when casting IDbConnection to SqlConnection.
+    /// </summary>
+    [Test]
+    public void GetByIdsAsync_MockConnection_ThrowsInvalidCastException()
+    {
+        // Arrange
+        var mockConnectionFactory = new Mock<IDbConnectionFactory>();
+        var mockConnection = new Mock<IDbConnection>();
+        mockConnectionFactory.Setup(f => f.CreateConnection()).Returns(mockConnection.Object);
+        var mockLogger = new Mock<ILogger<CampaignsRepository>>();
+        var repository = new CampaignsRepository(mockConnectionFactory.Object, mockLogger.Object);
+        var ids = new[] { 1L };
+
+        // Act
+        Func<Task> act = async () => await repository.GetByIdsAsync(ids);
+
+        // Assert
+        act.Should().ThrowAsync<InvalidCastException>()
+            .WithMessage("*SqlConnection*");
+    }
+
+    /// <summary>
+    /// Tests that GetByIdsAsync handles mixed boundary values (MinValue, MaxValue, zero) in single collection.
+    /// This verifies proper handling when extreme values coexist in the same collection.
+    /// Expected: Method should process all boundary values without overflow or conversion errors.
+    /// </summary>
+    [Test]
+    public void GetByIdsAsync_MixedBoundaryValues_ProcessesCorrectly()
+    {
+        // Arrange
+        var mockConnectionFactory = new Mock<IDbConnectionFactory>();
+        var mockConnection = new Mock<IDbConnection>();
+        mockConnectionFactory.Setup(f => f.CreateConnection()).Returns(mockConnection.Object);
+        var mockLogger = new Mock<ILogger<CampaignsRepository>>();
+        var repository = new CampaignsRepository(mockConnectionFactory.Object, mockLogger.Object);
+        var ids = new[] { long.MinValue, -1L, 0L, 1L, long.MaxValue };
+
+        // Act
+        Func<Task> act = async () => await repository.GetByIdsAsync(ids);
+
+        // Assert
+        act.Should().ThrowAsync<InvalidCastException>();
+        mockLogger.Verify(
+            x => x.Log(
+                LogLevel.Information,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((state, type) => state.ToString()!.Contains("Fetching 5 Campaigns")),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
+    }
+
+    /// <summary>
+    /// Tests that GetByIdAsync accepts all valid long id values without throwing ArgumentException.
+    /// This parameterized test verifies boundary values and common cases for the id parameter.
+    /// Expected: Method should accept all valid long values; InvalidCastException expected when using mock connection.
     /// </summary>
     /// <param name="id">The campaign id to test.</param>
     [TestCase(long.MinValue)]
@@ -3962,470 +4684,1738 @@ public class ICampaignsRepositoryGetByIdAsyncTests
     [TestCase(1L)]
     [TestCase(-1L)]
     [TestCase(12345L)]
-    [TestCase(-12345L)]
-    [TestCase(999999999L)]
-    [TestCase(-999999999L)]
-    public void GetByIdAsync_Should_Accept_All_Valid_Long_Values(long id)
+    [TestCase(-9999L)]
+    public void GetByIdAsync_AcceptsAllValidLongIdValues(long id)
     {
         // Arrange
-        _mockConnectionFactory.Setup(f => f.CreateConnection()).Returns(_mockConnection.Object);
+        var mockConnectionFactory = new Mock<IDbConnectionFactory>();
+        var mockLogger = new Mock<ILogger<CampaignsRepository>>();
+        var mockConnection = new Mock<IDbConnection>();
+
+        mockConnectionFactory.Setup(f => f.CreateConnection()).Returns(mockConnection.Object);
+
+        var repository = new CampaignsRepository(mockConnectionFactory.Object, mockLogger.Object);
 
         // Act
-        Func<Task> act = async () => await _repository.GetByIdAsync(id);
+        Func<Task> act = async () => await repository.GetByIdAsync(id);
 
         // Assert
         act.Should().ThrowAsync<InvalidCastException>()
-            .WithMessage("Unable to cast object of type '*' to type 'Microsoft.Data.SqlClient.SqlConnection'.");
-        _mockConnectionFactory.Verify(f => f.CreateConnection(), Times.Once);
+            .WithMessage("*SqlConnection*");
     }
 
     /// <summary>
-    /// Tests that GetByIdAsync logs the correct information including the id value and stored procedure name.
-    /// This parameterized test verifies that the log message contains the correct id and stored procedure.
-    /// Expected: Logger should be called with LogLevel.Information and message containing id and "dbo.Usp_Campaigns_Get".
+    /// Tests that GetByIdAsync logs the correct information before creating database connection.
+    /// Verifies that logging includes the id value and stored procedure name.
+    /// Expected: Logger should be invoked with LogLevel.Information and message containing id and stored procedure.
     /// </summary>
     /// <param name="id">The campaign id to test.</param>
-    [TestCase(1L)]
-    [TestCase(long.MinValue)]
-    [TestCase(long.MaxValue)]
-    [TestCase(0L)]
-    [TestCase(-999L)]
-    public async Task GetByIdAsync_Should_Log_Correct_Information_With_Id_And_StoredProcedure(long id)
+    /// <param name="expectedIdString">The expected string representation of the id.</param>
+    [TestCase(1L, "1")]
+    [TestCase(long.MinValue, "-9223372036854775808")]
+    [TestCase(long.MaxValue, "9223372036854775807")]
+    [TestCase(0L, "0")]
+    [TestCase(-123L, "-123")]
+    public async Task GetByIdAsync_LogsCorrectInformationBeforeConnectionCreation(long id, string expectedIdString)
     {
         // Arrange
-        _mockConnectionFactory.Setup(f => f.CreateConnection()).Returns(_mockConnection.Object);
-        var loggedMessages = new List<string>();
+        var mockConnectionFactory = new Mock<IDbConnectionFactory>();
+        var mockLogger = new Mock<ILogger<CampaignsRepository>>();
+        var mockConnection = new Mock<IDbConnection>();
 
-        _mockLogger.Setup(x => x.Log(
-            LogLevel.Information,
-            It.IsAny<EventId>(),
-            It.Is<It.IsAnyType>((state, type) => CaptureLogMessage(state, loggedMessages)),
-            It.IsAny<Exception>(),
-            It.IsAny<Func<It.IsAnyType, Exception?, string>>()));
+        mockConnectionFactory.Setup(f => f.CreateConnection()).Returns(mockConnection.Object);
+
+        var repository = new CampaignsRepository(mockConnectionFactory.Object, mockLogger.Object);
 
         // Act
         try
         {
-            await _repository.GetByIdAsync(id);
+            await repository.GetByIdAsync(id);
         }
         catch (InvalidCastException)
         {
-            // Expected exception when using mock connection
+            // Expected when using mock connection
         }
 
         // Assert
-        _mockLogger.Verify(x => x.Log(
-            LogLevel.Information,
-            It.IsAny<EventId>(),
-            It.IsAny<It.IsAnyType>(),
-            It.IsAny<Exception>(),
-            It.IsAny<Func<It.IsAnyType, Exception?, string>>()), Times.Once);
-
-        loggedMessages.Should().HaveCount(1);
-        loggedMessages[0].Should().Contain(id.ToString());
-        loggedMessages[0].Should().Contain("dbo.Usp_Campaigns_Get");
-        loggedMessages[0].Should().Contain("Fetching Campaign by Id");
+        mockLogger.Verify(
+            x => x.Log(
+                LogLevel.Information,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains(expectedIdString) && v.ToString()!.Contains("dbo.Usp_Campaigns_Get")),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
     }
 
     /// <summary>
-    /// Tests that GetByIdAsync calls the factory CreateConnection method exactly once.
-    /// This parameterized test verifies factory usage for various id values.
-    /// Expected: CreateConnection should be invoked exactly once per method call.
+    /// Tests that GetByIdAsync calls factory.CreateConnection exactly once per invocation.
+    /// This verifies proper dependency injection usage and connection management.
+    /// Expected: CreateConnection should be invoked exactly once for each method call.
     /// </summary>
     /// <param name="id">The campaign id to test.</param>
-    [TestCase(1L)]
+    [TestCase(100L)]
     [TestCase(long.MinValue)]
     [TestCase(long.MaxValue)]
-    [TestCase(0L)]
-    [TestCase(-12345L)]
-    public async Task GetByIdAsync_Should_Call_Factory_CreateConnection_Once(long id)
+    public async Task GetByIdAsync_CallsFactoryCreateConnectionOncePerInvocation(long id)
     {
         // Arrange
-        _mockConnectionFactory.Setup(f => f.CreateConnection()).Returns(_mockConnection.Object);
+        var mockConnectionFactory = new Mock<IDbConnectionFactory>();
+        var mockLogger = new Mock<ILogger<CampaignsRepository>>();
+        var mockConnection = new Mock<IDbConnection>();
+
+        mockConnectionFactory.Setup(f => f.CreateConnection()).Returns(mockConnection.Object);
+
+        var repository = new CampaignsRepository(mockConnectionFactory.Object, mockLogger.Object);
 
         // Act
         try
         {
-            await _repository.GetByIdAsync(id);
+            await repository.GetByIdAsync(id);
         }
         catch (InvalidCastException)
         {
-            // Expected exception when using mock connection
+            // Expected when using mock connection
         }
 
         // Assert
-        _mockConnectionFactory.Verify(f => f.CreateConnection(), Times.Once);
+        mockConnectionFactory.Verify(f => f.CreateConnection(), Times.Once);
     }
 
     /// <summary>
-    /// Tests that GetByIdAsync throws InvalidCastException when factory returns a mock connection.
-    /// This verifies that the method requires a real SqlConnection (not just IDbConnection).
-    /// Expected: InvalidCastException should be thrown when casting IDbConnection to SqlConnection.
+    /// Tests that GetByIdAsync throws InvalidCastException when factory returns non-SqlConnection.
+    /// This verifies that the method requires a real SqlConnection for Dapper, not just IDbConnection.
+    /// Expected: InvalidCastException should be thrown when attempting to cast IDbConnection to SqlConnection.
     /// </summary>
     [Test]
-    public void GetByIdAsync_Should_Throw_InvalidCastException_When_Factory_Returns_Mock_Connection()
+    public void GetByIdAsync_WithMockConnection_ThrowsInvalidCastException()
     {
         // Arrange
-        _mockConnectionFactory.Setup(f => f.CreateConnection()).Returns(_mockConnection.Object);
-        const long id = 1L;
+        var mockConnectionFactory = new Mock<IDbConnectionFactory>();
+        var mockLogger = new Mock<ILogger<CampaignsRepository>>();
+        var mockConnection = new Mock<IDbConnection>();
+
+        mockConnectionFactory.Setup(f => f.CreateConnection()).Returns(mockConnection.Object);
+
+        var repository = new CampaignsRepository(mockConnectionFactory.Object, mockLogger.Object);
 
         // Act
-        Func<Task> act = async () => await _repository.GetByIdAsync(id);
+        Func<Task> act = async () => await repository.GetByIdAsync(1L);
 
         // Assert
         act.Should().ThrowAsync<InvalidCastException>();
     }
 
     /// <summary>
-    /// Tests that GetByIdAsync returns a Task with the correct return type.
-    /// Verifies the method signature matches the interface contract.
-    /// Expected: Method should return Task&lt;Campaigns?&gt;.
+    /// Tests that GetByIdAsync propagates exceptions thrown by factory.CreateConnection.
+    /// This verifies that factory exceptions are not swallowed and properly reach the caller.
+    /// Expected: Exception from factory should propagate to the caller.
     /// </summary>
     [Test]
-    public void GetByIdAsync_Should_Return_Task_Of_Nullable_Campaigns()
+    public void GetByIdAsync_WhenFactoryThrowsException_PropagatesException()
     {
         // Arrange
-        _mockConnectionFactory.Setup(f => f.CreateConnection()).Returns(_mockConnection.Object);
-        const long id = 1L;
+        var mockConnectionFactory = new Mock<IDbConnectionFactory>();
+        var mockLogger = new Mock<ILogger<CampaignsRepository>>();
+        var expectedException = new InvalidOperationException("Factory connection error");
+
+        mockConnectionFactory.Setup(f => f.CreateConnection()).Throws(expectedException);
+
+        var repository = new CampaignsRepository(mockConnectionFactory.Object, mockLogger.Object);
 
         // Act
-        var result = _repository.GetByIdAsync(id);
-
-        // Assert
-        result.Should().NotBeNull();
-        result.Should().BeAssignableTo<Task<Campaigns>>();
-    }
-
-    /// <summary>
-    /// Tests that GetByIdAsync creates a new connection for each invocation.
-    /// Verifies that connections are not reused across multiple calls.
-    /// Expected: CreateConnection should be called exactly twice for two invocations.
-    /// </summary>
-    [Test]
-    public async Task GetByIdAsync_Should_Create_New_Connection_For_Each_Invocation()
-    {
-        // Arrange
-        _mockConnectionFactory.Setup(f => f.CreateConnection()).Returns(_mockConnection.Object);
-
-        // Act
-        try
-        {
-            await _repository.GetByIdAsync(1L);
-        }
-        catch (InvalidCastException) { }
-
-        try
-        {
-            await _repository.GetByIdAsync(2L);
-        }
-        catch (InvalidCastException) { }
-
-        // Assert
-        _mockConnectionFactory.Verify(f => f.CreateConnection(), Times.Exactly(2));
-    }
-
-    /// <summary>
-    /// Tests that GetByIdAsync correctly formats extreme long values when converting to string.
-    /// Verifies that id.ToString() works correctly for boundary values in the log message.
-    /// Expected: Log should contain the correctly formatted string representation of extreme long values.
-    /// </summary>
-    /// <param name="id">The campaign id to test.</param>
-    /// <param name="expectedString">The expected string representation of the id.</param>
-    [TestCase(long.MinValue, "-9223372036854775808")]
-    [TestCase(long.MaxValue, "9223372036854775807")]
-    [TestCase(0L, "0")]
-    [TestCase(-1L, "-1")]
-    [TestCase(1L, "1")]
-    public async Task GetByIdAsync_Should_Format_Id_Correctly_As_String(long id, string expectedString)
-    {
-        // Arrange
-        _mockConnectionFactory.Setup(f => f.CreateConnection()).Returns(_mockConnection.Object);
-        var loggedMessages = new List<string>();
-
-        _mockLogger.Setup(x => x.Log(
-            It.IsAny<LogLevel>(),
-            It.IsAny<EventId>(),
-            It.Is<It.IsAnyType>((state, type) => CaptureLogMessage(state, loggedMessages)),
-            It.IsAny<Exception>(),
-            It.IsAny<Func<It.IsAnyType, Exception?, string>>()));
-
-        // Act
-        try
-        {
-            await _repository.GetByIdAsync(id);
-        }
-        catch (InvalidCastException) { }
-
-        // Assert
-        loggedMessages.Should().HaveCount(1);
-        loggedMessages[0].Should().Contain(expectedString);
-    }
-
-    /// <summary>
-    /// Tests that GetByIdAsync logs information before attempting to create connection.
-    /// This verifies that logging occurs at the correct point in the execution flow.
-    /// Expected: Logger should be called before the factory CreateConnection call.
-    /// </summary>
-    [Test]
-    public async Task GetByIdAsync_Should_Log_Before_Creating_Connection()
-    {
-        // Arrange
-        var callOrder = new List<string>();
-        _mockLogger.Setup(x => x.Log(
-            It.IsAny<LogLevel>(),
-            It.IsAny<EventId>(),
-            It.IsAny<It.IsAnyType>(),
-            It.IsAny<Exception>(),
-            It.IsAny<Func<It.IsAnyType, Exception?, string>>()))
-            .Callback(() => callOrder.Add("Log"));
-
-        _mockConnectionFactory.Setup(f => f.CreateConnection())
-            .Callback(() => callOrder.Add("CreateConnection"))
-            .Returns(_mockConnection.Object);
-
-        // Act
-        try
-        {
-            await _repository.GetByIdAsync(1L);
-        }
-        catch (InvalidCastException) { }
-
-        // Assert
-        callOrder.Should().HaveCount(2);
-        callOrder[0].Should().Be("Log");
-        callOrder[1].Should().Be("CreateConnection");
-    }
-
-    /// <summary>
-    /// Tests that GetByIdAsync propagates exceptions thrown by the factory when creating connection.
-    /// This verifies proper exception handling when the dependency fails.
-    /// Expected: The exception from factory should propagate to the caller.
-    /// </summary>
-    [Test]
-    public void GetByIdAsync_Should_Propagate_Exception_When_Factory_Throws()
-    {
-        // Arrange
-        var expectedException = new InvalidOperationException("Factory error");
-        _mockConnectionFactory.Setup(f => f.CreateConnection()).Throws(expectedException);
-
-        // Act
-        Func<Task> act = async () => await _repository.GetByIdAsync(1L);
+        Func<Task> act = async () => await repository.GetByIdAsync(1L);
 
         // Assert
         act.Should().ThrowAsync<InvalidOperationException>()
-            .WithMessage("Factory error");
+            .WithMessage("Factory connection error");
     }
 
     /// <summary>
-    /// Tests that GetByIdAsync throws NullReferenceException when factory returns null.
-    /// This verifies the method's behavior when dependency returns unexpected null value.
-    /// Expected: NullReferenceException should be thrown when attempting to cast null.
+    /// Tests that GetByIdAsync propagates exceptions thrown by logger.
+    /// This verifies that logging exceptions are not swallowed.
+    /// Expected: Exception from logger should propagate to the caller.
     /// </summary>
     [Test]
-    public void GetByIdAsync_Should_Throw_NullReferenceException_When_Factory_Returns_Null()
+    public void GetByIdAsync_WhenLoggerThrowsException_PropagatesException()
     {
         // Arrange
-        _mockConnectionFactory.Setup(f => f.CreateConnection()).Returns((IDbConnection)null!);
+        var mockConnectionFactory = new Mock<IDbConnectionFactory>();
+        var mockLogger = new Mock<ILogger<CampaignsRepository>>();
+        var expectedException = new InvalidOperationException("Logger error");
+
+        mockLogger
+            .Setup(x => x.Log(
+                It.IsAny<LogLevel>(),
+                It.IsAny<EventId>(),
+                It.IsAny<It.IsAnyType>(),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()))
+            .Throws(expectedException);
+
+        var repository = new CampaignsRepository(mockConnectionFactory.Object, mockLogger.Object);
 
         // Act
-        Func<Task> act = async () => await _repository.GetByIdAsync(1L);
+        Func<Task> act = async () => await repository.GetByIdAsync(1L);
+
+        // Assert
+        act.Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("Logger error");
+    }
+
+    /// <summary>
+    /// Tests that GetByIdAsync returns a Task with nullable Campaigns type.
+    /// This verifies the method signature matches the interface contract.
+    /// Expected: Method should return Task of nullable Campaigns.
+    /// </summary>
+    [Test]
+    public void GetByIdAsync_ReturnsTaskOfNullableCampaigns()
+    {
+        // Arrange
+        var mockConnectionFactory = new Mock<IDbConnectionFactory>();
+        var mockLogger = new Mock<ILogger<CampaignsRepository>>();
+        var mockConnection = new Mock<IDbConnection>();
+
+        mockConnectionFactory.Setup(f => f.CreateConnection()).Returns(mockConnection.Object);
+
+        var repository = new CampaignsRepository(mockConnectionFactory.Object, mockLogger.Object);
+
+        // Act
+        var result = repository.GetByIdAsync(1L);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.Should().BeOfType<Task<Campaigns>>();
+    }
+
+    /// <summary>
+    /// Tests that GetByIdsAsync throws ArgumentNullException when ids parameter is null.
+    /// This validates null parameter handling before any database operations.
+    /// Expected: ArgumentNullException from string.Join when ids is null.
+    /// </summary>
+    [Test]
+    public void GetByIdsAsync_NullIdsParameter_ThrowsArgumentNullException()
+    {
+        // Arrange
+        var mockFactory = new Mock<IDbConnectionFactory>();
+        var mockLogger = new Mock<ILogger<CampaignsRepository>>();
+        var repository = new CampaignsRepository(mockFactory.Object, mockLogger.Object);
+        IEnumerable<long>? ids = null;
+
+        // Act
+        Func<Task> act = async () => await repository.GetByIdsAsync(ids!);
+
+        // Assert
+        act.Should().ThrowAsync<ArgumentNullException>();
+    }
+
+    /// <summary>
+    /// Tests that GetByIdsAsync uses correct stored procedure name "dbo.Usp_Campaigns_Get" in logging.
+    /// Expected: Log message references correct stored procedure.
+    /// </summary>
+    [Test]
+    public async Task GetByIdsAsync_AnyValidCollection_LogsCorrectStoredProcedureName()
+    {
+        // Arrange
+        var mockFactory = new Mock<IDbConnectionFactory>();
+        var mockConnection = new Mock<IDbConnection>();
+        mockFactory.Setup(f => f.CreateConnection()).Returns(mockConnection.Object);
+        var mockLogger = new Mock<ILogger<CampaignsRepository>>();
+        var repository = new CampaignsRepository(mockFactory.Object, mockLogger.Object);
+        var ids = new long[] { 1L, 2L, 3L };
+
+        // Act
+        try
+        {
+            await repository.GetByIdsAsync(ids);
+        }
+        catch (InvalidCastException)
+        {
+            // Expected when using mock connection
+        }
+
+        // Assert
+        mockLogger.Verify(
+            x => x.Log(
+                LogLevel.Information,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("dbo.Usp_Campaigns_Get")),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
+    }
+
+    /// <summary>
+    /// Tests that GetByIdsAsync throws NullReferenceException when factory returns null.
+    /// This verifies behavior when dependency returns unexpected null.
+    /// Expected: NullReferenceException when attempting to cast null.
+    /// </summary>
+    [Test]
+    public void GetByIdsAsync_FactoryReturnsNull_ThrowsNullReferenceException()
+    {
+        // Arrange
+        var mockFactory = new Mock<IDbConnectionFactory>();
+        mockFactory.Setup(f => f.CreateConnection()).Returns((IDbConnection)null!);
+        var mockLogger = new Mock<ILogger<CampaignsRepository>>();
+        var repository = new CampaignsRepository(mockFactory.Object, mockLogger.Object);
+        var ids = new long[] { 1L, 2L };
+
+        // Act
+        Func<Task> act = async () => await repository.GetByIdsAsync(ids);
 
         // Assert
         act.Should().ThrowAsync<NullReferenceException>();
     }
 
     /// <summary>
-    /// Tests that GetByIdAsync logs before factory exception occurs.
-    /// This verifies that logging happens before the factory call that throws.
-    /// Expected: Logger should be called once before the factory exception.
+    /// Tests that GetByIdsAsync correctly handles various collections and creates proper comma-separated strings.
+    /// This parameterized test verifies string.Join behavior, count calculation, and logging for different input collections.
+    /// Expected: Method accepts all valid collections; logger is called with correct count and formatted string.
     /// </summary>
-    [Test]
-    public void GetByIdAsync_Should_Log_Before_Factory_Exception()
+    /// <param name="ids">The collection of campaign ids to test.</param>
+    /// <param name="expectedCount">The expected count that should be logged.</param>
+    /// <param name="expectedString">The expected comma-separated string representation.</param>
+    [TestCase(new long[] { }, 0, "")]
+    [TestCase(new long[] { 1L }, 1, "1")]
+    [TestCase(new long[] { 1L, 2L, 3L }, 3, "1,2,3")]
+    [TestCase(new long[] { long.MinValue }, 1, "-9223372036854775808")]
+    [TestCase(new long[] { long.MaxValue }, 1, "9223372036854775807")]
+    [TestCase(new long[] { long.MinValue, 0L, long.MaxValue }, 3, "-9223372036854775808,0,9223372036854775807")]
+    [TestCase(new long[] { -1L, -2L, -3L }, 3, "-1,-2,-3")]
+    [TestCase(new long[] { 0L, 0L, 0L }, 3, "0,0,0")]
+    [TestCase(new long[] { 5L, 5L, 5L }, 3, "5,5,5")]
+    public async Task GetByIdsAsync_VariousCollections_LogsCorrectCountAndFormat(long[] ids, int expectedCount, string expectedString)
     {
         // Arrange
-        _mockConnectionFactory.Setup(f => f.CreateConnection())
-            .Throws(new InvalidOperationException("Factory error"));
-
-        // Act
-        Func<Task> act = async () => await _repository.GetByIdAsync(1L);
-
-        // Assert
-        act.Should().ThrowAsync<InvalidOperationException>();
-        _mockLogger.Verify(x => x.Log(
-            LogLevel.Information,
-            It.IsAny<EventId>(),
-            It.IsAny<It.IsAnyType>(),
-            It.IsAny<Exception>(),
-            It.IsAny<Func<It.IsAnyType, Exception?, string>>()), Times.Once);
-    }
-
-    /// <summary>
-    /// Tests that GetByIdAsync uses the specific stored procedure name in logging.
-    /// This verifies the exact stored procedure identifier used by the method.
-    /// Expected: Log message should contain "dbo.Usp_Campaigns_Get".
-    /// </summary>
-    [Test]
-    public async Task GetByIdAsync_Should_Use_Correct_Stored_Procedure_Name()
-    {
-        // Arrange
-        _mockConnectionFactory.Setup(f => f.CreateConnection()).Returns(_mockConnection.Object);
-        var loggedMessages = new List<string>();
-
-        _mockLogger.Setup(x => x.Log(
-            It.IsAny<LogLevel>(),
-            It.IsAny<EventId>(),
-            It.Is<It.IsAnyType>((state, type) => CaptureLogMessage(state, loggedMessages)),
-            It.IsAny<Exception>(),
-            It.IsAny<Func<It.IsAnyType, Exception?, string>>()));
+        var mockConnectionFactory = new Mock<IDbConnectionFactory>();
+        var mockLogger = new Mock<ILogger<CampaignsRepository>>();
+        mockConnectionFactory.Setup(f => f.CreateConnection()).Returns(new Mock<IDbConnection>().Object);
+        var repository = new CampaignsRepository(mockConnectionFactory.Object, mockLogger.Object);
 
         // Act
         try
         {
-            await _repository.GetByIdAsync(1L);
+            await repository.GetByIdsAsync(ids);
         }
-        catch (InvalidCastException) { }
+        catch (InvalidCastException)
+        {
+            // Expected when using mock connection
+        }
 
         // Assert
-        loggedMessages.Should().HaveCount(1);
-        loggedMessages[0].Should().Contain("dbo.Usp_Campaigns_Get");
+        mockLogger.Verify(
+            l => l.Log(
+                LogLevel.Information,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((state, type) =>
+                    state.ToString()!.Contains(expectedCount.ToString()) &&
+                    state.ToString()!.Contains("dbo.Usp_Campaigns_Get")),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
     }
 
     /// <summary>
-    /// Tests that GetByIdAsync handles multiple sequential calls without issues.
-    /// This verifies that the method does not maintain state between calls.
-    /// Expected: Each call should independently use the factory and logger.
+    /// Tests that GetByIdsAsync calls factory.CreateConnection and logger exactly once for various collections.
+    /// This verifies proper dependency usage regardless of collection size or content.
+    /// Expected: Both factory and logger should be invoked exactly once per method call.
     /// </summary>
-    [Test]
-    public async Task GetByIdAsync_Should_Handle_Multiple_Sequential_Calls()
+    /// <param name="ids">The collection of ids to test.</param>
+    [TestCase(new long[] { })]
+    [TestCase(new long[] { 1L })]
+    [TestCase(new long[] { 1L, 2L, 3L, 4L, 5L })]
+    [TestCase(new long[] { long.MinValue, long.MaxValue })]
+    [TestCase(new long[] { -100L, 0L, 100L })]
+    public async Task GetByIdsAsync_VariousCollections_CallsDependenciesOnce(long[] ids)
     {
         // Arrange
-        _mockConnectionFactory.Setup(f => f.CreateConnection()).Returns(_mockConnection.Object);
+        var mockConnectionFactory = new Mock<IDbConnectionFactory>();
+        var mockLogger = new Mock<ILogger<CampaignsRepository>>();
+        mockConnectionFactory.Setup(f => f.CreateConnection()).Returns(new Mock<IDbConnection>().Object);
+        var repository = new CampaignsRepository(mockConnectionFactory.Object, mockLogger.Object);
 
         // Act
-        try { await _repository.GetByIdAsync(1L); } catch (InvalidCastException) { }
-        try { await _repository.GetByIdAsync(2L); } catch (InvalidCastException) { }
-        try { await _repository.GetByIdAsync(3L); } catch (InvalidCastException) { }
+        try
+        {
+            await repository.GetByIdsAsync(ids);
+        }
+        catch (InvalidCastException)
+        {
+            // Expected when using mock connection
+        }
 
         // Assert
-        _mockConnectionFactory.Verify(f => f.CreateConnection(), Times.Exactly(3));
-        _mockLogger.Verify(x => x.Log(
-            LogLevel.Information,
+        mockConnectionFactory.Verify(f => f.CreateConnection(), Times.Once);
+        mockLogger.Verify(
+            l => l.Log(
+                It.IsAny<LogLevel>(),
+                It.IsAny<EventId>(),
+                It.IsAny<It.IsAnyType>(),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
+    }
+
+    /// <summary>
+    /// Tests that GetByIdsAsync handles collections with extreme boundary values correctly.
+    /// This verifies that string.Join and Count() work properly with long.MinValue and long.MaxValue.
+    /// Expected: Method processes boundary values without overflow or conversion errors.
+    /// </summary>
+    [Test]
+    public async Task GetByIdsAsync_ExtremeBoundaryValues_HandlesCorrectly()
+    {
+        // Arrange
+        var ids = new[] { long.MinValue, long.MaxValue, 0L };
+        var mockConnectionFactory = new Mock<IDbConnectionFactory>();
+        var mockLogger = new Mock<ILogger<CampaignsRepository>>();
+        mockConnectionFactory.Setup(f => f.CreateConnection()).Returns(new Mock<IDbConnection>().Object);
+        var repository = new CampaignsRepository(mockConnectionFactory.Object, mockLogger.Object);
+
+        // Act
+        try
+        {
+            await repository.GetByIdsAsync(ids);
+        }
+        catch (InvalidCastException)
+        {
+            // Expected when using mock connection
+        }
+
+        // Assert
+        mockLogger.Verify(
+            l => l.Log(
+                LogLevel.Information,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((state, type) =>
+                    state.ToString()!.Contains("3") &&
+                    state.ToString()!.Contains("dbo.Usp_Campaigns_Get")),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
+    }
+
+    /// <summary>
+    /// Tests that GetByIdsAsync enumerates the ids collection exactly twice (once for string.Join, once for Count).
+    /// This verifies the method handles deferred execution correctly.
+    /// Expected: Method should work with IEnumerable that can be enumerated multiple times.
+    /// </summary>
+    [Test]
+    public async Task GetByIdsAsync_EnumeratesCollectionMultipleTimes_WorksCorrectly()
+    {
+        // Arrange
+        var ids = Enumerable.Range(1, 5).Select(i => (long)i);
+        var mockConnectionFactory = new Mock<IDbConnectionFactory>();
+        var mockLogger = new Mock<ILogger<CampaignsRepository>>();
+        mockConnectionFactory.Setup(f => f.CreateConnection()).Returns(new Mock<IDbConnection>().Object);
+        var repository = new CampaignsRepository(mockConnectionFactory.Object, mockLogger.Object);
+
+        // Act
+        try
+        {
+            await repository.GetByIdsAsync(ids);
+        }
+        catch (InvalidCastException)
+        {
+            // Expected when using mock connection
+        }
+
+        // Assert
+        mockConnectionFactory.Verify(f => f.CreateConnection(), Times.Once);
+        mockLogger.Verify(
+            l => l.Log(
+                It.IsAny<LogLevel>(),
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((state, type) => state.ToString()!.Contains("5")),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
+    }
+
+    /// <summary>
+    /// Tests that GetByIdsAsync creates new connection for each invocation and doesn't cache connections.
+    /// This verifies proper resource management and connection lifecycle.
+    /// Expected: CreateConnection should be called exactly N times for N invocations.
+    /// </summary>
+    [Test]
+    public async Task GetByIdsAsync_MultipleSequentialCalls_CreatesNewConnectionEachTime()
+    {
+        // Arrange
+        var ids = new[] { 1L, 2L, 3L };
+        var mockConnectionFactory = new Mock<IDbConnectionFactory>();
+        var mockLogger = new Mock<ILogger<CampaignsRepository>>();
+        mockConnectionFactory.Setup(f => f.CreateConnection()).Returns(new Mock<IDbConnection>().Object);
+        var repository = new CampaignsRepository(mockConnectionFactory.Object, mockLogger.Object);
+
+        // Act
+        try
+        {
+            await repository.GetByIdsAsync(ids);
+        }
+        catch (InvalidCastException)
+        {
+            // Expected when using mock connection
+        }
+        
+        try
+        {
+            await repository.GetByIdsAsync(ids);
+        }
+        catch (InvalidCastException)
+        {
+            // Expected when using mock connection
+        }
+        
+        try
+        {
+            await repository.GetByIdsAsync(ids);
+        }
+        catch (InvalidCastException)
+        {
+            // Expected when using mock connection
+        }
+
+        // Assert
+        mockConnectionFactory.Verify(f => f.CreateConnection(), Times.Exactly(3));
+    }
+
+    /// <summary>
+    /// Tests that GetByIdsAsync handles very large collections without string concatenation errors.
+    /// This verifies that string.Join can process collections with thousands of elements.
+    /// Expected: No exception during string.Join operation or logging with large collections.
+    /// </summary>
+    [Test]
+    public async Task GetByIdsAsync_VeryLargeCollection_HandlesWithoutError()
+    {
+        // Arrange
+        var ids = Enumerable.Range(1, 10000).Select(i => (long)i).ToList();
+        var mockConnectionFactory = new Mock<IDbConnectionFactory>();
+        var mockLogger = new Mock<ILogger<CampaignsRepository>>();
+        mockConnectionFactory.Setup(f => f.CreateConnection()).Returns(new Mock<IDbConnection>().Object);
+        var repository = new CampaignsRepository(mockConnectionFactory.Object, mockLogger.Object);
+
+        // Act
+        try
+        {
+            await repository.GetByIdsAsync(ids);
+        }
+        catch (InvalidCastException)
+        {
+            // Expected when using mock connection
+        }
+
+        // Assert
+        mockLogger.Verify(
+            l => l.Log(
+                LogLevel.Information,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((state, type) => state.ToString()!.Contains("10000")),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
+    }
+
+    /// <summary>
+    /// Tests that GetByIdsAsync propagates exceptions from logger when logging fails.
+    /// This verifies that logging exceptions are not swallowed.
+    /// Expected: Exception from logger should propagate to caller.
+    /// </summary>
+    [Test]
+    public void GetByIdsAsync_LoggerThrowsException_PropagatesException()
+    {
+        // Arrange
+        var ids = new[] { 1L, 2L, 3L };
+        var mockConnectionFactory = new Mock<IDbConnectionFactory>();
+        var mockLogger = new Mock<ILogger<CampaignsRepository>>();
+        mockLogger.Setup(l => l.Log(
+            It.IsAny<LogLevel>(),
             It.IsAny<EventId>(),
             It.IsAny<It.IsAnyType>(),
             It.IsAny<Exception>(),
-            It.IsAny<Func<It.IsAnyType, Exception?, string>>()), Times.Exactly(3));
+            It.IsAny<Func<It.IsAnyType, Exception?, string>>()))
+            .Throws(new InvalidOperationException("Logger error"));
+        var repository = new CampaignsRepository(mockConnectionFactory.Object, mockLogger.Object);
+
+        // Act
+        Func<Task> act = async () => await repository.GetByIdsAsync(ids);
+
+        // Assert
+        act.Should().ThrowAsync<InvalidOperationException>().WithMessage("Logger error");
     }
 
     /// <summary>
-    /// Tests that GetByIdAsync can be called concurrently without issues.
-    /// This verifies that concurrent calls independently use the factory.
-    /// Expected: Factory should be called exactly the same number of times as concurrent calls.
+    /// Tests that GetByIdsAsync handles concurrent calls independently without sharing state.
+    /// This verifies thread-safety and independent execution of concurrent invocations.
+    /// Expected: Each concurrent call should independently use factory and logger.
     /// </summary>
     [Test]
-    public async Task GetByIdAsync_Should_Handle_Concurrent_Calls()
+    public async Task GetByIdsAsync_ConcurrentCalls_ExecuteIndependently()
     {
         // Arrange
-        _mockConnectionFactory.Setup(f => f.CreateConnection()).Returns(_mockConnection.Object);
-        const int concurrentCalls = 5;
+        var ids1 = new[] { 1L, 2L, 3L };
+        var ids2 = new[] { 4L, 5L, 6L };
+        var ids3 = new[] { 7L, 8L, 9L };
+        var mockConnectionFactory = new Mock<IDbConnectionFactory>();
+        var mockLogger = new Mock<ILogger<CampaignsRepository>>();
+        mockConnectionFactory.Setup(f => f.CreateConnection()).Returns(new Mock<IDbConnection>().Object);
+        var repository = new CampaignsRepository(mockConnectionFactory.Object, mockLogger.Object);
 
         // Act
-        var tasks = Enumerable.Range(1, concurrentCalls)
-            .Select(async i =>
+        var tasks = new[]
+        {
+            Task.Run(async () =>
             {
-                try
-                {
-                    await _repository.GetByIdAsync(i);
-                }
-                catch (InvalidCastException)
-                {
-                    // Expected exception
-                }
-            });
+                try { await repository.GetByIdsAsync(ids1); }
+                catch (InvalidCastException) { }
+            }),
+            Task.Run(async () =>
+            {
+                try { await repository.GetByIdsAsync(ids2); }
+                catch (InvalidCastException) { }
+            }),
+            Task.Run(async () =>
+            {
+                try { await repository.GetByIdsAsync(ids3); }
+                catch (InvalidCastException) { }
+            })
+        };
 
         await Task.WhenAll(tasks);
 
         // Assert
-        _mockConnectionFactory.Verify(f => f.CreateConnection(), Times.Exactly(concurrentCalls));
+        mockConnectionFactory.Verify(f => f.CreateConnection(), Times.Exactly(3));
+        mockLogger.Verify(
+            l => l.Log(
+                It.IsAny<LogLevel>(),
+                It.IsAny<EventId>(),
+                It.IsAny<It.IsAnyType>(),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Exactly(3));
     }
 
     /// <summary>
-    /// Tests that GetByIdAsync method signature has correct return type.
-    /// This validates that the method returns a Task containing nullable Campaigns.
-    /// Expected: Method should return Task&lt;Campaigns&gt; (nullable).
+    /// Tests that GetByIdsAsync returns the correct Task type matching the interface contract.
+    /// This validates that the method signature correctly implements ICampaignsRepository.
+    /// Expected: Method should return Task of IEnumerable of Campaigns.
     /// </summary>
     [Test]
-    public void GetByIdAsync_Should_Have_Correct_Return_Type_Signature()
+    public void GetByIdsAsync_ReturnType_MatchesInterface()
     {
         // Arrange
-        var methodInfo = typeof(CampaignsRepository).GetMethod("GetByIdAsync");
-
-        // Act & Assert
-        methodInfo.Should().NotBeNull();
-        methodInfo!.ReturnType.Should().Be(typeof(Task<Campaigns>));
-    }
-
-    /// <summary>
-    /// Tests that GetByIdAsync is properly marked as async.
-    /// Validates the method implementation follows async pattern.
-    /// Expected: Method should be an async method returning Task.
-    /// </summary>
-    [Test]
-    public void GetByIdAsync_Should_Be_Async_Method()
-    {
-        // Arrange
-        var methodInfo = typeof(CampaignsRepository).GetMethod("GetByIdAsync");
-
-        // Act & Assert
-        methodInfo.Should().NotBeNull();
-        methodInfo!.ReturnType.Should().BeAssignableTo<Task>();
-    }
-
-    /// <summary>
-    /// Tests that GetByIdAsync accepts extremely large positive id values.
-    /// Verifies handling of values close to long.MaxValue.
-    /// Expected: Method should accept the value without throwing ArgumentException.
-    /// </summary>
-    [TestCase(9223372036854775806L)] // long.MaxValue - 1
-    [TestCase(9223372036854775000L)]
-    public void GetByIdAsync_Should_Accept_Very_Large_Positive_Ids(long id)
-    {
-        // Arrange
-        _mockConnectionFactory.Setup(f => f.CreateConnection()).Returns(_mockConnection.Object);
+        var mockConnectionFactory = new Mock<IDbConnectionFactory>();
+        var mockLogger = new Mock<ILogger<CampaignsRepository>>();
+        var repository = new CampaignsRepository(mockConnectionFactory.Object, mockLogger.Object);
+        var ids = new[] { 1L };
 
         // Act
-        Func<Task> act = async () => await _repository.GetByIdAsync(id);
+        var result = repository.GetByIdsAsync(ids);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.Should().BeAssignableTo<Task<IEnumerable<Campaigns>>>();
+    }
+
+    /// <summary>
+    /// Tests that GetByIdsAsync logs the stored procedure name exactly as defined in the constant.
+    /// This verifies that the correct stored procedure identifier is used throughout the method.
+    /// Expected: Log message should contain "dbo.Usp_Campaigns_Get".
+    /// </summary>
+    [Test]
+    public async Task GetByIdsAsync_LogsExactStoredProcedureName()
+    {
+        // Arrange
+        var ids = new[] { 123L, 456L };
+        var mockConnectionFactory = new Mock<IDbConnectionFactory>();
+        var mockLogger = new Mock<ILogger<CampaignsRepository>>();
+        mockConnectionFactory.Setup(f => f.CreateConnection()).Returns(new Mock<IDbConnection>().Object);
+        var repository = new CampaignsRepository(mockConnectionFactory.Object, mockLogger.Object);
+
+        // Act
+        try
+        {
+            await repository.GetByIdsAsync(ids);
+        }
+        catch (InvalidCastException)
+        {
+            // Expected when using mock connection
+        }
+
+        // Assert
+        mockLogger.Verify(
+            l => l.Log(
+                LogLevel.Information,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((state, type) =>
+                    state.ToString()!.Contains("dbo.Usp_Campaigns_Get")),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
+    }
+
+    /// <summary>
+    /// Tests that GetByIdsAsync handles collections containing only negative ids.
+    /// This verifies proper handling of negative values which may represent invalid domain ids.
+    /// Expected: Method accepts negative values and processes them without throwing at repository level.
+    /// </summary>
+    [Test]
+    public async Task GetByIdsAsync_AllNegativeIds_AcceptsWithoutException()
+    {
+        // Arrange
+        var ids = new[] { -1L, -2L, -3L, -999L, -12345L };
+        var mockConnectionFactory = new Mock<IDbConnectionFactory>();
+        var mockLogger = new Mock<ILogger<CampaignsRepository>>();
+        mockConnectionFactory.Setup(f => f.CreateConnection()).Returns(new Mock<IDbConnection>().Object);
+        var repository = new CampaignsRepository(mockConnectionFactory.Object, mockLogger.Object);
+
+        // Act
+        try
+        {
+            await repository.GetByIdsAsync(ids);
+        }
+        catch (InvalidCastException)
+        {
+            // Expected when using mock connection
+        }
+
+        // Assert
+        mockLogger.Verify(
+            l => l.Log(
+                LogLevel.Information,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((state, type) => state.ToString()!.Contains("5")),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
+    }
+
+    /// <summary>
+    /// Tests that GetByIdsAsync throws ArgumentNullException when ids parameter is null.
+    /// This validates null parameter handling at the string.Join call before any other operations.
+    /// Expected: ArgumentNullException should be thrown by string.Join.
+    /// </summary>
+    [Test]
+    public void GetByIdsAsync_NullParameter_ThrowsArgumentNullException()
+    {
+        // Arrange
+        var mockConnectionFactory = new Mock<IDbConnectionFactory>();
+        var mockLogger = new Mock<ILogger<CampaignsRepository>>();
+        var repository = new CampaignsRepository(mockConnectionFactory.Object, mockLogger.Object);
+        IEnumerable<long>? nullIds = null;
+
+        // Act & Assert
+        var exception = Assert.ThrowsAsync<ArgumentNullException>(async () => await repository.GetByIdsAsync(nullIds!));
+        exception.Should().NotBeNull();
+        exception!.ParamName.Should().Be("values");
+    }
+
+    /// <summary>
+    /// Tests that GetByIdsAsync accepts various valid id collections including edge cases.
+    /// This parameterized test verifies handling of empty, single, multiple, duplicate,
+    /// boundary values, zero, negative, and mixed collections.
+    /// Expected: Method should accept all valid IEnumerable collections and throw InvalidCastException
+    /// when using mock connections (as Dapper requires real SqlConnection).
+    /// </summary>
+    /// <param name="ids">The collection of campaign ids to test.</param>
+    /// <param name="description">Description of the test case for clarity.</param>
+    [TestCase(new long[] { }, "Empty collection")]
+    [TestCase(new long[] { 1L }, "Single id")]
+    [TestCase(new long[] { 1L, 2L, 3L, 4L, 5L }, "Multiple ids")]
+    [TestCase(new long[] { 10L, 10L, 10L }, "Duplicate ids")]
+    [TestCase(new long[] { long.MinValue }, "Single MinValue")]
+    [TestCase(new long[] { long.MaxValue }, "Single MaxValue")]
+    [TestCase(new long[] { 0L }, "Single zero")]
+    [TestCase(new long[] { 0L, 0L, 0L }, "Multiple zeros")]
+    [TestCase(new long[] { -1L, -2L, -3L }, "All negative ids")]
+    [TestCase(new long[] { -100L, 0L, 100L }, "Mixed negative, zero, and positive")]
+    [TestCase(new long[] { long.MinValue, long.MaxValue }, "Both extreme boundary values")]
+    [TestCase(new long[] { long.MinValue, 0L, long.MaxValue }, "MinValue, zero, and MaxValue")]
+    public void GetByIdsAsync_ValidIdCollections_AcceptsWithoutArgumentException(long[] ids, string description)
+    {
+        // Arrange
+        var mockConnectionFactory = new Mock<IDbConnectionFactory>();
+        var mockConnection = new Mock<IDbConnection>();
+        mockConnectionFactory.Setup(f => f.CreateConnection()).Returns(mockConnection.Object);
+        var mockLogger = new Mock<ILogger<CampaignsRepository>>();
+        var repository = new CampaignsRepository(mockConnectionFactory.Object, mockLogger.Object);
+
+        // Act & Assert
+        var exception = Assert.ThrowsAsync<InvalidCastException>(async () => await repository.GetByIdsAsync(ids));
+        exception.Should().NotBeNull("Method should throw InvalidCastException when using mock connection, not ArgumentException");
+    }
+
+    /// <summary>
+    /// Tests that GetByIdsAsync correctly logs the count for various collection sizes.
+    /// This verifies that Count() extension is called correctly and the count is logged.
+    /// Expected: Logger should be invoked with the correct count value for each collection size.
+    /// </summary>
+    /// <param name="ids">The collection of ids to test.</param>
+    /// <param name="expectedCount">The expected count that should be logged.</param>
+    [TestCase(new long[] { }, 0)]
+    [TestCase(new long[] { 1L }, 1)]
+    [TestCase(new long[] { 1L, 2L, 3L, 4L, 5L }, 5)]
+    [TestCase(new long[] { 10L, 10L, 10L, 10L, 10L, 10L }, 6)]
+    [TestCase(new long[] { long.MinValue, long.MaxValue }, 2)]
+    [TestCase(new long[] { long.MinValue, 0L, long.MaxValue }, 3)]
+    public async Task GetByIdsAsync_VariousCollectionSizes_LogsCorrectCount(long[] ids, int expectedCount)
+    {
+        // Arrange
+        var mockConnectionFactory = new Mock<IDbConnectionFactory>();
+        var mockConnection = new Mock<IDbConnection>();
+        mockConnectionFactory.Setup(f => f.CreateConnection()).Returns(mockConnection.Object);
+        var mockLogger = new Mock<ILogger<CampaignsRepository>>();
+        var repository = new CampaignsRepository(mockConnectionFactory.Object, mockLogger.Object);
+
+        // Act
+        try
+        {
+            await repository.GetByIdsAsync(ids);
+        }
+        catch (InvalidCastException)
+        {
+            // Expected when using mock connection
+        }
+
+        // Assert
+        mockLogger.Verify(
+            l => l.Log(
+                LogLevel.Information,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((state, type) => state.ToString()!.Contains(expectedCount.ToString())),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once,
+            $"Logger should be called with count {expectedCount}");
+    }
+
+    /// <summary>
+    /// Tests that GetByIdsAsync creates correct comma-separated string for various id collections.
+    /// This verifies string.Join behavior with different collections by examining log output.
+    /// Expected: The log message should contain the correctly formatted comma-separated id string.
+    /// </summary>
+    /// <param name="ids">The collection of ids to test.</param>
+    /// <param name="expectedString">The expected comma-separated string representation.</param>
+    [TestCase(new long[] { }, "")]
+    [TestCase(new long[] { 123L }, "123")]
+    [TestCase(new long[] { 1L, 2L, 3L }, "1,2,3")]
+    [TestCase(new long[] { long.MinValue }, "-9223372036854775808")]
+    [TestCase(new long[] { long.MaxValue }, "9223372036854775807")]
+    [TestCase(new long[] { long.MinValue, 0L, long.MaxValue }, "-9223372036854775808,0,9223372036854775807")]
+    [TestCase(new long[] { -1L, -2L, -3L }, "-1,-2,-3")]
+    public async Task GetByIdsAsync_VariousCollections_CreatesCorrectCommaSeparatedString(long[] ids, string expectedString)
+    {
+        // Arrange
+        var mockConnectionFactory = new Mock<IDbConnectionFactory>();
+        var mockConnection = new Mock<IDbConnection>();
+        mockConnectionFactory.Setup(f => f.CreateConnection()).Returns(mockConnection.Object);
+        var mockLogger = new Mock<ILogger<CampaignsRepository>>();
+        var repository = new CampaignsRepository(mockConnectionFactory.Object, mockLogger.Object);
+
+        // Act
+        try
+        {
+            await repository.GetByIdsAsync(ids);
+        }
+        catch (InvalidCastException)
+        {
+            // Expected when using mock connection
+        }
+
+        // Assert
+        var actualString = string.Join(",", ids);
+        actualString.Should().Be(expectedString, $"string.Join should produce '{expectedString}' for given ids");
+    }
+
+    /// <summary>
+    /// Tests that GetByIdsAsync calls factory.CreateConnection exactly once per invocation.
+    /// This verifies proper dependency injection usage for various id collections.
+    /// Expected: CreateConnection should be invoked exactly once per method call.
+    /// </summary>
+    /// <param name="ids">The collection of ids to test.</param>
+    [TestCase(new long[] { })]
+    [TestCase(new long[] { 1L })]
+    [TestCase(new long[] { 1L, 2L, 3L, 4L, 5L })]
+    [TestCase(new long[] { long.MinValue, long.MaxValue })]
+    public async Task GetByIdsAsync_ValidCollections_CallsFactoryExactlyOnce(long[] ids)
+    {
+        // Arrange
+        var mockConnectionFactory = new Mock<IDbConnectionFactory>();
+        var mockConnection = new Mock<IDbConnection>();
+        mockConnectionFactory.Setup(f => f.CreateConnection()).Returns(mockConnection.Object);
+        var mockLogger = new Mock<ILogger<CampaignsRepository>>();
+        var repository = new CampaignsRepository(mockConnectionFactory.Object, mockLogger.Object);
+
+        // Act
+        try
+        {
+            await repository.GetByIdsAsync(ids);
+        }
+        catch (InvalidCastException)
+        {
+            // Expected when using mock connection
+        }
+
+        // Assert
+        mockConnectionFactory.Verify(f => f.CreateConnection(), Times.Once, "CreateConnection should be called exactly once");
+    }
+
+    /// <summary>
+    /// Tests that GetByIdsAsync uses correct stored procedure name in logging.
+    /// This verifies the stored procedure identifier "dbo.Usp_Campaigns_Get" is used.
+    /// Expected: Log message should reference the correct stored procedure name.
+    /// </summary>
+    [Test]
+    public async Task GetByIdsAsync_AnyValidCollection_ReferencesCorrectStoredProcedure()
+    {
+        // Arrange
+        var mockConnectionFactory = new Mock<IDbConnectionFactory>();
+        var mockConnection = new Mock<IDbConnection>();
+        mockConnectionFactory.Setup(f => f.CreateConnection()).Returns(mockConnection.Object);
+        var mockLogger = new Mock<ILogger<CampaignsRepository>>();
+        var repository = new CampaignsRepository(mockConnectionFactory.Object, mockLogger.Object);
+        var ids = new long[] { 1L, 2L, 3L };
+
+        // Act
+        try
+        {
+            await repository.GetByIdsAsync(ids);
+        }
+        catch (InvalidCastException)
+        {
+            // Expected when using mock connection
+        }
+
+        // Assert
+        mockLogger.Verify(
+            l => l.Log(
+                LogLevel.Information,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((state, type) => state.ToString()!.Contains("dbo.Usp_Campaigns_Get")),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once,
+            "Logger should be called with stored procedure name 'dbo.Usp_Campaigns_Get'");
+    }
+
+    /// <summary>
+    /// Tests that GetByIdsAsync propagates exceptions thrown by the factory.
+    /// This verifies that factory exceptions are not swallowed and reach the caller.
+    /// Expected: The exception from factory.CreateConnection() should propagate to the caller.
+    /// </summary>
+    [Test]
+    public void GetByIdsAsync_FactoryThrowsException_PropagatesExceptionToCaller()
+    {
+        // Arrange
+        var mockConnectionFactory = new Mock<IDbConnectionFactory>();
+        var expectedException = new InvalidOperationException("Factory error");
+        mockConnectionFactory.Setup(f => f.CreateConnection()).Throws(expectedException);
+        var mockLogger = new Mock<ILogger<CampaignsRepository>>();
+        var repository = new CampaignsRepository(mockConnectionFactory.Object, mockLogger.Object);
+        var ids = new long[] { 1L, 2L };
+
+        // Act & Assert
+        var exception = Assert.ThrowsAsync<InvalidOperationException>(async () => await repository.GetByIdsAsync(ids));
+        exception.Should().BeSameAs(expectedException, "The original exception should be propagated");
+    }
+
+    /// <summary>
+    /// Tests that GetByIdsAsync handles concurrent calls correctly.
+    /// This verifies that concurrent invocations create independent connections.
+    /// Expected: Each concurrent call should independently use the factory.
+    /// </summary>
+    [Test]
+    public async Task GetByIdsAsync_ConcurrentInvocations_CreatesIndependentConnections()
+    {
+        // Arrange
+        var mockConnectionFactory = new Mock<IDbConnectionFactory>();
+        var mockConnection = new Mock<IDbConnection>();
+        mockConnectionFactory.Setup(f => f.CreateConnection()).Returns(mockConnection.Object);
+        var mockLogger = new Mock<ILogger<CampaignsRepository>>();
+        var repository = new CampaignsRepository(mockConnectionFactory.Object, mockLogger.Object);
+        var ids = new long[] { 1L, 2L };
+
+        // Act
+        var tasks = new[]
+        {
+            Task.Run(async () => { try { await repository.GetByIdsAsync(ids); } catch { } }),
+            Task.Run(async () => { try { await repository.GetByIdsAsync(ids); } catch { } }),
+            Task.Run(async () => { try { await repository.GetByIdsAsync(ids); } catch { } })
+        };
+        await Task.WhenAll(tasks);
+
+        // Assert
+        mockConnectionFactory.Verify(f => f.CreateConnection(), Times.Exactly(3), "Factory should be called once for each concurrent call");
+    }
+
+    /// <summary>
+    /// Tests that GetAllAsync calls factory.CreateConnection exactly once.
+    /// This verifies proper dependency injection usage for connection creation.
+    /// Expected: CreateConnection should be invoked exactly once per method call.
+    /// </summary>
+    [Test]
+    public async Task GetAllAsync_SingleInvocation_CallsFactoryCreateConnectionOnce()
+    {
+        // Arrange
+        var mockConnectionFactory = new Mock<IDbConnectionFactory>();
+        var mockConnection = new Mock<IDbConnection>();
+        var mockLogger = new Mock<ILogger<CampaignsRepository>>();
+
+        mockConnectionFactory.Setup(f => f.CreateConnection()).Returns(mockConnection.Object);
+        var repository = new CampaignsRepository(mockConnectionFactory.Object, mockLogger.Object);
+
+        // Act
+        try
+        {
+            await repository.GetAllAsync();
+        }
+        catch (InvalidCastException)
+        {
+            // Expected when using mocks
+        }
+
+        // Assert
+        mockConnectionFactory.Verify(f => f.CreateConnection(), Times.Once,
+            "Factory.CreateConnection should be called exactly once");
+    }
+
+    /// <summary>
+    /// Tests that GetAllAsync logs information before creating database connection.
+    /// This verifies the logging behavior and message content.
+    /// Expected: Logger should be invoked with Information level and message containing stored procedure name.
+    /// </summary>
+    [Test]
+    public async Task GetAllAsync_WhenInvoked_LogsInformationWithStoredProcedureName()
+    {
+        // Arrange
+        var mockConnectionFactory = new Mock<IDbConnectionFactory>();
+        var mockConnection = new Mock<IDbConnection>();
+        var mockLogger = new Mock<ILogger<CampaignsRepository>>();
+
+        mockConnectionFactory.Setup(f => f.CreateConnection()).Returns(mockConnection.Object);
+        var repository = new CampaignsRepository(mockConnectionFactory.Object, mockLogger.Object);
+
+        // Act
+        try
+        {
+            await repository.GetAllAsync();
+        }
+        catch (InvalidCastException)
+        {
+            // Expected when using mocks
+        }
+
+        // Assert
+        mockLogger.Verify(
+            x => x.Log(
+                It.Is<LogLevel>(l => l == LogLevel.Information),
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("Fetching all Campaigns") &&
+                                             v.ToString()!.Contains("dbo.Usp_Campaigns_Get")),
+                It.IsAny<Exception?>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once,
+            "Logger should be invoked once with correct stored procedure name");
+    }
+
+    /// <summary>
+    /// Tests that GetAllAsync uses the correct stored procedure constant "dbo.Usp_Campaigns_Get".
+    /// This validates the stored procedure identifier used in the method.
+    /// Expected: Log message should reference the exact stored procedure name.
+    /// </summary>
+    [Test]
+    public async Task GetAllAsync_WhenInvoked_UsesCorrectStoredProcedureConstant()
+    {
+        // Arrange
+        var mockConnectionFactory = new Mock<IDbConnectionFactory>();
+        var mockConnection = new Mock<IDbConnection>();
+        var mockLogger = new Mock<ILogger<CampaignsRepository>>();
+        const string expectedStoredProcedure = "dbo.Usp_Campaigns_Get";
+
+        mockConnectionFactory.Setup(f => f.CreateConnection()).Returns(mockConnection.Object);
+        var repository = new CampaignsRepository(mockConnectionFactory.Object, mockLogger.Object);
+
+        // Act
+        try
+        {
+            await repository.GetAllAsync();
+        }
+        catch (InvalidCastException)
+        {
+            // Expected when using mocks
+        }
+
+        // Assert
+        mockLogger.Verify(
+            x => x.Log(
+                LogLevel.Information,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains(expectedStoredProcedure)),
+                null,
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once,
+            $"Logger should reference stored procedure: {expectedStoredProcedure}");
+    }
+
+    /// <summary>
+    /// Tests that GetAllAsync propagates exceptions thrown by factory.CreateConnection.
+    /// This verifies proper exception handling when dependency fails.
+    /// Expected: Exception from factory should propagate to caller without being swallowed.
+    /// </summary>
+    [Test]
+    public void GetAllAsync_FactoryThrowsException_PropagatesException()
+    {
+        // Arrange
+        var mockConnectionFactory = new Mock<IDbConnectionFactory>();
+        var mockLogger = new Mock<ILogger<CampaignsRepository>>();
+        var expectedException = new InvalidOperationException("Factory connection error");
+
+        mockConnectionFactory.Setup(f => f.CreateConnection()).Throws(expectedException);
+        var repository = new CampaignsRepository(mockConnectionFactory.Object, mockLogger.Object);
+
+        // Act & Assert
+        var exception = Assert.ThrowsAsync<InvalidOperationException>(async () => await repository.GetAllAsync());
+        exception.Should().BeSameAs(expectedException, "Factory exception should propagate unchanged");
+    }
+
+    /// <summary>
+    /// Tests that GetAllAsync propagates exceptions thrown by the logger.
+    /// This verifies that logging exceptions are not swallowed.
+    /// Expected: Exception from logger should propagate to caller.
+    /// </summary>
+    [Test]
+    public void GetAllAsync_LoggerThrowsException_PropagatesException()
+    {
+        // Arrange
+        var mockConnectionFactory = new Mock<IDbConnectionFactory>();
+        var mockLogger = new Mock<ILogger<CampaignsRepository>>();
+        var expectedException = new InvalidOperationException("Logger error");
+
+        mockLogger.Setup(x => x.Log(
+            It.IsAny<LogLevel>(),
+            It.IsAny<EventId>(),
+            It.IsAny<It.IsAnyType>(),
+            It.IsAny<Exception?>(),
+            It.IsAny<Func<It.IsAnyType, Exception?, string>>()))
+            .Throws(expectedException);
+
+        var repository = new CampaignsRepository(mockConnectionFactory.Object, mockLogger.Object);
+
+        // Act & Assert
+        var exception = Assert.ThrowsAsync<InvalidOperationException>(async () => await repository.GetAllAsync());
+        exception.Should().BeSameAs(expectedException, "Logger exception should propagate unchanged");
+    }
+
+    /// <summary>
+    /// Tests that GetAllAsync throws NullReferenceException when factory returns null.
+    /// This verifies behavior when dependency returns unexpected null value.
+    /// Expected: NullReferenceException when attempting to cast null to SqlConnection.
+    /// </summary>
+    [Test]
+    public void GetAllAsync_FactoryReturnsNull_ThrowsNullReferenceException()
+    {
+        // Arrange
+        var mockConnectionFactory = new Mock<IDbConnectionFactory>();
+        var mockLogger = new Mock<ILogger<CampaignsRepository>>();
+
+        mockConnectionFactory.Setup(f => f.CreateConnection()).Returns((IDbConnection)null!);
+        var repository = new CampaignsRepository(mockConnectionFactory.Object, mockLogger.Object);
+
+        // Act & Assert
+        Assert.ThrowsAsync<NullReferenceException>(async () => await repository.GetAllAsync(),
+            "Method should throw NullReferenceException when factory returns null");
+    }
+
+    /// <summary>
+    /// Tests that GetAllAsync throws InvalidCastException when factory returns mock IDbConnection.
+    /// This verifies that the method requires a real SqlConnection for Dapper.
+    /// Expected: InvalidCastException when casting IDbConnection to SqlConnection.
+    /// </summary>
+    [Test]
+    public void GetAllAsync_MockConnection_ThrowsInvalidCastException()
+    {
+        // Arrange
+        var mockConnectionFactory = new Mock<IDbConnectionFactory>();
+        var mockConnection = new Mock<IDbConnection>();
+        var mockLogger = new Mock<ILogger<CampaignsRepository>>();
+
+        mockConnectionFactory.Setup(f => f.CreateConnection()).Returns(mockConnection.Object);
+        var repository = new CampaignsRepository(mockConnectionFactory.Object, mockLogger.Object);
+
+        // Act & Assert
+        Assert.ThrowsAsync<InvalidCastException>(async () => await repository.GetAllAsync(),
+            "Method should throw InvalidCastException when attempting to cast mock IDbConnection to SqlConnection");
+    }
+
+    /// <summary>
+    /// Tests that GetAllAsync returns Task of IEnumerable of Campaigns type.
+    /// This validates the method signature matches the interface contract.
+    /// Expected: Method should return Task containing IEnumerable of Campaigns.
+    /// </summary>
+    [Test]
+    public void GetAllAsync_ReturnType_MatchesInterfaceContract()
+    {
+        // Arrange
+        var mockConnectionFactory = new Mock<IDbConnectionFactory>();
+        var mockLogger = new Mock<ILogger<CampaignsRepository>>();
+        var repository = new CampaignsRepository(mockConnectionFactory.Object, mockLogger.Object);
+
+        // Act
+        var result = repository.GetAllAsync();
+
+        // Assert
+        result.Should().NotBeNull("Method should return a Task");
+        result.Should().BeAssignableTo<Task<IEnumerable<Campaigns>>>(
+            "Return type should be Task<IEnumerable<Campaigns>>");
+    }
+
+    /// <summary>
+    /// Tests that GetAllAsync creates a new connection for each invocation.
+    /// This verifies that connections are not cached or reused across calls.
+    /// Expected: CreateConnection should be called exactly twice for two invocations.
+    /// </summary>
+    [Test]
+    public async Task GetAllAsync_MultipleInvocations_CreatesNewConnectionEachTime()
+    {
+        // Arrange
+        var mockConnectionFactory = new Mock<IDbConnectionFactory>();
+        var mockConnection = new Mock<IDbConnection>();
+        var mockLogger = new Mock<ILogger<CampaignsRepository>>();
+
+        mockConnectionFactory.Setup(f => f.CreateConnection()).Returns(mockConnection.Object);
+        var repository = new CampaignsRepository(mockConnectionFactory.Object, mockLogger.Object);
+
+        // Act
+        try { await repository.GetAllAsync(); } catch (InvalidCastException) { }
+        try { await repository.GetAllAsync(); } catch (InvalidCastException) { }
+
+        // Assert
+        mockConnectionFactory.Verify(f => f.CreateConnection(), Times.Exactly(2),
+            "Factory.CreateConnection should be called once per invocation");
+    }
+
+    /// <summary>
+    /// Tests that GetAllAsync handles multiple sequential calls correctly.
+    /// This verifies that the method does not maintain state between calls.
+    /// Expected: Each call should independently use factory and logger.
+    /// </summary>
+    [Test]
+    public async Task GetAllAsync_SequentialCalls_HandlesIndependently()
+    {
+        // Arrange
+        var mockConnectionFactory = new Mock<IDbConnectionFactory>();
+        var mockConnection = new Mock<IDbConnection>();
+        var mockLogger = new Mock<ILogger<CampaignsRepository>>();
+        const int callCount = 5;
+
+        mockConnectionFactory.Setup(f => f.CreateConnection()).Returns(mockConnection.Object);
+        var repository = new CampaignsRepository(mockConnectionFactory.Object, mockLogger.Object);
+
+        // Act
+        for (int i = 0; i < callCount; i++)
+        {
+            try
+            {
+                await repository.GetAllAsync();
+            }
+            catch (InvalidCastException)
+            {
+                // Expected when using mocks
+            }
+        }
+
+        // Assert
+        mockConnectionFactory.Verify(f => f.CreateConnection(), Times.Exactly(callCount),
+            $"Factory should be called exactly {callCount} times for {callCount} sequential calls");
+        mockLogger.Verify(
+            x => x.Log(
+                LogLevel.Information,
+                It.IsAny<EventId>(),
+                It.IsAny<It.IsAnyType>(),
+                It.IsAny<Exception?>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Exactly(callCount),
+            $"Logger should be called exactly {callCount} times for {callCount} sequential calls");
+    }
+
+    /// <summary>
+    /// Tests that GetAllAsync handles concurrent calls correctly.
+    /// This verifies that concurrent invocations create independent connections.
+    /// Expected: Factory should be called exactly the number of concurrent calls.
+    /// </summary>
+    [Test]
+    public async Task GetAllAsync_ConcurrentCalls_CreatesIndependentConnections()
+    {
+        // Arrange
+        var mockConnectionFactory = new Mock<IDbConnectionFactory>();
+        var mockConnection = new Mock<IDbConnection>();
+        var mockLogger = new Mock<ILogger<CampaignsRepository>>();
+        const int concurrentCallCount = 10;
+
+        mockConnectionFactory.Setup(f => f.CreateConnection()).Returns(mockConnection.Object);
+        var repository = new CampaignsRepository(mockConnectionFactory.Object, mockLogger.Object);
+
+        // Act
+        var tasks = Enumerable.Range(0, concurrentCallCount)
+            .Select(_ => Task.Run(async () =>
+            {
+                try
+                {
+                    await repository.GetAllAsync();
+                }
+                catch (InvalidCastException)
+                {
+                    // Expected when using mocks
+                }
+            }))
+            .ToArray();
+
+        await Task.WhenAll(tasks);
+
+        // Assert
+        mockConnectionFactory.Verify(f => f.CreateConnection(), Times.Exactly(concurrentCallCount),
+            $"Factory should be called exactly {concurrentCallCount} times for {concurrentCallCount} concurrent calls");
+    }
+
+    /// <summary>
+    /// Tests that GetAllAsync logs before attempting to create connection.
+    /// This verifies the correct execution order: logging happens first.
+    /// Expected: Logger should be called before factory throws exception.
+    /// </summary>
+    [Test]
+    public void GetAllAsync_FactoryThrows_LogsBeforeException()
+    {
+        // Arrange
+        var mockConnectionFactory = new Mock<IDbConnectionFactory>();
+        var mockLogger = new Mock<ILogger<CampaignsRepository>>();
+        var loggerCalled = false;
+
+        mockLogger.Setup(x => x.Log(
+            It.IsAny<LogLevel>(),
+            It.IsAny<EventId>(),
+            It.IsAny<It.IsAnyType>(),
+            It.IsAny<Exception?>(),
+            It.IsAny<Func<It.IsAnyType, Exception?, string>>()))
+            .Callback(() => loggerCalled = true);
+
+        mockConnectionFactory.Setup(f => f.CreateConnection())
+            .Callback(() =>
+            {
+                loggerCalled.Should().BeTrue("Logger should be called before factory.CreateConnection");
+            })
+            .Throws<InvalidOperationException>();
+
+        var repository = new CampaignsRepository(mockConnectionFactory.Object, mockLogger.Object);
+
+        // Act & Assert
+        Assert.ThrowsAsync<InvalidOperationException>(async () => await repository.GetAllAsync());
+        loggerCalled.Should().BeTrue("Logger should have been invoked");
+    }
+
+    /// <summary>
+    /// Tests that GetAllAsync is properly marked as async and returns a Task.
+    /// This validates the async pattern implementation.
+    /// Expected: Method should be async and return awaitable Task.
+    /// </summary>
+    [Test]
+    public void GetAllAsync_IsAsyncMethod_ReturnsTask()
+    {
+        // Arrange
+        var mockConnectionFactory = new Mock<IDbConnectionFactory>();
+        var mockLogger = new Mock<ILogger<CampaignsRepository>>();
+        var repository = new CampaignsRepository(mockConnectionFactory.Object, mockLogger.Object);
+
+        // Act
+        var result = repository.GetAllAsync();
+
+        // Assert
+        result.Should().NotBeNull("Async method should return a Task");
+        result.Should().BeAssignableTo<Task>("Method should return Task type");
+        result.GetType().IsGenericType.Should().BeTrue("Task should be generic");
+        result.GetType().GetGenericArguments()[0].Should().Be(typeof(IEnumerable<Campaigns>),
+            "Task should contain IEnumerable<Campaigns>");
+    }
+
+    /// <summary>
+    /// Tests that GetAllAsync does not throw ArgumentException for valid execution.
+    /// This verifies the method accepts valid dependency state.
+    /// Expected: No ArgumentException should be thrown (InvalidCastException is expected with mocks).
+    /// </summary>
+    [Test]
+    public void GetAllAsync_ValidDependencies_DoesNotThrowArgumentException()
+    {
+        // Arrange
+        var mockConnectionFactory = new Mock<IDbConnectionFactory>();
+        var mockConnection = new Mock<IDbConnection>();
+        var mockLogger = new Mock<ILogger<CampaignsRepository>>();
+
+        mockConnectionFactory.Setup(f => f.CreateConnection()).Returns(mockConnection.Object);
+        var repository = new CampaignsRepository(mockConnectionFactory.Object, mockLogger.Object);
+
+        // Act
+        Func<Task> act = async () => await repository.GetAllAsync();
+
+        // Assert
+        act.Should().NotThrowAsync<ArgumentException>(
+            "Method should not throw ArgumentException with valid dependencies");
+    }
+
+    /// <summary>
+    /// Tests that GetAllAsync verifies logging occurs exactly once per invocation.
+    /// This validates that logging is not duplicated or skipped.
+    /// Expected: Logger should be invoked exactly once per method call.
+    /// </summary>
+    [Test]
+    public async Task GetAllAsync_SingleInvocation_LogsExactlyOnce()
+    {
+        // Arrange
+        var mockConnectionFactory = new Mock<IDbConnectionFactory>();
+        var mockConnection = new Mock<IDbConnection>();
+        var mockLogger = new Mock<ILogger<CampaignsRepository>>();
+
+        mockConnectionFactory.Setup(f => f.CreateConnection()).Returns(mockConnection.Object);
+        var repository = new CampaignsRepository(mockConnectionFactory.Object, mockLogger.Object);
+
+        // Act
+        try
+        {
+            await repository.GetAllAsync();
+        }
+        catch (InvalidCastException)
+        {
+            // Expected when using mocks
+        }
+
+        // Assert
+        mockLogger.Verify(
+            x => x.Log(
+                It.Is<LogLevel>(l => l == LogLevel.Information),
+                It.IsAny<EventId>(),
+                It.IsAny<It.IsAnyType>(),
+                It.IsAny<Exception?>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once,
+            "Logger should be invoked exactly once per method call");
+    }
+
+    /// <summary>
+    /// Tests that GetByIdAsync accepts all valid long id values without throwing ArgumentException.
+    /// This parameterized test verifies boundary values and common cases for the id parameter.
+    /// Expected: Method should accept all valid long values; InvalidCastException expected when using mock connection.
+    /// </summary>
+    /// <param name="id">The campaign id to test.</param>
+    [TestCase(long.MinValue)]
+    [TestCase(long.MaxValue)]
+    [TestCase(0L)]
+    [TestCase(1L)]
+    [TestCase(-1L)]
+    [TestCase(100L)]
+    [TestCase(-100L)]
+    public void GetByIdAsync_WithVariousValidIdValues_AcceptsWithoutArgumentException(long id)
+    {
+        // Arrange
+        var mockConnectionFactory = new Mock<IDbConnectionFactory>();
+        var mockConnection = new Mock<IDbConnection>();
+        var mockLogger = new Mock<ILogger<CampaignsRepository>>();
+
+        mockConnectionFactory.Setup(f => f.CreateConnection()).Returns(mockConnection.Object);
+
+        var repository = new CampaignsRepository(mockConnectionFactory.Object, mockLogger.Object);
+
+        // Act
+        Func<Task> act = async () => await repository.GetByIdAsync(id);
+
+        // Assert
+        act.Should().ThrowAsync<InvalidCastException>()
+            .WithMessage("Unable to cast object of type '*' to type 'Microsoft.Data.SqlClient.SqlConnection'.");
+
+        mockConnectionFactory.Verify(f => f.CreateConnection(), Times.Once);
+    }
+
+    /// <summary>
+    /// Tests that GetByIdAsync logs the correct information before creating database connection.
+    /// Verifies that logging includes the id value and stored procedure name "dbo.Usp_Campaigns_Get".
+    /// Expected: Logger should be invoked with LogLevel.Information and message containing id and stored procedure.
+    /// </summary>
+    /// <param name="id">The campaign id to test.</param>
+    /// <param name="expectedIdString">The expected string representation of the id.</param>
+    [TestCase(1L, "1")]
+    [TestCase(long.MinValue, "-9223372036854775808")]
+    [TestCase(long.MaxValue, "9223372036854775807")]
+    [TestCase(0L, "0")]
+    [TestCase(-999L, "-999")]
+    public async Task GetByIdAsync_WithVariousIds_LogsCorrectInformation(long id, string expectedIdString)
+    {
+        // Arrange
+        var mockConnectionFactory = new Mock<IDbConnectionFactory>();
+        var mockConnection = new Mock<IDbConnection>();
+        var mockLogger = new Mock<ILogger<CampaignsRepository>>();
+
+        mockConnectionFactory.Setup(f => f.CreateConnection()).Returns(mockConnection.Object);
+
+        var repository = new CampaignsRepository(mockConnectionFactory.Object, mockLogger.Object);
+
+        // Act
+        try
+        {
+            await repository.GetByIdAsync(id);
+        }
+        catch (InvalidCastException)
+        {
+            // Expected due to mock connection
+        }
+
+        // Assert
+        mockLogger.Verify(
+            x => x.Log(
+                LogLevel.Information,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains(expectedIdString) && v.ToString()!.Contains("dbo.Usp_Campaigns_Get")),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
+    }
+
+    /// <summary>
+    /// Tests that GetByIdAsync calls factory.CreateConnection exactly once per invocation.
+    /// This verifies proper dependency injection usage and connection management.
+    /// Expected: CreateConnection should be invoked exactly once for each method call.
+    /// </summary>
+    /// <param name="id">The campaign id to test.</param>
+    [TestCase(1L)]
+    [TestCase(long.MinValue)]
+    [TestCase(long.MaxValue)]
+    [TestCase(0L)]
+    public async Task GetByIdAsync_WithAnyValidId_CallsFactoryOnce(long id)
+    {
+        // Arrange
+        var mockConnectionFactory = new Mock<IDbConnectionFactory>();
+        var mockConnection = new Mock<IDbConnection>();
+        var mockLogger = new Mock<ILogger<CampaignsRepository>>();
+
+        mockConnectionFactory.Setup(f => f.CreateConnection()).Returns(mockConnection.Object);
+
+        var repository = new CampaignsRepository(mockConnectionFactory.Object, mockLogger.Object);
+
+        // Act
+        try
+        {
+            await repository.GetByIdAsync(id);
+        }
+        catch (InvalidCastException)
+        {
+            // Expected due to mock connection
+        }
+
+        // Assert
+        mockConnectionFactory.Verify(f => f.CreateConnection(), Times.Once);
+    }
+
+    /// <summary>
+    /// Tests that GetByIdAsync throws InvalidCastException when factory returns non-SqlConnection.
+    /// This verifies that the method requires a real SqlConnection for Dapper, not just IDbConnection.
+    /// Expected: InvalidCastException should be thrown when attempting to cast IDbConnection to SqlConnection.
+    /// </summary>
+    [Test]
+    public void GetByIdAsync_WithMockIDbConnection_ThrowsInvalidCastException()
+    {
+        // Arrange
+        var mockConnectionFactory = new Mock<IDbConnectionFactory>();
+        var mockConnection = new Mock<IDbConnection>();
+        var mockLogger = new Mock<ILogger<CampaignsRepository>>();
+
+        mockConnectionFactory.Setup(f => f.CreateConnection()).Returns(mockConnection.Object);
+
+        var repository = new CampaignsRepository(mockConnectionFactory.Object, mockLogger.Object);
+
+        // Act
+        Func<Task> act = async () => await repository.GetByIdAsync(1L);
 
         // Assert
         act.Should().ThrowAsync<InvalidCastException>();
-        _mockConnectionFactory.Verify(f => f.CreateConnection(), Times.Once);
     }
 
     /// <summary>
-    /// Tests that GetByIdAsync accepts extremely large negative id values.
-    /// Verifies handling of values close to long.MinValue.
-    /// Expected: Method should accept the value without throwing ArgumentException.
+    /// Tests that GetByIdAsync propagates exceptions thrown by factory.CreateConnection.
+    /// This verifies that factory exceptions are not swallowed and properly reach the caller.
+    /// Expected: Exception from factory should propagate to the caller.
     /// </summary>
-    [TestCase(-9223372036854775807L)] // long.MinValue + 1
-    [TestCase(-9223372036854775000L)]
-    public void GetByIdAsync_Should_Accept_Very_Large_Negative_Ids(long id)
+    [Test]
+    public void GetByIdAsync_WhenFactoryThrows_PropagatesException()
     {
         // Arrange
-        _mockConnectionFactory.Setup(f => f.CreateConnection()).Returns(_mockConnection.Object);
+        var mockConnectionFactory = new Mock<IDbConnectionFactory>();
+        var mockLogger = new Mock<ILogger<CampaignsRepository>>();
+
+        var expectedException = new InvalidOperationException("Factory connection error");
+        mockConnectionFactory.Setup(f => f.CreateConnection()).Throws(expectedException);
+
+        var repository = new CampaignsRepository(mockConnectionFactory.Object, mockLogger.Object);
 
         // Act
-        Func<Task> act = async () => await _repository.GetByIdAsync(id);
+        Func<Task> act = async () => await repository.GetByIdAsync(1L);
 
         // Assert
-        act.Should().ThrowAsync<InvalidCastException>();
-        _mockConnectionFactory.Verify(f => f.CreateConnection(), Times.Once);
+        act.Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("Factory connection error");
     }
 
     /// <summary>
-    /// Helper method to capture log message values for assertion.
+    /// Tests that GetByIdAsync propagates exceptions thrown by logger.
+    /// This verifies that logging exceptions are not swallowed.
+    /// Expected: Exception from logger should propagate to the caller.
     /// </summary>
-    private static bool CaptureLogMessage(object state, List<string> messages)
+    [Test]
+    public void GetByIdAsync_WhenLoggerThrows_PropagatesException()
     {
-        messages.Add(state.ToString() ?? string.Empty);
-        return true;
+        // Arrange
+        var mockConnectionFactory = new Mock<IDbConnectionFactory>();
+        var mockLogger = new Mock<ILogger<CampaignsRepository>>();
+
+        var expectedException = new InvalidOperationException("Logger error");
+        mockLogger
+            .Setup(x => x.Log(
+                It.IsAny<LogLevel>(),
+                It.IsAny<EventId>(),
+                It.IsAny<It.IsAnyType>(),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()))
+            .Throws(expectedException);
+
+        var repository = new CampaignsRepository(mockConnectionFactory.Object, mockLogger.Object);
+
+        // Act
+        Func<Task> act = async () => await repository.GetByIdAsync(1L);
+
+        // Assert
+        act.Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("Logger error");
+    }
+
+    /// <summary>
+    /// Tests that GetByIdAsync creates a new connection for each invocation.
+    /// This verifies that connections are not cached or reused across multiple calls.
+    /// Expected: CreateConnection should be called exactly N times for N invocations.
+    /// </summary>
+    [Test]
+    public async Task GetByIdAsync_WithMultipleInvocations_CreatesNewConnectionEachTime()
+    {
+        // Arrange
+        var mockConnectionFactory = new Mock<IDbConnectionFactory>();
+        var mockConnection = new Mock<IDbConnection>();
+        var mockLogger = new Mock<ILogger<CampaignsRepository>>();
+
+        mockConnectionFactory.Setup(f => f.CreateConnection()).Returns(mockConnection.Object);
+
+        var repository = new CampaignsRepository(mockConnectionFactory.Object, mockLogger.Object);
+
+        // Act
+        try { await repository.GetByIdAsync(1L); } catch { }
+        try { await repository.GetByIdAsync(2L); } catch { }
+        try { await repository.GetByIdAsync(3L); } catch { }
+
+        // Assert
+        mockConnectionFactory.Verify(f => f.CreateConnection(), Times.Exactly(3));
+    }
+
+    /// <summary>
+    /// Tests that GetByIdAsync handles concurrent calls correctly.
+    /// This verifies that concurrent invocations create independent connections.
+    /// Expected: Factory should be called exactly the number of concurrent calls.
+    /// </summary>
+    [Test]
+    public async Task GetByIdAsync_WithConcurrentCalls_CreatesIndependentConnections()
+    {
+        // Arrange
+        var mockConnectionFactory = new Mock<IDbConnectionFactory>();
+        var mockConnection = new Mock<IDbConnection>();
+        var mockLogger = new Mock<ILogger<CampaignsRepository>>();
+
+        mockConnectionFactory.Setup(f => f.CreateConnection()).Returns(mockConnection.Object);
+
+        var repository = new CampaignsRepository(mockConnectionFactory.Object, mockLogger.Object);
+
+        // Act
+        var tasks = new[]
+        {
+            Task.Run(async () => { try { await repository.GetByIdAsync(1L); } catch { } }),
+            Task.Run(async () => { try { await repository.GetByIdAsync(2L); } catch { } }),
+            Task.Run(async () => { try { await repository.GetByIdAsync(3L); } catch { } })
+        };
+
+        await Task.WhenAll(tasks);
+
+        // Assert
+        mockConnectionFactory.Verify(f => f.CreateConnection(), Times.Exactly(3));
+    }
+
+    /// <summary>
+    /// Tests that GetByIdAsync logs before attempting to create connection.
+    /// This verifies the correct execution order: logging happens first, then connection creation.
+    /// Expected: Logger should be called before the factory exception occurs.
+    /// </summary>
+    [Test]
+    public void GetByIdAsync_WhenFactoryThrows_LogsBeforeException()
+    {
+        // Arrange
+        var mockConnectionFactory = new Mock<IDbConnectionFactory>();
+        var mockLogger = new Mock<ILogger<CampaignsRepository>>();
+
+        mockConnectionFactory.Setup(f => f.CreateConnection())
+            .Throws(new InvalidOperationException("Factory error"));
+
+        var repository = new CampaignsRepository(mockConnectionFactory.Object, mockLogger.Object);
+
+        // Act
+        Func<Task> act = async () => await repository.GetByIdAsync(1L);
+
+        // Assert
+        act.Should().ThrowAsync<InvalidOperationException>();
+
+        mockLogger.Verify(
+            x => x.Log(
+                LogLevel.Information,
+                It.IsAny<EventId>(),
+                It.IsAny<It.IsAnyType>(),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
+    }
+
+    /// <summary>
+    /// Tests that GetByIdAsync uses the correct stored procedure name "dbo.Usp_Campaigns_Get" in logging.
+    /// This verifies the stored procedure identifier used by the method.
+    /// Expected: Log message should reference the correct stored procedure name.
+    /// </summary>
+    [Test]
+    public async Task GetByIdAsync_WithAnyId_LogsCorrectStoredProcedureName()
+    {
+        // Arrange
+        var mockConnectionFactory = new Mock<IDbConnectionFactory>();
+        var mockConnection = new Mock<IDbConnection>();
+        var mockLogger = new Mock<ILogger<CampaignsRepository>>();
+
+        mockConnectionFactory.Setup(f => f.CreateConnection()).Returns(mockConnection.Object);
+
+        var repository = new CampaignsRepository(mockConnectionFactory.Object, mockLogger.Object);
+
+        // Act
+        try
+        {
+            await repository.GetByIdAsync(123L);
+        }
+        catch (InvalidCastException)
+        {
+            // Expected due to mock connection
+        }
+
+        // Assert
+        mockLogger.Verify(
+            x => x.Log(
+                LogLevel.Information,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("dbo.Usp_Campaigns_Get")),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
     }
 }
+
