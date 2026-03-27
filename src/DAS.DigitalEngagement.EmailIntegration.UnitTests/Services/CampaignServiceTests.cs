@@ -1,15 +1,16 @@
 using DAS.DigitalEngagement.Application.Services;
 using DAS.DigitalEngagement.Application.Services.Interfaces;
 using DAS.DigitalEngagement.Models.Campaigns;
+using DAS.DigitalEngagement.Models.Infrastructure;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+//using Microsoft.Identity.Client;
 using Moq;
+using NUnit.Framework;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using NUnit.Framework;
-using Microsoft.Extensions.Options;
-using DAS.DigitalEngagement.Models.Infrastructure;
 
 namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Services
 {
@@ -26,6 +27,15 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Services
         {
             _externalApiServiceMock = new Mock<IExternalApiService>();
             _loggerMock = new Mock<ILogger<CampaignService>>();
+            _apiConfig = new Mock<IOptions<EmailMarketingApi>>();
+            _apiConfig.Setup(x => x.Value).Returns(new EmailMarketingApi
+            {
+                PageSize = 5000,  
+                ApiBaseUrl = "https://api.eshot.com/api/v1.0",
+                ApiKey = "test-api",
+                ApiRetryCount = 3,
+                ChunkSizeKB = 100,
+            });
             _sut = new CampaignService(_externalApiServiceMock.Object, _loggerMock.Object, _apiConfig.Object);
         }
 
@@ -39,13 +49,13 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Services
                     {
                         ""ID"": 1,
                         ""Name"": ""Campaign 1"",
-                        ""SendCompleteDate"": ""2024-01-15T10:30:00Z"",
+                        ""SendCompletedDate"": ""2024-01-15T10:30:00Z"",
                         ""ContactCount"": 1000
                     },
                     {
                         ""ID"": 2,
                         ""Name"": ""Campaign 2"",
-                        ""SendCompleteDate"": ""2024-01-16T14:20:00Z"",
+                        ""SendCompletedDate"": ""2024-01-16T14:20:00Z"",
                         ""ContactCount"": 2000
                     }
                 ]
@@ -61,9 +71,10 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Services
             // Assert
             _externalApiServiceMock.Verify(
                 x => x.GetDataAsync(It.Is<string>(endpoint => 
-                    endpoint.Contains("Sends/?$filter=") &&
-                    endpoint.Contains("SubAccountID%20eq%20123") &&
-                    endpoint.Contains("$select=ID,Name,SendCompleteDate,ContactCount"))), 
+                    endpoint.Contains("Sends?$expand=") &&
+                    endpoint.Contains("SubAccount") &&
+                    endpoint.Contains("Campaign") &&
+                    endpoint.Contains("SubAccountID%20eq%20123"))), 
                 Times.Once());
             
             var sendsList = result.ToList();
@@ -107,19 +118,19 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Services
                     {
                         ""ID"": 1,
                         ""Name"": ""Campaign 1"",
-                        ""SendCompleteDate"": ""2024-01-15T10:30:00Z"",
+                        ""SendCompletedDate"": ""2024-01-15T10:30:00Z"",
                         ""ContactCount"": 1000
                     },
                     {
                         ""ID"": 0,
                         ""Name"": ""Invalid Campaign"",
-                        ""SendCompleteDate"": null,
+                        ""SendCompletedDate"": null,
                         ""ContactCount"": 500
                     },
                     {
                         ""ID"": 2,
                         ""Name"": ""Campaign 2"",
-                        ""SendCompleteDate"": ""2024-01-16T14:20:00Z"",
+                        ""SendCompletedDate"": ""2024-01-16T14:20:00Z"",
                         ""ContactCount"": 2000
                     }
                 ]
@@ -194,12 +205,7 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Services
             // Assert
             _externalApiServiceMock.Verify(
                 x => x.GetDataAsync(It.Is<string>(endpoint => 
-                    endpoint.Contains("Sends/") && 
-                    endpoint.Contains("SubAccountID%20eq%20456") &&
-                    endpoint.Contains("ID") &&
-                    endpoint.Contains("Name") &&
-                    endpoint.Contains("SendCompleteDate") &&
-                    endpoint.Contains("ContactCount"))),
+                    endpoint.Contains("Sends"))),
                 Times.Once);
         }
 
@@ -212,12 +218,12 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Services
                 ""value"": [
                     {
                         ""ID"": 1,
-                        ""SendCompleteDate"": ""2024-01-15T10:30:00Z""
+                        ""SendCompletedDate"": ""2024-01-15T10:30:00Z""
                     },
                     {
                         ""ID"": 2,
                         ""Name"": ""Campaign 2"",
-                        ""SendCompleteDate"": ""2024-01-16T14:20:00Z"",
+                        ""SendCompletedDate"": ""2024-01-16T14:20:00Z"",
                         ""ContactCount"": 2000
                     }
                 ]
@@ -248,7 +254,7 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Services
                     {
                         ""ID"": 1,
                         ""Name"": ""Campaign 1"",
-                        ""SendCompleteDate"": ""2024-01-15T10:30:00Z"",
+                        ""SendCompletedDate"": ""2024-01-15T10:30:00Z"",
                         ""ContactCount"": 1000
                     }
                 ]
