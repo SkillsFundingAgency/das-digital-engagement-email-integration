@@ -111,6 +111,24 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Services
         }
 
         [Test]
+        public async Task GetAllSendsAsync_WithMissingValueKey_ReturnsEmptyCollection()
+        {
+            // Arrange
+            var jsonResponse = @"{ ""other"": 123 }";
+
+            _externalApiServiceMock
+                .Setup(x => x.GetDataAsync(It.IsAny<string>()))
+                .ReturnsAsync(jsonResponse);
+
+            // Act
+            var result = await _sut.GetAllSendsAsync();
+
+            // Assert
+            Assert.That(result, Is.Not.Null);
+            Assert.That(result, Is.Empty);
+        }
+
+        [Test]
         public async Task GetSendsForSubAccountAsync_WithInvalidSends_SkipsInvalidRecords()
         {
             // Arrange
@@ -479,6 +497,24 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Services
             Assert.That(result.Count(), Is.EqualTo(0));
 
             _externalApiServiceMock.Verify(x => x.GetDataAsync(It.IsAny<string>()), Times.Once);
+        }
+
+        [Test]
+        public async Task GetUserAgentInfoForSendAsync_WithMissingValueKey_ReturnsEmptyCollection()
+        {
+            // Arrange
+            var jsonResponse = @"{ ""other"": 123 }";
+
+            _externalApiServiceMock
+                .Setup(x => x.GetDataAsync(It.IsAny<string>()))
+                .ReturnsAsync(jsonResponse);
+
+            // Act
+            var result = await _sut.GetUserAgentInfoForSendAsync(123);
+
+            // Assert
+            Assert.That(result, Is.Not.Null);
+            Assert.That(result, Is.Empty);
         }
 
         /// <summary>
@@ -938,6 +974,24 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Services
         }
 
         [Test]
+        public async Task GetDisplayedContactsForSendAsync_WithMissingValueKey_ReturnsEmptyCollection()
+        {
+            // Arrange
+            var jsonResponse = @"{ ""other"": 123 }";
+
+            _externalApiServiceMock
+                .Setup(x => x.GetDataAsync(It.IsAny<string>()))
+                .ReturnsAsync(jsonResponse);
+
+            // Act
+            var result = await _sut.GetDisplayedContactsForSendAsync(100, Enumerable.Empty<UserAgentInfo>());
+
+            // Assert
+            Assert.That(result, Is.Not.Null);
+            Assert.That(result, Is.Empty);
+        }
+
+        [Test]
         public async Task GetDisplayedContactsForSendAsync_InvalidRecords_SkipsInvalidEntries()
         {
             // Arrange
@@ -1194,6 +1248,24 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Services
         }
 
         [Test]
+        public async Task GetClickedLinkContactsForSendAsync_WithMissingValueKey_ReturnsEmptyCollection()
+        {
+            // Arrange
+            var jsonResponse = @"{ ""other"": 123 }";
+
+            _externalApiServiceMock
+                .Setup(x => x.GetDataAsync(It.IsAny<string>()))
+                .ReturnsAsync(jsonResponse);
+
+            // Act
+            var result = await _sut.GetClickedLinkContactsForSendAsync(100, Enumerable.Empty<UserAgentInfo>());
+
+            // Assert
+            Assert.That(result, Is.Not.Null);
+            Assert.That(result, Is.Empty);
+        }
+
+        [Test]
         public async Task GetClickedLinkContactsForSendAsync_InvalidRecords_SkipsInvalidEntries()
         {
             // Arrange
@@ -1400,6 +1472,24 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Services
         }
 
         [Test]
+        public async Task GetBouncedEmailContactsForSendAsync_WithMissingValueKey_ReturnsEmptyCollection()
+        {
+            // Arrange
+            var jsonResponse = @"{ ""other"": 123 }";
+
+            _externalApiServiceMock
+                .Setup(x => x.GetDataAsync(It.IsAny<string>()))
+                .ReturnsAsync(jsonResponse);
+
+            // Act
+            var result = await _sut.GetBouncedEmailContactsForSendAsync(100);
+
+            // Assert
+            Assert.That(result, Is.Not.Null);
+            Assert.That(result, Is.Empty);
+        }
+
+        [Test]
         public async Task GetBouncedEmailContactsForSendAsync_InvalidRecords_SkipsInvalidEntries()
         {
             // Arrange
@@ -1564,6 +1654,24 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Services
         {
             // Arrange
             var jsonResponse = @"{ ""value"": [] }";
+
+            _externalApiServiceMock
+                .Setup(x => x.GetDataAsync(It.IsAny<string>()))
+                .ReturnsAsync(jsonResponse);
+
+            // Act
+            var result = await _sut.GetUnsubscribedContactsForSendAsync(100);
+
+            // Assert
+            Assert.That(result, Is.Not.Null);
+            Assert.That(result, Is.Empty);
+        }
+
+        [Test]
+        public async Task GetUnsubscribedContactsForSendAsync_WithMissingValueKey_ReturnsEmptyCollection()
+        {
+            // Arrange
+            var jsonResponse = @"{ ""other"": 123 }";
 
             _externalApiServiceMock
                 .Setup(x => x.GetDataAsync(It.IsAny<string>()))

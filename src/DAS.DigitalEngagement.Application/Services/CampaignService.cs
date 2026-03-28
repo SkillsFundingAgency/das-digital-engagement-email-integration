@@ -527,9 +527,8 @@ public class CampaignService : ICampaignService
             // Create a unique key for deduplication
             var key = $"{userAgentInfo.ID}|{userAgentInfo.IPAddress}|{userAgentInfo.ClientName}|{userAgentInfo.ClientType}|{userAgentInfo.ClientFamily}|{userAgentInfo.Device}|{userAgentInfo.OperatingSystemFamily}|{userAgentInfo.OperatingSystem}";
 
-            if (!seenUserAgents.Contains(key))
+            if (seenUserAgents.Add(key))
             {
-                seenUserAgents.Add(key);
                 userAgentInfos.Add(userAgentInfo);
             }
         }
