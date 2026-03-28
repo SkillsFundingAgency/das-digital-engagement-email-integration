@@ -403,7 +403,7 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Handlers.Campaigns
             await _sut.Handle();
 
             // Assert
-            Assert.That(callOrder, Is.EqualTo(new[] { 10, 20, 30 }));
+            Assert.That(callOrder, Is.EqualTo(sends.Select(x => x.ID)));
         }
 
         [Test]

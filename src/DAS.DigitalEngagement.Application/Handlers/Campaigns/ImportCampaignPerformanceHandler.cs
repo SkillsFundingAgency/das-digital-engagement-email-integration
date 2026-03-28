@@ -34,14 +34,10 @@ public class ImportCampaignPerformanceHandler : IImportCampaignPerformanceHandle
             _logger.LogInformation("Processing Send {SendId} for sub-account {Account}", send.ID, send.Account);
 
             var userAgentInfo = await _campaignService.GetUserAgentInfoForSendAsync(send.ID, cancellationToken);
-            
-            var displayedContacts = await _campaignService.GetDisplayedContactsForSendAsync(send.ID, userAgentInfo, cancellationToken);
-            
-            var clickedLinkContacts = await _campaignService.GetClickedLinkContactsForSendAsync(send.ID, userAgentInfo, cancellationToken);
-            
-            var bouncedEmailContacts = await _campaignService.GetBouncedEmailContactsForSendAsync(send.ID, cancellationToken);
-            
-            var unsubscribedContacts = await _campaignService.GetUnsubscribedContactsForSendAsync(send.ID, cancellationToken);
+            _ = await _campaignService.GetDisplayedContactsForSendAsync(send.ID, userAgentInfo, cancellationToken);
+            _ = await _campaignService.GetClickedLinkContactsForSendAsync(send.ID, userAgentInfo, cancellationToken);
+            _ = await _campaignService.GetBouncedEmailContactsForSendAsync(send.ID, cancellationToken);
+            _ = await _campaignService.GetUnsubscribedContactsForSendAsync(send.ID, cancellationToken);
 
             _logger.LogInformation("Processing complete for Send {SendId}, sub-account {Account}", send.ID, send.Account);
         }

@@ -217,7 +217,6 @@ public class CampaignService : ICampaignService
     private static string BuildDisplayedContactsEndpoint(int sendId, int skip, int top)
     {
         var filter = Uri.EscapeDataString($"SendID eq {sendId}");
-        var select = Uri.EscapeDataString("ID,DisplayDate");
         var expand = Uri.EscapeDataString("Contact($select=Email)");
         var orderBy = Uri.EscapeDataString("ID");
 
@@ -227,7 +226,6 @@ public class CampaignService : ICampaignService
     private static string BuildClickedLinkContactsEndpoint(int sendId, int skip, int top)
     {
         var filter = Uri.EscapeDataString($"SendID eq {sendId}");
-        var select = Uri.EscapeDataString("ID,ClickDate,LinkURL");
         var expand = Uri.EscapeDataString("Contact($select=Email), Link($select=URL,IsMonitored,ReceivedInMessageFormat)");
         var orderBy = Uri.EscapeDataString("ID");
 
@@ -257,7 +255,6 @@ public class CampaignService : ICampaignService
     private static string BuildUserAgentEndpoint(int sendId, int skip, int top)
     {
         var filter = Uri.EscapeDataString($"SendID eq {sendId}");
-        var select = Uri.EscapeDataString("ID,SendID,IPAddress,clientName,ClientType,ClientFamily,Device,OperatingSystemFamily,OperatingSystem");
         var orderBy = Uri.EscapeDataString("ID");
 
         return $"UserAgents?$filter={filter}&$orderby={orderBy}&$skip={skip}&$top={top}";
@@ -288,8 +285,8 @@ public class CampaignService : ICampaignService
                 DisplayDate = item?["DisplayDate"]?.GetValue<string>(),
                 ContactEmail = item?["Contact"]?["Email"]?.GetValue<string>(),
                 Format = item?["Format"]?.GetValue<string>(),
-                SendID = item?["SendID"]?.GetValue<int>() ?? 0,
-                CampaignID = item?["CampaignID"]?.GetValue<int>() ?? 0,
+                SendID = item?[nameof(DisplayedContact.SendID)]?.GetValue<int>() ?? 0,
+                CampaignID = item?[nameof(DisplayedContact.CampaignID)]?.GetValue<int>() ?? 0,
                 TimeInSecondsSpentReadingEmail = item?["TimeInSecondsSpentReadingEmail"]?.GetValue<int>() ?? 0,
                 IsSuspectedBOT = item?["IsSuspectedBOT"]?.GetValue<bool>() ?? false,
                 Device = userAgent?.Device,
@@ -338,8 +335,8 @@ public class CampaignService : ICampaignService
                 ID = item?["ID"]?.GetValue<int>() ?? 0,
                 ClickedDate = item?["ClickDate"]?.GetValue<string>(),
                 ContactEmail = item?["Contact"]?["Email"]?.GetValue<string>(),
-                SendID = item?["SendID"]?.GetValue<int>() ?? 0,
-                CampaignID = item?["CampaignID"]?.GetValue<int>() ?? 0,
+                SendID = item?[nameof(ClickedLinkContact.SendID)]?.GetValue<int>() ?? 0,
+                CampaignID = item?[nameof(ClickedLinkContact.CampaignID)]?.GetValue<int>() ?? 0,
                 FriendlyName = item?["FriendlyName"]?.GetValue<string>(),
                 LinkID = item?["LinkID"]?.GetValue<int>() ?? 0,
                 URL = item?["Link"]?["URL"]?.GetValue<string>(),
@@ -390,8 +387,8 @@ public class CampaignService : ICampaignService
                 BounceType = item?["BounceType"]?.GetValue<string>(),
                 BounceDate = item?["BounceDate"]?.GetValue<string>(),
                 ContactEmail = item?["Contact"]?["Email"]?.GetValue<string>(),
-                SendID = item?["SendID"]?.GetValue<int>() ?? 0,
-                CampaignID = item?["CampaignID"]?.GetValue<int>() ?? 0,
+                SendID = item?[nameof(BouncedContact.SendID)]?.GetValue<int>() ?? 0,
+                CampaignID = item?[nameof(BouncedContact.CampaignID)]?.GetValue<int>() ?? 0,
                 ResponseText = item?["ResponseText"]?.GetValue<string>()
             };
 
@@ -428,8 +425,8 @@ public class CampaignService : ICampaignService
                 ID = item?["ID"]?.GetValue<int>() ?? 0,
                 UnsubscribedDate = item?["UnsubscribedDate"]?.GetValue<string>(),
                 ContactEmail = item?["Contact"]?["Email"]?.GetValue<string>(),
-                SendID = item?["SendID"]?.GetValue<int>() ?? 0,
-                CampaignID = item?["CampaignID"]?.GetValue<int>() ?? 0,
+                SendID = item?[nameof(UnsubscribedContact.SendID)]?.GetValue<int>() ?? 0,
+                CampaignID = item?[nameof(UnsubscribedContact.CampaignID)]?.GetValue<int>() ?? 0,
                 IsGlobalUnsubscribe = item?["IsGlobalUnsubscribe"]?.GetValue<bool>() ?? false,
                 IsComplaint = item?["IsComplaint"]?.GetValue<bool>() ?? false
             };
@@ -466,7 +463,7 @@ public class CampaignService : ICampaignService
             {
                 ID = item?["ID"]?.GetValue<int>() ?? 0,
                 Name = item?["Name"]?.GetValue<string>(),
-                CampaignID = item?["CampaignID"]?.GetValue<int>() ?? 0,
+                CampaignID = item?[nameof(Send.CampaignID)]?.GetValue<int>() ?? 0,
                 Status = item?["Status"]?.GetValue<string>(),
                 SubStatus = item?["SubStatus"]?.GetValue<string>(),
                 SendDate = item?["SendDate"]?.GetValue<string>(),
@@ -516,8 +513,8 @@ public class CampaignService : ICampaignService
             var userAgentInfo = new UserAgentInfo
             {
                 ID = item?["ID"]?.GetValue<int>() ?? 0,
-                CampaignID = item?["CampaignID"]?.GetValue<int>() ?? 0,
-                SendID = item?["SendID"]?.GetValue<int>() ?? 0,
+                CampaignID = item?[nameof(UserAgentInfo.CampaignID)]?.GetValue<int>() ?? 0,
+                SendID = item?[nameof(UserAgentInfo.SendID)]?.GetValue<int>() ?? 0,
                 IPAddress = item?["IPAddress"]?.GetValue<string>(),
                 ClientName = item?["ClientName"]?.GetValue<string>(),
                 ClientType = item?["ClientType"]?.GetValue<string>(),
