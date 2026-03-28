@@ -152,27 +152,17 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Services
         }
 
         [Test]
-        public async Task GetSendsForSubAccountAsync_WithNullResponse_ThrowsException()
+        public void GetSendsForSubAccountAsync_WithNullResponse_ThrowsException()
         {
             // Arrange
             const int subAccountId = 123;
-            var exception = new Exception("API Error");
 
             _externalApiServiceMock
                 .Setup(x => x.GetDataAsync(It.IsAny<string>()))
-                .ThrowsAsync(exception);
+                .ThrowsAsync(new Exception("API Error"));
 
             // Act & Assert
             Assert.ThrowsAsync<Exception>(() => _sut.GetAllSendsAsync(subAccountId));
-
-            _loggerMock.Verify(
-                x => x.Log(
-                    LogLevel.Error,
-                    It.IsAny<EventId>(),
-                    It.Is<It.IsAnyType>((v, t) => v.ToString().Contains($"Failed to retrieve Sends for sub-account {subAccountId}")),
-                    It.IsAny<Exception>(),
-                    It.IsAny<Func<It.IsAnyType, Exception, string>>()),
-                Times.Once);
         }
 
         //[Test]
@@ -1049,7 +1039,7 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Services
         }
 
         [Test]
-        public void GetDisplayedContactsForSendAsync_ApiThrowsException_PropagatesAndLogsError()
+        public void GetDisplayedContactsForSendAsync_ApiThrowsException_Propagates()
         {
             // Arrange
             _externalApiServiceMock
@@ -1059,15 +1049,6 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Services
             // Act & Assert
             Assert.ThrowsAsync<HttpRequestException>(
                 async () => await _sut.GetDisplayedContactsForSendAsync(100, Enumerable.Empty<UserAgentInfo>()));
-
-            _loggerMock.Verify(
-                x => x.Log(
-                    LogLevel.Error,
-                    It.IsAny<EventId>(),
-                    It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("Failed to retrieve displayed contacts for Send 100")),
-                    It.IsAny<Exception>(),
-                    It.IsAny<Func<It.IsAnyType, Exception, string>>()),
-                Times.Once);
         }
 
         [Test]
@@ -1281,7 +1262,7 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Services
         }
 
         [Test]
-        public void GetClickedLinkContactsForSendAsync_ApiThrowsException_PropagatesAndLogsError()
+        public void GetClickedLinkContactsForSendAsync_ApiThrowsException_Propagates()
         {
             // Arrange
             _externalApiServiceMock
@@ -1291,15 +1272,6 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Services
             // Act & Assert
             Assert.ThrowsAsync<HttpRequestException>(
                 async () => await _sut.GetClickedLinkContactsForSendAsync(100, Enumerable.Empty<UserAgentInfo>()));
-
-            _loggerMock.Verify(
-                x => x.Log(
-                    LogLevel.Error,
-                    It.IsAny<EventId>(),
-                    It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("Failed to retrieve clicked link contacts for Send 100")),
-                    It.IsAny<Exception>(),
-                    It.IsAny<Func<It.IsAnyType, Exception, string>>()),
-                Times.Once);
         }
 
         [Test]
@@ -1470,7 +1442,7 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Services
         }
 
         [Test]
-        public void GetBouncedEmailContactsForSendAsync_ApiThrowsException_PropagatesAndLogsError()
+        public void GetBouncedEmailContactsForSendAsync_ApiThrowsException_Propagates()
         {
             // Arrange
             _externalApiServiceMock
@@ -1480,15 +1452,6 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Services
             // Act & Assert
             Assert.ThrowsAsync<HttpRequestException>(
                 async () => await _sut.GetBouncedEmailContactsForSendAsync(100));
-
-            _loggerMock.Verify(
-                x => x.Log(
-                    LogLevel.Error,
-                    It.IsAny<EventId>(),
-                    It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("Failed to retrieve bounced email contacts for Send 100")),
-                    It.IsAny<Exception>(),
-                    It.IsAny<Func<It.IsAnyType, Exception, string>>()),
-                Times.Once);
         }
 
         [Test]
@@ -1657,7 +1620,7 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Services
         }
 
         [Test]
-        public void GetUnsubscribedContactsForSendAsync_ApiThrowsException_PropagatesAndLogsError()
+        public void GetUnsubscribedContactsForSendAsync_ApiThrowsException_Propagates()
         {
             // Arrange
             _externalApiServiceMock
@@ -1667,15 +1630,6 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Services
             // Act & Assert
             Assert.ThrowsAsync<HttpRequestException>(
                 async () => await _sut.GetUnsubscribedContactsForSendAsync(100));
-
-            _loggerMock.Verify(
-                x => x.Log(
-                    LogLevel.Error,
-                    It.IsAny<EventId>(),
-                    It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("Failed to retrieve unsubscribed email contacts for Send 100")),
-                    It.IsAny<Exception>(),
-                    It.IsAny<Func<It.IsAnyType, Exception, string>>()),
-                Times.Once);
         }
 
         [Test]

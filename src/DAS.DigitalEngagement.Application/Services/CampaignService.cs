@@ -24,242 +24,193 @@ public class CampaignService : ICampaignService
     }
     public async Task<IEnumerable<Send>> GetAllSendsAsync(int? subAccountId = null, CancellationToken cancellationToken = default)
     {
-        try
+        _logger.LogInformation("Retrieving Sends for sub-account {SubAccountId}", subAccountId);
+
+        var endpoint = $"Sends?$expand={Uri.EscapeDataString("SubAccount($select=Name),Campaign($select=FirstSendDate,LastSendDate)")}";
+
+        if (subAccountId != null)
         {
-            _logger.LogInformation("Retrieving Sends for sub-account {SubAccountId}", subAccountId);
-
-            var endpoint = $"Sends?$expand={Uri.EscapeDataString("SubAccount($select=Name),Campaign($select=FirstSendDate,LastSendDate)")}";
-
-            if (subAccountId != null)
-            {
-                endpoint += $"&$filter={Uri.EscapeDataString($"SubAccountID eq {subAccountId}")}";
-            }
-
-            var response = await _externalApiService.GetDataAsync(endpoint);
-            var sends = ParseSendsFromResponse(response);
-
-            _logger.LogInformation("Successfully retrieved {SendCount} Sends for sub-account {SubAccountId}", sends.Count(), subAccountId);
-
-            return sends;
+            endpoint += $"&$filter={Uri.EscapeDataString($"SubAccountID eq {subAccountId}")}";
         }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to retrieve Sends for sub-account {SubAccountId}", subAccountId);
-            throw;
-        }
+
+        var response = await _externalApiService.GetDataAsync(endpoint);
+        var sends = ParseSendsFromResponse(response);
+
+        _logger.LogInformation("Successfully retrieved {SendCount} Sends for sub-account {SubAccountId}", sends.Count(), subAccountId);
+
+        return sends;
     }
 
     public async Task<IEnumerable<UserAgentInfo>> GetUserAgentInfoForSendAsync(int sendId, CancellationToken cancellationToken = default)
     {
-        try
+        _logger.LogInformation("Retrieving user agent information for Send {SendId}", sendId);
+
+        var userAgentInfos = new List<UserAgentInfo>();
+        int skip = 0;
+        bool hasMorePages = true;
+
+        while (hasMorePages)
         {
-            _logger.LogInformation("Retrieving user agent information for Send {SendId}", sendId);
+            var endpoint = BuildUserAgentEndpoint(sendId, skip, _pageSize);
+            var response = await _externalApiService.GetDataAsync(endpoint);
+            var userAgents = ParseUserAgentInfoFromResponse(response);
 
-            var userAgentInfos = new List<UserAgentInfo>();
-            int skip = 0;
-            bool hasMorePages = true;
+            userAgentInfos.AddRange(userAgents);
 
-            while (hasMorePages)
+            _logger.LogInformation("Retrieved {UserAgentCount} user agent records for Send {SendId} at skip={Skip}", userAgents.Count(), sendId, skip);
+
+            // Determine if there are more pages
+            if (userAgents.Count() < _pageSize)
             {
-                var endpoint = BuildUserAgentEndpoint(sendId, skip, _pageSize);
-                var response = await _externalApiService.GetDataAsync(endpoint);
-                var userAgents = ParseUserAgentInfoFromResponse(response);
-
-                userAgentInfos.AddRange(userAgents);
-
-                _logger.LogInformation("Retrieved {UserAgentCount} user agent records for Send {SendId} at skip={Skip}", userAgents.Count(), sendId, skip);
-
-                // Determine if there are more pages
-                if (userAgents.Count() < _pageSize)
-                {
-                    hasMorePages = false;
-                }
-                else
-                {
-                    skip += _pageSize;
-                }
+                hasMorePages = false;
             }
-
-            _logger.LogInformation("Successfully retrieved {UserAgentCount} unique user agent information for Send {SendId}", userAgentInfos.Count, sendId);
-
-            return userAgentInfos;
+            else
+            {
+                skip += _pageSize;
+            }
         }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to retrieve user agent information for Send {SendId}", sendId);
-            throw;
-        }
+
+        _logger.LogInformation("Successfully retrieved {UserAgentCount} unique user agent information for Send {SendId}", userAgentInfos.Count, sendId);
+
+        return userAgentInfos;
     }
 
     public async Task<IEnumerable<DisplayedContact>> GetDisplayedContactsForSendAsync(int sendId, IEnumerable<UserAgentInfo> userAgentInfo, CancellationToken cancellationToken = default)
     {
-        try
+        _logger.LogInformation("Retrieving displayed contacts for Send {SendId} with page size {PageSize}", sendId, _pageSize);
+
+        var displayedContacts = new List<DisplayedContact>();
+        int skip = 0;
+        bool hasMorePages = true;
+
+        while (hasMorePages)
         {
-            _logger.LogInformation("Retrieving displayed contacts for Send {SendId} with page size {PageSize}", sendId, _pageSize);
+            var endpoint = BuildDisplayedContactsEndpoint(sendId, skip, _pageSize);
+            var response = await _externalApiService.GetDataAsync(endpoint);
+            var contacts = ParseDisplayedContactsFromResponse(response, userAgentInfo);
 
-            var displayedContacts = new List<DisplayedContact>();
-            int skip = 0;
-            bool hasMorePages = true;
+            displayedContacts.AddRange(contacts);
 
-            while (hasMorePages)
+            _logger.LogInformation("Retrieved {ContactCount} displayed contacts for Send {SendId} at skip={Skip}", contacts.Count(), sendId, skip);
+
+            // Determine if there are more pages
+            if (contacts.Count() < _pageSize)
             {
-                var endpoint = BuildDisplayedContactsEndpoint(sendId, skip, _pageSize);
-                var response = await _externalApiService.GetDataAsync(endpoint);
-                var contacts = ParseDisplayedContactsFromResponse(response, userAgentInfo);
-
-                displayedContacts.AddRange(contacts);
-
-                _logger.LogInformation("Retrieved {ContactCount} displayed contacts for Send {SendId} at skip={Skip}", contacts.Count(), sendId, skip);
-
-                // Determine if there are more pages
-                if (contacts.Count() < _pageSize)
-                {
-                    hasMorePages = false;
-                }
-                else
-                {
-                    skip += _pageSize;
-                }
+                hasMorePages = false;
             }
-
-            _logger.LogInformation("Successfully retrieved {ContactCount} total displayed contacts for Send {SendId}", displayedContacts.Count, sendId);
-
-            return displayedContacts;
+            else
+            {
+                skip += _pageSize;
+            }
         }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to retrieve displayed contacts for Send {SendId}", sendId);
-            throw;
-        }
+
+        _logger.LogInformation("Successfully retrieved {ContactCount} total displayed contacts for Send {SendId}", displayedContacts.Count, sendId);
+
+        return displayedContacts;
     }
 
     public async Task<IEnumerable<ClickedLinkContact>> GetClickedLinkContactsForSendAsync(int sendId, IEnumerable<UserAgentInfo> userAgentInfo, CancellationToken cancellationToken = default)
     {
-        try
+        _logger.LogInformation("Retrieving clicked link contacts for Send {SendId}", sendId);
+
+        var clickedLinkContacts = new List<ClickedLinkContact>();
+        int skip = 0;
+        bool hasMorePages = true;
+
+        while (hasMorePages)
         {
-            _logger.LogInformation("Retrieving clicked link contacts for Send {SendId}", sendId);
+            var endpoint = BuildClickedLinkContactsEndpoint(sendId, skip, _pageSize);
+            var response = await _externalApiService.GetDataAsync(endpoint);
+            var contacts = ParseClickedLinkContactsFromResponse(response, userAgentInfo);
 
-            var clickedLinkContacts = new List<ClickedLinkContact>();
-            int skip = 0;
-            bool hasMorePages = true;
+            clickedLinkContacts.AddRange(contacts);
 
-            while (hasMorePages)
+            _logger.LogInformation("Retrieved {ContactCount} clicked link contacts for Send {SendId} at skip={Skip}", contacts.Count(), sendId, skip);
+
+            // Determine if there are more pages
+            if (contacts.Count() < _pageSize)
             {
-                var endpoint = BuildClickedLinkContactsEndpoint(sendId, skip, _pageSize);
-                var response = await _externalApiService.GetDataAsync(endpoint);
-                var contacts = ParseClickedLinkContactsFromResponse(response, userAgentInfo);
-
-                clickedLinkContacts.AddRange(contacts);
-
-                _logger.LogInformation("Retrieved {ContactCount} clicked link contacts for Send {SendId} at skip={Skip}", contacts.Count(), sendId, skip);
-
-                // Determine if there are more pages
-                if (contacts.Count() < _pageSize)
-                {
-                    hasMorePages = false;
-                }
-                else
-                {
-                    skip += _pageSize;
-                }
+                hasMorePages = false;
             }
-
-            _logger.LogInformation("Successfully retrieved {ContactCount} clicked link contacts for Send {SendId}", clickedLinkContacts.Count, sendId);
-
-            return clickedLinkContacts;
-
+            else
+            {
+                skip += _pageSize;
+            }
         }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to retrieve clicked link contacts for Send {SendId}", sendId);
-            throw;
-        }
+
+        _logger.LogInformation("Successfully retrieved {ContactCount} clicked link contacts for Send {SendId}", clickedLinkContacts.Count, sendId);
+
+        return clickedLinkContacts;
     }
 
     public async Task<IEnumerable<BouncedContact>> GetBouncedEmailContactsForSendAsync(int sendId, CancellationToken cancellationToken = default)
     {
-        try
+        _logger.LogInformation("Retrieving bounced email contacts for Send {SendId}", sendId);
+
+        var bouncedContacts = new List<BouncedContact>();
+
+        // Handle pagination
+        int skip = 0;
+        bool hasMorePages = true;
+
+        while (hasMorePages)
         {
-            _logger.LogInformation("Retrieving bounced email contacts for Send {SendId}", sendId);
+            var endpoint = BuildBouncedContactsEndpoint(sendId, skip, _pageSize);
+            var response = await _externalApiService.GetDataAsync(endpoint);
+            var contacts = ParseBouncedContactsFromResponse(response);
 
-            var bouncedContacts = new List<BouncedContact>();
+            bouncedContacts.AddRange(contacts);
 
-            // Handle pagination
-            int skip = 0;
-            bool hasMorePages = true;
-
-            while (hasMorePages)
+            // Determine if there are more pages
+            if (contacts.Count() < _pageSize)
             {
-                var endpoint = BuildBouncedContactsEndpoint(sendId, skip, _pageSize);
-                var response = await _externalApiService.GetDataAsync(endpoint);
-                var contacts = ParseBouncedContactsFromResponse(response);
-
-                bouncedContacts.AddRange(contacts);
-
-                // Determine if there are more pages
-                if (contacts.Count() < _pageSize)
-                {
-                    hasMorePages = false;
-                }
-                else
-                {
-                    skip += _pageSize;
-                }
+                hasMorePages = false;
             }
-
-            _logger.LogInformation("Successfully retrieved {ContactCount} bounced email contacts for Send {SendId}", bouncedContacts.Count, sendId);
-
-            return bouncedContacts;
+            else
+            {
+                skip += _pageSize;
+            }
         }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to retrieve bounced email contacts for Send {SendId}", sendId);
-            throw;
-        }
+
+        _logger.LogInformation("Successfully retrieved {ContactCount} bounced email contacts for Send {SendId}", bouncedContacts.Count, sendId);
+
+        return bouncedContacts;
     }
 
     public async Task<IEnumerable<UnsubscribedContact>> GetUnsubscribedContactsForSendAsync(int sendId, CancellationToken cancellationToken = default)
     {
-        try
+        _logger.LogInformation("Retrieving unsubscribed email contacts for Send {SendId}", sendId);
+
+        var unsubscribedContacts = new List<UnsubscribedContact>();
+
+        int skip = 0;
+        bool hasMorePages = true;
+
+        while (hasMorePages)
         {
-            _logger.LogInformation("Retrieving unsubscribed email contacts for Send {SendId}", sendId);
+            var endpoint = BuildUnsubscribedContactsEndpoint(sendId, skip, _pageSize);
 
-            var unsubscribedContacts = new List<UnsubscribedContact>();
+            var response = await _externalApiService.GetDataAsync(endpoint);
+            var contacts = ParseUnsubscribedContactsFromResponse(response);
 
-            int skip = 0;
-            bool hasMorePages = true;
+            unsubscribedContacts.AddRange(contacts);
 
-            while (hasMorePages)
+            _logger.LogInformation("Retrieved {ContactCount} clicked link contacts for Send {SendId} at skip={Skip}", contacts.Count(), sendId, skip);
+
+            // Determine if there are more pages
+            if (contacts.Count() < _pageSize)
             {
-                var endpoint = BuildUnsubscribedContactsEndpoint(sendId, skip, _pageSize);
-
-                var response = await _externalApiService.GetDataAsync(endpoint);
-                var contacts = ParseUnsubscribedContactsFromResponse(response);
-
-                unsubscribedContacts.AddRange(contacts);
-
-                _logger.LogInformation("Retrieved {ContactCount} clicked link contacts for Send {SendId} at skip={Skip}", contacts.Count(), sendId, skip);
-
-                // Determine if there are more pages
-                if (contacts.Count() < _pageSize)
-                {
-                    hasMorePages = false;
-                }
-                else
-                {
-                    skip += _pageSize;
-                }
+                hasMorePages = false;
             }
-
-            _logger.LogInformation("Successfully retrieved {ContactCount} unsubscribed email contacts for Send {SendId}", unsubscribedContacts.Count, sendId);
-
-            return unsubscribedContacts;
+            else
+            {
+                skip += _pageSize;
+            }
         }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to retrieve unsubscribed email contacts for Send {SendId}", sendId);
-            throw;
-        }
+
+        _logger.LogInformation("Successfully retrieved {ContactCount} unsubscribed email contacts for Send {SendId}", unsubscribedContacts.Count, sendId);
+
+        return unsubscribedContacts;
     }
 
     #region Private helper methods
