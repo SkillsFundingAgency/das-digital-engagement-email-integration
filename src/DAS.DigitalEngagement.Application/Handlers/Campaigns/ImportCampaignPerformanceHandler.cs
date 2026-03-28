@@ -20,9 +20,7 @@ public class ImportCampaignPerformanceHandler : IImportCampaignPerformanceHandle
     {
         _logger.LogInformation("Starting campaign performance import");
 
-        try
-        {
-            //TODO - set subAccountId = null for production. For local/testing, use sub-account 3 for lots of small sends, 5 for one hugh send
+            // Set subAccountId = null for production. For local/testing, use sub-account 3 for lots of small sends, 5 for one hugh send
             var sends = await _campaignService.GetAllSendsAsync(
                 subAccountId: null, 
                 cancellationToken: cancellationToken);
@@ -54,15 +52,5 @@ public class ImportCampaignPerformanceHandler : IImportCampaignPerformanceHandle
                 var unsubscribedContacts = await _campaignService.GetUnsubscribedContactsForSendAsync(send.ID, cancellationToken);
                 _logger.LogInformation("Retrieved {ContactCount} unsubscribed contacts for Send {SendId} in sub-account {Account}", unsubscribedContacts.Count(), send.ID, send.Account);
             }
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error importing campaign performance data");
-            throw;
-        }
-
-
-        _logger.LogInformation("Campaign performance import completed successfully");
-
     }
 }

@@ -178,7 +178,7 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Handlers.Campaigns
         }
 
         [Test]
-        public void Handle_GetAllSendsThrowsException_PropagatesAndLogsError()
+        public void Handle_GetAllSendsThrowsException_Propagates()
         {
             // Arrange
             _campaignServiceMock
@@ -187,19 +187,10 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Handlers.Campaigns
 
             // Act & Assert
             Assert.ThrowsAsync<Exception>(async () => await _sut.Handle());
-
-            _loggerMock.Verify(
-                x => x.Log(
-                    LogLevel.Error,
-                    It.IsAny<EventId>(),
-                    It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("Error importing campaign performance data")),
-                    It.IsAny<Exception>(),
-                    It.IsAny<Func<It.IsAnyType, Exception, string>>()),
-                Times.Once);
         }
 
         [Test]
-        public void Handle_GetUserAgentInfoThrowsException_PropagatesAndLogsError()
+        public void Handle_GetUserAgentInfoThrowsException_Propagates()
         {
             // Arrange
             var sends = new List<Send>
@@ -217,15 +208,6 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Handlers.Campaigns
 
             // Act & Assert
             Assert.ThrowsAsync<Exception>(async () => await _sut.Handle());
-
-            _loggerMock.Verify(
-                x => x.Log(
-                    LogLevel.Error,
-                    It.IsAny<EventId>(),
-                    It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("Error importing campaign performance data")),
-                    It.IsAny<Exception>(),
-                    It.IsAny<Func<It.IsAnyType, Exception, string>>()),
-                Times.Once);
         }
 
         [Test]
@@ -377,14 +359,6 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Handlers.Campaigns
                     It.IsAny<Func<It.IsAnyType, Exception, string>>()),
                 Times.Once);
 
-            _loggerMock.Verify(
-                x => x.Log(
-                    LogLevel.Information,
-                    It.IsAny<EventId>(),
-                    It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("Campaign performance import completed successfully")),
-                    It.IsAny<Exception>(),
-                    It.IsAny<Func<It.IsAnyType, Exception, string>>()),
-                Times.Once);
         }
 
         [Test]
