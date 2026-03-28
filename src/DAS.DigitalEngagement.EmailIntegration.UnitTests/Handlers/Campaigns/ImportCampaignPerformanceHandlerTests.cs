@@ -283,7 +283,7 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Handlers.Campaigns
         }
 
         [Test]
-        public async Task Handle_LogsStartAndCompletionMessages()
+        public async Task Handle_NoSends_DoesNotLogProcessingMessages()
         {
             // Arrange
             _campaignServiceMock
@@ -298,10 +298,10 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Handlers.Campaigns
                 x => x.Log(
                     LogLevel.Information,
                     It.IsAny<EventId>(),
-                    It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("Starting campaign performance import")),
+                    It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("Processing Send")),
                     It.IsAny<Exception>(),
                     It.IsAny<Func<It.IsAnyType, Exception, string>>()),
-                Times.Once);
+                Times.Never);
         }
 
         [Test]
@@ -345,7 +345,7 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Handlers.Campaigns
                 x => x.Log(
                     LogLevel.Information,
                     It.IsAny<EventId>(),
-                    It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("Retrieved 1 sends")),
+                    It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("Processing Send 1")),
                     It.IsAny<Exception>(),
                     It.IsAny<Func<It.IsAnyType, Exception, string>>()),
                 Times.Once);
@@ -354,7 +354,7 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Handlers.Campaigns
                 x => x.Log(
                     LogLevel.Information,
                     It.IsAny<EventId>(),
-                    It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("Processing Send 1")),
+                    It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("Processing complete for Send 1")),
                     It.IsAny<Exception>(),
                     It.IsAny<Func<It.IsAnyType, Exception, string>>()),
                 Times.Once);
