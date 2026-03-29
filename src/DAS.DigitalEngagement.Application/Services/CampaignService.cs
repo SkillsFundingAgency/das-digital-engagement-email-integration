@@ -262,8 +262,7 @@ public class CampaignService : ICampaignService
 
     private IEnumerable<DisplayedContact> ParseDisplayedContactsFromResponse(string jsonResponse, IEnumerable<UserAgentInfo> userAgentInfos)
     {
-        var jsonNode = JsonNode.Parse(jsonResponse);
-        var valueArray = jsonNode?["value"]?.AsArray();
+        var valueArray = GetValueArrayFromJsonResponse(jsonResponse);
 
         if (valueArray == null || valueArray.Count == 0)
         {
@@ -313,8 +312,7 @@ public class CampaignService : ICampaignService
 
     private IEnumerable<ClickedLinkContact> ParseClickedLinkContactsFromResponse(string jsonResponse, IEnumerable<UserAgentInfo> userAgentInfos)
     {
-        var jsonNode = JsonNode.Parse(jsonResponse);
-        var valueArray = jsonNode?["value"]?.AsArray();
+        var valueArray = GetValueArrayFromJsonResponse(jsonResponse);
 
         if (valueArray == null || valueArray.Count == 0)
         {
@@ -367,8 +365,7 @@ public class CampaignService : ICampaignService
 
     private IEnumerable<BouncedContact> ParseBouncedContactsFromResponse(string jsonResponse)
     {
-        var jsonNode = JsonNode.Parse(jsonResponse);
-        var valueArray = jsonNode?["value"]?.AsArray();
+        var valueArray = GetValueArrayFromJsonResponse(jsonResponse);
 
         if (valueArray == null || valueArray.Count == 0)
         {
@@ -407,8 +404,7 @@ public class CampaignService : ICampaignService
 
     private IEnumerable<UnsubscribedContact> ParseUnsubscribedContactsFromResponse(string jsonResponse)
     {
-        var jsonNode = JsonNode.Parse(jsonResponse);
-        var valueArray = jsonNode?["value"]?.AsArray();
+        var valueArray = GetValueArrayFromJsonResponse(jsonResponse);
 
         if (valueArray == null || valueArray.Count == 0)
         {
@@ -446,8 +442,7 @@ public class CampaignService : ICampaignService
 
     private IEnumerable<Send> ParseSendsFromResponse(string jsonResponse)
     {
-        var jsonNode = JsonNode.Parse(jsonResponse);
-        var valueArray = jsonNode?["value"]?.AsArray();
+        var valueArray = GetValueArrayFromJsonResponse(jsonResponse);
 
         if (valueArray == null || valueArray.Count == 0)
         {
@@ -496,8 +491,7 @@ public class CampaignService : ICampaignService
 
     private IEnumerable<UserAgentInfo> ParseUserAgentInfoFromResponse(string jsonResponse)
     {
-        var jsonNode = JsonNode.Parse(jsonResponse);
-        var valueArray = jsonNode?["value"]?.AsArray();
+        var valueArray = GetValueArrayFromJsonResponse(jsonResponse);
 
         if (valueArray == null || valueArray.Count == 0)
         {
@@ -534,6 +528,13 @@ public class CampaignService : ICampaignService
         }
 
         return userAgentInfos;
+    }
+    
+    private JsonArray? GetValueArrayFromJsonResponse(string jsonResponse)
+    {
+        var jsonNode = JsonNode.Parse(jsonResponse);
+        var valueArray = jsonNode?["value"]?.AsArray();
+        return valueArray;
     }
     #endregion 
 }
