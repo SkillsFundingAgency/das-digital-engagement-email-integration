@@ -170,6 +170,48 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Services
         }
 
         [Test]
+        public async Task GetAllSendsAsync_WithMinimalFields_DefaultsMissingProperties()
+        {
+            // Arrange
+            var jsonResponse = @"{
+                ""value"": [
+                    {
+                        ""ID"": 5,
+                        ""SendCompletedDate"": ""2024-01-15T10:00:00Z""
+                    }
+                ]
+            }";
+
+            _externalApiServiceMock
+                .Setup(x => x.GetDataAsync(It.IsAny<string>()))
+                .ReturnsAsync(jsonResponse);
+
+            // Act
+            var result = (await _sut.GetAllSendsAsync()).ToList();
+
+            // Assert
+            Assert.That(result.Count, Is.EqualTo(1));
+            Assert.That(result[0].ID, Is.EqualTo(5));
+            Assert.That(result[0].SendCompletedDate, Is.EqualTo("2024-01-15T10:00:00Z"));
+            Assert.That(result[0].Name, Is.Null);
+            Assert.That(result[0].CampaignID, Is.EqualTo(0));
+            Assert.That(result[0].Status, Is.Null);
+            Assert.That(result[0].SubStatus, Is.Null);
+            Assert.That(result[0].SendDate, Is.Null);
+            Assert.That(result[0].CampaignType, Is.Null);
+            Assert.That(result[0].ContactCount, Is.EqualTo(0));
+            Assert.That(result[0].CreatedBy, Is.Null);
+            Assert.That(result[0].CreatedDate, Is.Null);
+            Assert.That(result[0].FirstSendDate, Is.Null);
+            Assert.That(result[0].LastSendDate, Is.Null);
+            Assert.That(result[0].FromEmail, Is.Null);
+            Assert.That(result[0].FromName, Is.Null);
+            Assert.That(result[0].ReplyEmail, Is.Null);
+            Assert.That(result[0].SubjectLine, Is.Null);
+            Assert.That(result[0].Account, Is.Null);
+        }
+
+        [Test]
         public void GetSendsForSubAccountAsync_WithNullResponse_ThrowsException()
         {
             // Arrange
@@ -1065,6 +1107,34 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Services
         }
 
         [Test]
+        public async Task GetDisplayedContactsForSendAsync_WithMissingUserAgentIdKey_LeavesUserAgentFieldsNull()
+        {
+            // Arrange
+            var jsonResponse = @"{
+                ""value"": [
+                    {
+                        ""ID"": 1,
+                        ""DisplayDate"": ""2024-02-01T12:00:00Z"",
+                        ""SendID"": 100,
+                        ""CampaignID"": 200
+                    }
+                ]
+            }";
+
+            _externalApiServiceMock
+                .Setup(x => x.GetDataAsync(It.IsAny<string>()))
+                .ReturnsAsync(jsonResponse);
+
+            // Act
+            var result = (await _sut.GetDisplayedContactsForSendAsync(100, Enumerable.Empty<UserAgentInfo>())).ToList();
+
+            // Assert
+            Assert.That(result.Count, Is.EqualTo(1));
+            Assert.That(result[0].Device, Is.Null);
+            Assert.That(result[0].ClientName, Is.Null);
+        }
+
+        [Test]
         public async Task GetDisplayedContactsForSendAsync_WithZeroUserAgentId_LeavesUserAgentFieldsNull()
         {
             // Arrange
@@ -1305,6 +1375,34 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Services
         }
 
         [Test]
+        public async Task GetClickedLinkContactsForSendAsync_WithMissingUserAgentIdKey_LeavesUserAgentFieldsNull()
+        {
+            // Arrange
+            var jsonResponse = @"{
+                ""value"": [
+                    {
+                        ""ID"": 1,
+                        ""ClickDate"": ""2024-02-01T12:30:00Z"",
+                        ""SendID"": 100,
+                        ""CampaignID"": 200
+                    }
+                ]
+            }";
+
+            _externalApiServiceMock
+                .Setup(x => x.GetDataAsync(It.IsAny<string>()))
+                .ReturnsAsync(jsonResponse);
+
+            // Act
+            var result = (await _sut.GetClickedLinkContactsForSendAsync(100, Enumerable.Empty<UserAgentInfo>())).ToList();
+
+            // Assert
+            Assert.That(result.Count, Is.EqualTo(1));
+            Assert.That(result[0].Device, Is.Null);
+            Assert.That(result[0].ClientName, Is.Null);
+        }
+
+        [Test]
         public async Task GetClickedLinkContactsForSendAsync_WithNoMatchingUserAgent_LeavesUserAgentFieldsNull()
         {
             // Arrange
@@ -1532,6 +1630,38 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Services
         }
 
         [Test]
+        public async Task GetBouncedEmailContactsForSendAsync_WithPartiallyMissingFields_HandlesGracefully()
+        {
+            // Arrange
+            var jsonResponse = @"{
+                ""value"": [
+                    {
+                        ""ID"": 1,
+                        ""BounceDate"": ""2024-02-01T12:00:00Z""
+                    }
+                ]
+            }";
+
+            _externalApiServiceMock
+                .Setup(x => x.GetDataAsync(It.IsAny<string>()))
+                .ReturnsAsync(jsonResponse);
+
+            // Act
+            var result = (await _sut.GetBouncedEmailContactsForSendAsync(100)).ToList();
+
+            // Assert
+            Assert.That(result.Count, Is.EqualTo(1));
+            Assert.That(result[0].ID, Is.EqualTo(1));
+            Assert.That(result[0].BounceDate, Is.EqualTo("2024-02-01T12:00:00Z"));
+            Assert.That(result[0].BounceReason, Is.Null);
+            Assert.That(result[0].BounceType, Is.Null);
+            Assert.That(result[0].ContactEmail, Is.Null);
+            Assert.That(result[0].ResponseText, Is.Null);
+            Assert.That(result[0].SendID, Is.EqualTo(0));
+            Assert.That(result[0].CampaignID, Is.EqualTo(0));
+        }
+
+        [Test]
         public void GetBouncedEmailContactsForSendAsync_ApiThrowsException_Propagates()
         {
             // Arrange
@@ -1725,6 +1855,37 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Services
             Assert.That(result.Count, Is.EqualTo(1));
             Assert.That(result[0].ID, Is.EqualTo(3));
             Assert.That(result[0].IsComplaint, Is.True);
+        }
+
+        [Test]
+        public async Task GetUnsubscribedContactsForSendAsync_WithPartiallyMissingFields_HandlesGracefully()
+        {
+            // Arrange
+            var jsonResponse = @"{
+                ""value"": [
+                    {
+                        ""ID"": 1,
+                        ""UnsubscribedDate"": ""2024-02-01T15:00:00Z""
+                    }
+                ]
+            }";
+
+            _externalApiServiceMock
+                .Setup(x => x.GetDataAsync(It.IsAny<string>()))
+                .ReturnsAsync(jsonResponse);
+
+            // Act
+            var result = (await _sut.GetUnsubscribedContactsForSendAsync(100)).ToList();
+
+            // Assert
+            Assert.That(result.Count, Is.EqualTo(1));
+            Assert.That(result[0].ID, Is.EqualTo(1));
+            Assert.That(result[0].UnsubscribedDate, Is.EqualTo("2024-02-01T15:00:00Z"));
+            Assert.That(result[0].ContactEmail, Is.Null);
+            Assert.That(result[0].SendID, Is.EqualTo(0));
+            Assert.That(result[0].CampaignID, Is.EqualTo(0));
+            Assert.That(result[0].IsGlobalUnsubscribe, Is.False);
+            Assert.That(result[0].IsComplaint, Is.False);
         }
 
         [Test]
