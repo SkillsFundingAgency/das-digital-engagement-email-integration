@@ -3,6 +3,16 @@ parameters:
   SolutionBaseName:
   Environment:
 
+variables:
+- ${{ if eq(parameters.Environment, 'AT') }}:
+  - group: 'AT das-digital-engagement-email-integration'
+- ${{ if eq(parameters.Environment, 'TEST') }}:
+  - group: 'TEST das-digital-engagement-email-integration'
+- ${{ if eq(parameters.Environment, 'PREPROD') }}:
+  - group: 'PREPROD das-digital-engagement-email-integration'
+- ${{ if eq(parameters.Environment, 'RELEASE') }}:
+  - group: 'RELEASE das-digital-engagement-email-integration'  
+
 jobs:
 - deployment: DeployFunctionApp
   pool:
