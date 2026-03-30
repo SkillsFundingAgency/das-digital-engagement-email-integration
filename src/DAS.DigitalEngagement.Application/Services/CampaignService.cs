@@ -530,7 +530,7 @@ public class CampaignService : ICampaignService
         return userAgentInfos;
     }
     
-    private JsonArray? GetValueArrayFromJsonResponse(string jsonResponse)
+    private static JsonArray? GetValueArrayFromJsonResponse(string jsonResponse)
     {
         var jsonNode = JsonNode.Parse(jsonResponse);
         var valueArray = jsonNode?["value"]?.AsArray();
