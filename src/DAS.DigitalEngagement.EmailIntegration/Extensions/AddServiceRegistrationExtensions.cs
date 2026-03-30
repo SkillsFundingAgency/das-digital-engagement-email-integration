@@ -1,6 +1,7 @@
 ﻿using Azure.Core;
 using Azure.Identity;
 using Azure.Storage.Blobs;
+using DAS.DigitalEngagement.Application.Handlers.Campaigns;
 using DAS.DigitalEngagement.Application.Handlers.Import.Interfaces;
 using DAS.DigitalEngagement.Application.Import.Handlers;
 using DAS.DigitalEngagement.Application.Repositories;
@@ -25,6 +26,9 @@ namespace DAS.DigitalEngagement.EmailIntegration.Extensions
             services.AddTransient<IImportDataMartHandler, ImportDataMartHandler>();
             services.AddTransient<IImportService, ImportService>();
             services.AddTransient<IPayLoadMapper, PayLoadMapper>();
+
+            services.AddTransient<IImportCampaignPerformanceHandler, ImportCampaignPerformanceHandler>();
+            services.AddTransient<ICampaignService, CampaignService>();
 
 
             services.AddTransient<IDataMartRepository, DataMartRepository>();
