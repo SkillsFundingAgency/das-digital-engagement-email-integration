@@ -1,5 +1,7 @@
 using DAS.DigitalEngagement.Application.Services;
 using DAS.DigitalEngagement.Application.Services.Interfaces;
+using DAS.DigitalEngagement.CampaignInterest.Data.Models;
+using DAS.DigitalEngagement.CampaignInterest.Data.Repositories;
 using DAS.DigitalEngagement.Models.Campaigns;
 using DAS.DigitalEngagement.Models.Infrastructure;
 using Microsoft.Extensions.Logging;
@@ -7,7 +9,7 @@ using Microsoft.Extensions.Options;
 using Moq;
 using NUnit.Framework;
 using System;
-using System.Collections.Generic;   
+using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
 using System.Text.Json;
@@ -20,6 +22,7 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Services
     public class CampaignServiceTests
     {
         private Mock<IExternalApiService> _externalApiServiceMock;
+        private Mock<ICampaignImportMetadataRepository> _metadataRepositoryMock;
         private Mock<ILogger<CampaignService>> _loggerMock;
         private Mock<IOptions<EmailMarketingApi>> _apiConfig;
         private CampaignService _sut;
@@ -28,17 +31,19 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Services
         public void SetUp()
         {
             _externalApiServiceMock = new Mock<IExternalApiService>();
+            _metadataRepositoryMock = new Mock<ICampaignImportMetadataRepository>();
             _loggerMock = new Mock<ILogger<CampaignService>>();
             _apiConfig = new Mock<IOptions<EmailMarketingApi>>();
             _apiConfig.Setup(x => x.Value).Returns(new EmailMarketingApi
             {
-                PageSize = 5000,  
+                PageSize = 5000,
                 ApiBaseUrl = "https://api.eshot.com/api/v1.0",
                 ApiKey = "test-api",
                 ApiRetryCount = 3,
                 ChunkSizeKB = 100,
+                ImportWindowDays = 7,
             });
-            _sut = new CampaignService(_externalApiServiceMock.Object, _loggerMock.Object, _apiConfig.Object);
+            _sut = new CampaignService(_externalApiServiceMock.Object, _metadataRepositoryMock.Object, _loggerMock.Object, _apiConfig.Object);
         }
 
         [Test]
@@ -498,6 +503,7 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Services
 
             var service = new CampaignService(
                 _externalApiServiceMock.Object,
+                _metadataRepositoryMock.Object,
                 _loggerMock.Object,
                 apiConfigSmallPageSize.Object);
 
@@ -1204,6 +1210,7 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Services
 
             var service = new CampaignService(
                 _externalApiServiceMock.Object,
+                _metadataRepositoryMock.Object,
                 _loggerMock.Object,
                 apiConfigSmall.Object);
 
@@ -1473,6 +1480,7 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Services
 
             var service = new CampaignService(
                 _externalApiServiceMock.Object,
+                _metadataRepositoryMock.Object,
                 _loggerMock.Object,
                 apiConfigSmall.Object);
 
@@ -1703,6 +1711,7 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Services
 
             var service = new CampaignService(
                 _externalApiServiceMock.Object,
+                _metadataRepositoryMock.Object,
                 _loggerMock.Object,
                 apiConfigSmall.Object);
 
@@ -1930,6 +1939,7 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Services
 
             var service = new CampaignService(
                 _externalApiServiceMock.Object,
+                _metadataRepositoryMock.Object,
                 _loggerMock.Object,
                 apiConfigSmall.Object);
 
@@ -1963,6 +1973,297 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Services
                     url.Contains("$skip=0") &&
                     url.Contains($"$top={_apiConfig.Object.Value.PageSize}"))),
                 Times.Once);
+        }
+
+        #endregion
+
+        #region GetEligibleSendsAsync Tests
+
+        [Test]
+        public async Task GetEligibleSendsAsync_AllSendsEligible_ReturnsAll()
+        {
+            // Arrange
+            var now = DateTime.UtcNow;
+            var jsonResponse = @"{
+                ""value"": [
+                    { ""ID"": 1, ""Name"": ""Send 1"", ""SendCompletedDate"": """ + now.AddDays(-1).ToString("O") + @""", ""ContactCount"": 100 },
+                    { ""ID"": 2, ""Name"": ""Send 2"", ""SendCompletedDate"": """ + now.AddDays(-3).ToString("O") + @""", ""ContactCount"": 200 }
+                ]
+            }";
+
+            _externalApiServiceMock
+                .Setup(x => x.GetDataAsync(It.IsAny<string>()))
+                .ReturnsAsync(jsonResponse);
+
+            _metadataRepositoryMock
+                .Setup(x => x.GetAllAsync())
+                .ReturnsAsync(Enumerable.Empty<CampaignImportMetadata>());
+
+            // Act
+            var result = (await _sut.GetEligibleSendsAsync()).ToList();
+
+            // Assert
+            Assert.That(result.Count, Is.EqualTo(2));
+            Assert.That(result[0].ID, Is.EqualTo(1));
+            Assert.That(result[1].ID, Is.EqualTo(2));
+        }
+
+        [Test]
+        public async Task GetEligibleSendsAsync_FullyImportedSends_AreExcluded()
+        {
+            // Arrange
+            var now = DateTime.UtcNow;
+            var jsonResponse = @"{
+                ""value"": [
+                    { ""ID"": 1, ""Name"": ""Send 1"", ""SendCompletedDate"": """ + now.AddDays(-1).ToString("O") + @""", ""ContactCount"": 100 },
+                    { ""ID"": 2, ""Name"": ""Send 2"", ""SendCompletedDate"": """ + now.AddDays(-2).ToString("O") + @""", ""ContactCount"": 200 },
+                    { ""ID"": 3, ""Name"": ""Send 3"", ""SendCompletedDate"": """ + now.AddDays(-3).ToString("O") + @""", ""ContactCount"": 300 }
+                ]
+            }";
+
+            _externalApiServiceMock
+                .Setup(x => x.GetDataAsync(It.IsAny<string>()))
+                .ReturnsAsync(jsonResponse);
+
+            _metadataRepositoryMock
+                .Setup(x => x.GetAllAsync())
+                .ReturnsAsync(new List<CampaignImportMetadata>
+                {
+                    new CampaignImportMetadata { CampaignId = 1, IsImportComplete = true, ImportStartDate = now.AddDays(-1) },
+                    new CampaignImportMetadata { CampaignId = 3, IsImportComplete = true, ImportStartDate = now.AddDays(-3) }
+                });
+
+            // Act
+            var result = (await _sut.GetEligibleSendsAsync()).ToList();
+
+            // Assert
+            Assert.That(result.Count, Is.EqualTo(1));
+            Assert.That(result[0].ID, Is.EqualTo(2));
+        }
+
+        [Test]
+        public async Task GetEligibleSendsAsync_PartiallyImportedSends_AreIncluded()
+        {
+            // Arrange
+            var now = DateTime.UtcNow;
+            var jsonResponse = @"{
+                ""value"": [
+                    { ""ID"": 1, ""Name"": ""Send 1"", ""SendCompletedDate"": """ + now.AddDays(-1).ToString("O") + @""", ""ContactCount"": 100 }
+                ]
+            }";
+
+            _externalApiServiceMock
+                .Setup(x => x.GetDataAsync(It.IsAny<string>()))
+                .ReturnsAsync(jsonResponse);
+
+            _metadataRepositoryMock
+                .Setup(x => x.GetAllAsync())
+                .ReturnsAsync(new List<CampaignImportMetadata>
+                {
+                    new CampaignImportMetadata { CampaignId = 1, IsImportComplete = false, ImportStartDate = now.AddDays(-1) }
+                });
+
+            // Act
+            var result = (await _sut.GetEligibleSendsAsync()).ToList();
+
+            // Assert
+            Assert.That(result.Count, Is.EqualTo(1));
+            Assert.That(result[0].ID, Is.EqualTo(1));
+        }
+
+        [Test]
+        public async Task GetEligibleSendsAsync_SendsOutsideTimeWindow_AreExcluded()
+        {
+            // Arrange - ImportWindowDays is 7 in SetUp
+            var now = DateTime.UtcNow;
+            var jsonResponse = @"{
+                ""value"": [
+                    { ""ID"": 1, ""Name"": ""Recent"", ""SendCompletedDate"": """ + now.AddDays(-3).ToString("O") + @""", ""ContactCount"": 100 },
+                    { ""ID"": 2, ""Name"": ""Old"", ""SendCompletedDate"": """ + now.AddDays(-10).ToString("O") + @""", ""ContactCount"": 200 },
+                    { ""ID"": 3, ""Name"": ""Very Old"", ""SendCompletedDate"": """ + now.AddDays(-30).ToString("O") + @""", ""ContactCount"": 300 }
+                ]
+            }";
+
+            _externalApiServiceMock
+                .Setup(x => x.GetDataAsync(It.IsAny<string>()))
+                .ReturnsAsync(jsonResponse);
+
+            _metadataRepositoryMock
+                .Setup(x => x.GetAllAsync())
+                .ReturnsAsync(Enumerable.Empty<CampaignImportMetadata>());
+
+            // Act
+            var result = (await _sut.GetEligibleSendsAsync()).ToList();
+
+            // Assert
+            Assert.That(result.Count, Is.EqualTo(1));
+            Assert.That(result[0].ID, Is.EqualTo(1));
+        }
+
+        [Test]
+        public async Task GetEligibleSendsAsync_MixOfConditions_ReturnsOnlyEligible()
+        {
+            // Arrange
+            var now = DateTime.UtcNow;
+            var jsonResponse = @"{
+                ""value"": [
+                    { ""ID"": 1, ""Name"": ""Eligible"", ""SendCompletedDate"": """ + now.AddDays(-2).ToString("O") + @""", ""ContactCount"": 100 },
+                    { ""ID"": 2, ""Name"": ""Already Imported"", ""SendCompletedDate"": """ + now.AddDays(-1).ToString("O") + @""", ""ContactCount"": 200 },
+                    { ""ID"": 3, ""Name"": ""Too Old"", ""SendCompletedDate"": """ + now.AddDays(-15).ToString("O") + @""", ""ContactCount"": 300 },
+                    { ""ID"": 4, ""Name"": ""Partial Import"", ""SendCompletedDate"": """ + now.AddDays(-3).ToString("O") + @""", ""ContactCount"": 400 }
+                ]
+            }";
+
+            _externalApiServiceMock
+                .Setup(x => x.GetDataAsync(It.IsAny<string>()))
+                .ReturnsAsync(jsonResponse);
+
+            _metadataRepositoryMock
+                .Setup(x => x.GetAllAsync())
+                .ReturnsAsync(new List<CampaignImportMetadata>
+                {
+                    new CampaignImportMetadata { CampaignId = 2, IsImportComplete = true, ImportStartDate = now.AddDays(-1) },
+                    new CampaignImportMetadata { CampaignId = 4, IsImportComplete = false, ImportStartDate = now.AddDays(-3) }
+                });
+
+            // Act
+            var result = (await _sut.GetEligibleSendsAsync()).ToList();
+
+            // Assert
+            Assert.That(result.Count, Is.EqualTo(2));
+            Assert.That(result.Select(s => s.ID), Is.EquivalentTo(new[] { 1, 4 }));
+        }
+
+        [Test]
+        public async Task GetEligibleSendsAsync_NoSendsFromApi_ReturnsEmpty()
+        {
+            // Arrange
+            var jsonResponse = @"{ ""value"": [] }";
+
+            _externalApiServiceMock
+                .Setup(x => x.GetDataAsync(It.IsAny<string>()))
+                .ReturnsAsync(jsonResponse);
+
+            // Act
+            var result = await _sut.GetEligibleSendsAsync();
+
+            // Assert
+            Assert.That(result, Is.Empty);
+            _metadataRepositoryMock.Verify(x => x.GetAllAsync(), Times.Never);
+        }
+
+        [Test]
+        public async Task GetEligibleSendsAsync_EmptyMetadata_AllWithinWindowAreEligible()
+        {
+            // Arrange
+            var now = DateTime.UtcNow;
+            var jsonResponse = @"{
+                ""value"": [
+                    { ""ID"": 1, ""Name"": ""Send 1"", ""SendCompletedDate"": """ + now.AddDays(-1).ToString("O") + @""", ""ContactCount"": 100 }
+                ]
+            }";
+
+            _externalApiServiceMock
+                .Setup(x => x.GetDataAsync(It.IsAny<string>()))
+                .ReturnsAsync(jsonResponse);
+
+            _metadataRepositoryMock
+                .Setup(x => x.GetAllAsync())
+                .ReturnsAsync(Enumerable.Empty<CampaignImportMetadata>());
+
+            // Act
+            var result = (await _sut.GetEligibleSendsAsync()).ToList();
+
+            // Assert
+            Assert.That(result.Count, Is.EqualTo(1));
+        }
+
+        [Test]
+        public async Task GetEligibleSendsAsync_WithSubAccountId_PassesThroughToGetAllSends()
+        {
+            // Arrange
+            const int subAccountId = 42;
+            var jsonResponse = @"{ ""value"": [] }";
+
+            _externalApiServiceMock
+                .Setup(x => x.GetDataAsync(It.IsAny<string>()))
+                .ReturnsAsync(jsonResponse);
+
+            // Act
+            await _sut.GetEligibleSendsAsync(subAccountId);
+
+            // Assert
+            _externalApiServiceMock.Verify(
+                x => x.GetDataAsync(It.Is<string>(url =>
+                    url.Contains("SubAccountID%20eq%2042"))),
+                Times.Once);
+        }
+
+        [Test]
+        public async Task GetEligibleSendsAsync_UnparseableSendCompletedDate_IsSkipped()
+        {
+            // Arrange
+            var now = DateTime.UtcNow;
+            var jsonResponse = @"{
+                ""value"": [
+                    { ""ID"": 1, ""Name"": ""Good"", ""SendCompletedDate"": """ + now.AddDays(-1).ToString("O") + @""", ""ContactCount"": 100 },
+                    { ""ID"": 2, ""Name"": ""Bad Date"", ""SendCompletedDate"": ""not-a-date"", ""ContactCount"": 200 }
+                ]
+            }";
+
+            _externalApiServiceMock
+                .Setup(x => x.GetDataAsync(It.IsAny<string>()))
+                .ReturnsAsync(jsonResponse);
+
+            _metadataRepositoryMock
+                .Setup(x => x.GetAllAsync())
+                .ReturnsAsync(Enumerable.Empty<CampaignImportMetadata>());
+
+            // Act
+            var result = (await _sut.GetEligibleSendsAsync()).ToList();
+
+            // Assert
+            Assert.That(result.Count, Is.EqualTo(1));
+            Assert.That(result[0].ID, Is.EqualTo(1));
+        }
+
+        [Test]
+        public async Task GetEligibleSendsAsync_SendExactlyAtCutoff_IsIncluded()
+        {
+            // Arrange - ImportWindowDays is 7, so cutoff is exactly 7 days ago
+            var cutoffDate = DateTime.UtcNow.AddDays(-7);
+            var jsonResponse = @"{
+                ""value"": [
+                    { ""ID"": 1, ""Name"": ""At Cutoff"", ""SendCompletedDate"": """ + cutoffDate.AddMinutes(1).ToString("O") + @""", ""ContactCount"": 100 }
+                ]
+            }";
+
+            _externalApiServiceMock
+                .Setup(x => x.GetDataAsync(It.IsAny<string>()))
+                .ReturnsAsync(jsonResponse);
+
+            _metadataRepositoryMock
+                .Setup(x => x.GetAllAsync())
+                .ReturnsAsync(Enumerable.Empty<CampaignImportMetadata>());
+
+            // Act
+            var result = (await _sut.GetEligibleSendsAsync()).ToList();
+
+            // Assert
+            Assert.That(result.Count, Is.EqualTo(1));
+        }
+
+        [Test]
+        public void GetEligibleSendsAsync_ApiThrowsException_Propagates()
+        {
+            // Arrange
+            _externalApiServiceMock
+                .Setup(x => x.GetDataAsync(It.IsAny<string>()))
+                .ThrowsAsync(new HttpRequestException("API error"));
+
+            // Act & Assert
+            Assert.ThrowsAsync<HttpRequestException>(
+                async () => await _sut.GetEligibleSendsAsync());
         }
 
         #endregion
