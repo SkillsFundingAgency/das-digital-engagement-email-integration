@@ -80,7 +80,7 @@ ReservationsSummary AS (
         [AccountId],
         COUNT(DISTINCT [Id]) AS Reservations,
         CASE WHEN COUNT(DISTINCT [Id]) > 0 THEN 1 ELSE 0 END AS [HasReservationsFlag],
-        CASE WHEN COUNT(DISTINCT [Id]) > 0 THEN 'Yes' ELSE 'No' END AS [HasReservationsText]
+        CASE WHEN COUNT(DISTINCT [Id]) > 0 THEN 'true' ELSE 'false' END AS [HasReservationsText]
     FROM [ASData_PL].[Resv_Reservation]
     WHERE IsLevyAccount = 0
     GROUP BY AccountId
@@ -134,6 +134,40 @@ AccountLevyAggregate AS (
     GROUP BY EmployerEmail
 ),
 
+EmployerSizeCTE AS (
+    -- Normalise Employer Size once per Account
+    SELECT 
+        de.EmployerAccountId,
+        CASE 
+            WHEN de.[EmployeeSize1] LIKE '%(Micro)%'  THEN 'Micro'
+            WHEN de.[EmployeeSize1] LIKE '%(Small)%'  THEN 'Small'
+            WHEN de.[EmployeeSize1] LIKE '%(Medium)%' THEN 'Medium'
+            WHEN de.[EmployeeSize1] LIKE '%(Large)%'  THEN 'Large'
+            WHEN de.[EmployeeSize1] LIKE '%(Macro)%'  THEN 'Macro'
+            ELSE 'Others'
+        END AS NormalizedEmployerSize
+    FROM ASData_PL.DimEmployer AS de
+),
+
+EmployerSizeAggregate AS (
+    -- Apply duplicate-handling rule: return blank if inconsistent
+    SELECT
+        au.Email AS EmployerEmail,
+        CASE 
+            WHEN COUNT(DISTINCT es.NormalizedEmployerSize) = 1
+                THEN MAX(es.NormalizedEmployerSize)
+            ELSE ''
+        END AS EmployerSize
+    FROM ASData_PL.Acc_User au
+    LEFT JOIN ASData_PL.Acc_UserAccountSettings aus
+        ON aus.UserId = au.Id
+    LEFT JOIN ASData_PL.Acc_Account acc
+        ON acc.Id = aus.AccountId
+    LEFT JOIN EmployerSizeCTE es
+        ON es.EmployerAccountId = acc.Id
+    GROUP BY au.Email
+),
+
 AccountUsers AS (
     SELECT
         aur.EmployerEmail,
@@ -145,7 +179,8 @@ AccountUsers AS (
         aur.DateOfLastAPIAutoSync,
         ala.AccountCount,
         ala.ConsolidatedLevyStatus,
-        era.HasReservationsText
+        era.HasReservationsText,
+        esa.EmployerSize
     FROM AccountUsersRanked aur
     INNER JOIN AccountLevyAggregate ala
         ON ala.EmployerEmail = aur.EmployerEmail
@@ -153,6 +188,8 @@ AccountUsers AS (
         ON era.EmployerEmail = aur.EmployerEmail
     LEFT JOIN EmailNameAggregate ena
         ON ena.EmployerEmail = aur.EmployerEmail
+    LEFT JOIN EmployerSizeAggregate esa
+        ON esa.EmployerEmail = aur.EmployerEmail
     WHERE aur.rn = 1
 ),
 
@@ -219,6 +256,7 @@ Merged AS (
         au.LastLogin,
         au.DateOfLastAPIAutoSync,
         au.HasReservationsText AS ReservedFunding,
+        au.EmployerSize,
 
         cu.UkEmployerSize,
         cu.PrimaryIndustry,
@@ -246,6 +284,7 @@ SELECT
     LastLogin,
     DateOfLastAPIAutoSync,
     ReservedFunding,
+    EmployerSize,
     UkEmployerSize,
     PrimaryIndustry,
     PrimaryLocation,
