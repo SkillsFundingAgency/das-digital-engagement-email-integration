@@ -1,5 +1,6 @@
 using DAS.DigitalEngagement.Application.Services;
 using DAS.DigitalEngagement.Application.Services.Interfaces;
+using DAS.DigitalEngagement.CampaignInterest.Data.Helpers;
 using DAS.DigitalEngagement.CampaignInterest.Data.Models;
 using DAS.DigitalEngagement.CampaignInterest.Data.Repositories;
 using DAS.DigitalEngagement.Models.Campaigns;
@@ -22,6 +23,7 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Services
     public class CampaignServiceTests
     {
         private Mock<IExternalApiService> _externalApiServiceMock;
+        private Mock<IUnitOfWork> _unitOfWorkMock;
         private Mock<ICampaignImportMetadataRepository> _metadataRepositoryMock;
         private Mock<ILogger<CampaignService>> _loggerMock;
         private Mock<IOptions<EmailMarketingApi>> _apiConfig;
@@ -32,6 +34,8 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Services
         {
             _externalApiServiceMock = new Mock<IExternalApiService>();
             _metadataRepositoryMock = new Mock<ICampaignImportMetadataRepository>();
+            _unitOfWorkMock = new Mock<IUnitOfWork>();
+            _unitOfWorkMock.Setup(x => x.CampaignImportMetadata).Returns(_metadataRepositoryMock.Object);
             _loggerMock = new Mock<ILogger<CampaignService>>();
             _apiConfig = new Mock<IOptions<EmailMarketingApi>>();
             _apiConfig.Setup(x => x.Value).Returns(new EmailMarketingApi
@@ -43,7 +47,7 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Services
                 ChunkSizeKB = 100,
                 ImportWindowDays = 7,
             });
-            _sut = new CampaignService(_externalApiServiceMock.Object, _metadataRepositoryMock.Object, _loggerMock.Object, _apiConfig.Object);
+            _sut = new CampaignService(_externalApiServiceMock.Object, _unitOfWorkMock.Object, _loggerMock.Object, _apiConfig.Object);
         }
 
         [Test]
@@ -503,7 +507,7 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Services
 
             var service = new CampaignService(
                 _externalApiServiceMock.Object,
-                _metadataRepositoryMock.Object,
+                _unitOfWorkMock.Object,
                 _loggerMock.Object,
                 apiConfigSmallPageSize.Object);
 
@@ -1210,7 +1214,7 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Services
 
             var service = new CampaignService(
                 _externalApiServiceMock.Object,
-                _metadataRepositoryMock.Object,
+                _unitOfWorkMock.Object,
                 _loggerMock.Object,
                 apiConfigSmall.Object);
 
@@ -1480,7 +1484,7 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Services
 
             var service = new CampaignService(
                 _externalApiServiceMock.Object,
-                _metadataRepositoryMock.Object,
+                _unitOfWorkMock.Object,
                 _loggerMock.Object,
                 apiConfigSmall.Object);
 
@@ -1711,7 +1715,7 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Services
 
             var service = new CampaignService(
                 _externalApiServiceMock.Object,
-                _metadataRepositoryMock.Object,
+                _unitOfWorkMock.Object,
                 _loggerMock.Object,
                 apiConfigSmall.Object);
 
@@ -1939,7 +1943,7 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Services
 
             var service = new CampaignService(
                 _externalApiServiceMock.Object,
-                _metadataRepositoryMock.Object,
+                _unitOfWorkMock.Object,
                 _loggerMock.Object,
                 apiConfigSmall.Object);
 

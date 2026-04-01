@@ -1,5 +1,5 @@
 using DAS.DigitalEngagement.Application.Services.Interfaces;
-using DAS.DigitalEngagement.CampaignInterest.Data.Repositories;
+using DAS.DigitalEngagement.CampaignInterest.Data.Helpers;
 using DAS.DigitalEngagement.Models.Campaigns;
 using DAS.DigitalEngagement.Models.Infrastructure;
 using Microsoft.Extensions.Logging;
@@ -12,19 +12,19 @@ namespace DAS.DigitalEngagement.Application.Services;
 public class CampaignService : ICampaignService
 {
     private readonly IExternalApiService _externalApiService;
-    private readonly ICampaignImportMetadataRepository _metadataRepository;
+    private readonly IUnitOfWork _unitOfWork;
     private readonly ILogger<CampaignService> _logger;
     private readonly int _pageSize;
     private readonly int _importWindowDays;
 
     public CampaignService(
         IExternalApiService externalApiService,
-        ICampaignImportMetadataRepository metadataRepository,
+        IUnitOfWork unitOfWork,
         ILogger<CampaignService> logger,
         IOptions<EmailMarketingApi> apiConfig)
     {
         _externalApiService = externalApiService;
-        _metadataRepository = metadataRepository;
+        _unitOfWork = unitOfWork;
         _logger = logger;
         _pageSize = apiConfig.Value.PageSize;
         _importWindowDays = apiConfig.Value.ImportWindowDays;
@@ -234,7 +234,8 @@ public class CampaignService : ICampaignService
 
         _logger.LogInformation("Retrieved {SendCount} total sends from e-shot API", allSends.Count());
 
-        var importedMetadata = await _metadataRepository.GetAllAsync();
+        await _unitOfWork.BeginAsync();
+        var importedMetadata = await _unitOfWork.CampaignImportMetadata.GetAllAsync();
         var completedSendIds = new HashSet<long>(
             importedMetadata
                 .Where(m => m.IsImportComplete)

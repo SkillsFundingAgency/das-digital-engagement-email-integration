@@ -27,7 +27,7 @@ public class CampaignsRepository(IDbConnectionFactory factory, ILogger<Campaigns
 
         logger.LogInformation("Upserting Campaign with CampaignId {CampaignId} using stored procedure {StoredProcedure}", campaign.Id, storedProcedure);
 
-        using var connection = (SqlConnection)factory.CreateConnection();
+        using var connection = (SqlConnection)await factory.CreateConnectionAsync();
         await connection.OpenAsync();
 
         var rowsAffected = await connection.ExecuteAsync(storedProcedure, new
@@ -64,7 +64,7 @@ public class CampaignsRepository(IDbConnectionFactory factory, ILogger<Campaigns
 
         logger.LogInformation("Fetching Campaign by Id {Id} using stored procedure {StoredProcedure}", id, storedProcedure);
 
-        using var connection = (SqlConnection)factory.CreateConnection();
+        using var connection = (SqlConnection)await factory.CreateConnectionAsync();
         await connection.OpenAsync();
 
         var result = await connection.QuerySingleOrDefaultAsync<Campaigns>(storedProcedure, new { Id = id.ToString() }, commandType: CommandType.StoredProcedure);
@@ -79,7 +79,7 @@ public class CampaignsRepository(IDbConnectionFactory factory, ILogger<Campaigns
 
         logger.LogInformation("Fetching all Campaigns using stored procedure {StoredProcedure}", storedProcedure);
 
-        using var connection = (SqlConnection)factory.CreateConnection();
+        using var connection = (SqlConnection)await factory.CreateConnectionAsync();
         await connection.OpenAsync();
 
         var result = await connection.QueryAsync<Campaigns>(storedProcedure, commandType: CommandType.StoredProcedure);
@@ -95,7 +95,7 @@ public class CampaignsRepository(IDbConnectionFactory factory, ILogger<Campaigns
 
         logger.LogInformation("Fetching {Count} Campaigns by Ids using stored procedure {StoredProcedure}", ids.Count(), storedProcedure);
 
-        using var connection = (SqlConnection)factory.CreateConnection();
+        using var connection = (SqlConnection)await factory.CreateConnectionAsync();
         await connection.OpenAsync();
 
         var result = await connection.QueryAsync<Campaigns>(storedProcedure, new { Ids = idList }, commandType: CommandType.StoredProcedure);

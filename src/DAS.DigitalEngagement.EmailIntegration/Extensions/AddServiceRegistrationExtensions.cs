@@ -9,7 +9,6 @@ using DAS.DigitalEngagement.Application.Repositories.Interfaces;
 using DAS.DigitalEngagement.Application.Services;
 using DAS.DigitalEngagement.Application.Services.Interfaces;
 using DAS.DigitalEngagement.CampaignInterest.Data.Helpers;
-using DAS.DigitalEngagement.CampaignInterest.Data.Repositories;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using System.Configuration;
@@ -32,10 +31,7 @@ namespace DAS.DigitalEngagement.EmailIntegration.Extensions
             services.AddTransient<IImportCampaignPerformanceHandler, ImportCampaignPerformanceHandler>();
             services.AddTransient<ICampaignService, CampaignService>();
 
-            services.AddSingleton<IDbConnectionFactory>(sp =>
-                new SqlConnectionFactory(configuration.GetConnectionString("DefaultConnection")
-                    ?? throw new ConfigurationErrorsException("DefaultConnection connection string is not configured")));
-            services.AddTransient<ICampaignImportMetadataRepository, CampaignImportMetadataRepository>();
+            services.AddTransient<IUnitOfWork, UnitOfWork>();
 
 
             services.AddTransient<IDataMartRepository, DataMartRepository>();

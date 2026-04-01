@@ -10,4 +10,5 @@ public interface IUnitOfWork : IAsyncDisposable
     IDisplayedEmailsRepository DisplayedEmails { get; }
     IUnsubscribedContactsRepository UnsubscribedContacts { get; }
     ICampaignImportMetadataRepository CampaignImportMetadata { get; }
+    Task BeginAsync();
 }

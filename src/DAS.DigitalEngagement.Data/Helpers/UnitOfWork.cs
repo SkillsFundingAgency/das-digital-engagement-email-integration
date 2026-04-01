@@ -1,11 +1,12 @@
-﻿using DAS.DigitalEngagement.CampaignInterest.Data.Repositories;
+﻿using Azure.Core;
+using DAS.DigitalEngagement.CampaignInterest.Data.Repositories;
 using DAS.DigitalEngagement.CampaignInterest.Data.Service;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
 namespace DAS.DigitalEngagement.CampaignInterest.Data.Helpers;
 
-public class UnitOfWork(IConfiguration config, ILogger<UnitOfWork> logger) : IUnitOfWork
+public class UnitOfWork(IConfiguration config, TokenCredential tokenCredential, ILogger<UnitOfWork> logger) : IUnitOfWork
 {
     public IBouncedEmailsRepository BouncedEmails { get; private set; } = null!;
     public ICampaignsRepository Campaigns { get; private set; } = null!;
@@ -20,7 +21,7 @@ public class UnitOfWork(IConfiguration config, ILogger<UnitOfWork> logger) : IUn
 
         string connectionString = config.GetConnectionString("DefaultConnection")!;
 
-        IDbConnectionFactory factory = new SqlConnectionFactory(connectionString);
+        IDbConnectionFactory factory = new SqlConnectionFactory(connectionString, tokenCredential);
 
         var bulkService = new BulkInsertService(factory, new LoggerFactory().CreateLogger<BulkInsertService>());
 
