@@ -69,6 +69,10 @@
           "Target": "Reservedfunding"
         },
         {
+          "Source": "EmployerSize",
+          "Target": "EmployerSize"
+        },
+        {
           "Source": "AccountCount",
           "Target": "EmployerCount"
         }
