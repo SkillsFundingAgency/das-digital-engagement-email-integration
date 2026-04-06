@@ -3,7 +3,7 @@ using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging;
 using System.Diagnostics;
 
-namespace DAS.DigitalEngagement.EmailIntegration;
+namespace DAS.DigitalEngagement.EmailIntegration.Functions;
 
 public class PerformanceDataImporter
 {
