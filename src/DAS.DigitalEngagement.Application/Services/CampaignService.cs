@@ -257,8 +257,8 @@ public class CampaignService : ICampaignService
                 return false;
             }
 
-            // Only include sends that completed before the cutoff date to ensure we don't import sends that are still being interacted with
-            return sendCompletedDate <= cutoffDate;
+            // Only include sends within the configured time window
+            return sendCompletedDate >= cutoffDate;
 
         }).ToList();
 

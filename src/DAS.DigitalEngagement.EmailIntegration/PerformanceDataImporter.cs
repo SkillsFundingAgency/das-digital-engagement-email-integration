@@ -2,7 +2,6 @@ using DAS.DigitalEngagement.Application.Handlers.Campaigns;
 using DAS.DigitalEngagement.Models.Infrastructure;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging;
-using System.Configuration;
 using System.Diagnostics;
 
 namespace DAS.DigitalEngagement.EmailIntegration;
@@ -29,7 +28,7 @@ public class PerformanceDataImporter
         _logger.LogInformation("Performance Data Importer started at: {DateTime}", DateTime.Now);
         _logger.LogInformation(
             "Connection string: {ConnectionString}, API Base URL: {ApiBaseUrl}",
-            _configuration.ConnectionString.DataMart,
+            _configuration.ConnectionString.CampaignsDatabase,
             _configuration.EmailMarketingApi?.ApiBaseUrl
         );
 
