@@ -254,7 +254,7 @@ public class CampaignService : ICampaignService
             }
 
             // Only include sends within the configured time window
-            return sendCompletedDate >= cutoffDate;
+            return sendCompletedDate <= cutoffDate;
 
         }).ToList();
 

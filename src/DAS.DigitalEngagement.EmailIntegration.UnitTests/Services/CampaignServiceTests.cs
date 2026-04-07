@@ -1990,8 +1990,8 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Services
             var now = DateTime.UtcNow;
             var jsonResponse = @"{
                 ""value"": [
-                    { ""ID"": 1, ""Name"": ""Send 1"", ""SendCompletedDate"": """ + now.AddDays(-1).ToString("O") + @""", ""ContactCount"": 100 },
-                    { ""ID"": 2, ""Name"": ""Send 2"", ""SendCompletedDate"": """ + now.AddDays(-3).ToString("O") + @""", ""ContactCount"": 200 }
+                    { ""ID"": 1, ""Name"": ""Send 1"", ""SendCompletedDate"": """ + now.AddDays(-8).ToString("O") + @""", ""ContactCount"": 100 },
+                    { ""ID"": 2, ""Name"": ""Send 2"", ""SendCompletedDate"": """ + now.AddDays(-11).ToString("O") + @""", ""ContactCount"": 200 }
                 ]
             }";
 
@@ -2019,9 +2019,9 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Services
             var now = DateTime.UtcNow;
             var jsonResponse = @"{
                 ""value"": [
-                    { ""ID"": 1, ""Name"": ""Send 1"", ""SendCompletedDate"": """ + now.AddDays(-1).ToString("O") + @""", ""ContactCount"": 100 },
-                    { ""ID"": 2, ""Name"": ""Send 2"", ""SendCompletedDate"": """ + now.AddDays(-2).ToString("O") + @""", ""ContactCount"": 200 },
-                    { ""ID"": 3, ""Name"": ""Send 3"", ""SendCompletedDate"": """ + now.AddDays(-3).ToString("O") + @""", ""ContactCount"": 300 }
+                    { ""ID"": 1, ""Name"": ""Send 1"", ""SendCompletedDate"": """ + now.AddDays(-10).ToString("O") + @""", ""ContactCount"": 100 },
+                    { ""ID"": 2, ""Name"": ""Send 2"", ""SendCompletedDate"": """ + now.AddDays(-20).ToString("O") + @""", ""ContactCount"": 200 },
+                    { ""ID"": 3, ""Name"": ""Send 3"", ""SendCompletedDate"": """ + now.AddDays(-30).ToString("O") + @""", ""ContactCount"": 300 }
                 ]
             }";
 
@@ -2052,7 +2052,7 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Services
             var now = DateTime.UtcNow;
             var jsonResponse = @"{
                 ""value"": [
-                    { ""ID"": 1, ""Name"": ""Send 1"", ""SendCompletedDate"": """ + now.AddDays(-1).ToString("O") + @""", ""ContactCount"": 100 }
+                    { ""ID"": 1, ""Name"": ""Send 1"", ""SendCompletedDate"": """ + now.AddDays(-10).ToString("O") + @""", ""ContactCount"": 100 }
                 ]
             }";
 
@@ -2100,8 +2100,7 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Services
             var result = (await _sut.GetEligibleSendsAsync()).ToList();
 
             // Assert
-            Assert.That(result.Count, Is.EqualTo(1));
-            Assert.That(result[0].ID, Is.EqualTo(1));
+            Assert.That(result.Count, Is.EqualTo(2));
         }
 
         [Test]
@@ -2134,8 +2133,8 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Services
             var result = (await _sut.GetEligibleSendsAsync()).ToList();
 
             // Assert
-            Assert.That(result.Count, Is.EqualTo(2));
-            Assert.That(result.Select(s => s.ID), Does.Contain(1).And.Contain(4));
+            Assert.That(result.Count, Is.EqualTo(1));
+            Assert.That(result.Select(s => s.ID), Does.Contain(3));
         }
 
         [Test]
@@ -2163,7 +2162,7 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Services
             var now = DateTime.UtcNow;
             var jsonResponse = @"{
                 ""value"": [
-                    { ""ID"": 1, ""Name"": ""Send 1"", ""SendCompletedDate"": """ + now.AddDays(-1).ToString("O") + @""", ""ContactCount"": 100 }
+                    { ""ID"": 1, ""Name"": ""Send 1"", ""SendCompletedDate"": """ + now.AddDays(-10).ToString("O") + @""", ""ContactCount"": 100 }
                 ]
             }";
 
@@ -2210,7 +2209,7 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Services
             var now = DateTime.UtcNow;
             var jsonResponse = @"{
                 ""value"": [
-                    { ""ID"": 1, ""Name"": ""Good"", ""SendCompletedDate"": """ + now.AddDays(-1).ToString("O") + @""", ""ContactCount"": 100 },
+                    { ""ID"": 1, ""Name"": ""Good"", ""SendCompletedDate"": """ + now.AddDays(-10).ToString("O") + @""", ""ContactCount"": 100 },
                     { ""ID"": 2, ""Name"": ""Bad Date"", ""SendCompletedDate"": ""not-a-date"", ""ContactCount"": 200 }
                 ]
             }";
@@ -2238,7 +2237,7 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Services
             var cutoffDate = DateTime.UtcNow.AddDays(-7);
             var jsonResponse = @"{
                 ""value"": [
-                    { ""ID"": 1, ""Name"": ""At Cutoff"", ""SendCompletedDate"": """ + cutoffDate.AddMinutes(1).ToString("O") + @""", ""ContactCount"": 100 }
+                    { ""ID"": 1, ""Name"": ""At Cutoff"", ""SendCompletedDate"": """ + cutoffDate.AddMinutes(-1).ToString("O") + @""", ""ContactCount"": 100 }
                 ]
             }";
 
