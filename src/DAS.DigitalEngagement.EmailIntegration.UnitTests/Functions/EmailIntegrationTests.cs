@@ -8,22 +8,22 @@ using Moq;
 using System.Collections.Generic;
 using DAS.DigitalEngagement.Models.Import;
 using DAS.DigitalEngagement.Application.Services.Interfaces;
+using Integration = DAS.DigitalEngagement.EmailIntegration.Functions;
 
 namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Functions
 {
     [TestFixture]
     public class EmailIntegrationTests
     {
-        private Mock<ILogger<EmailIntegration>> _loggerMock;
+        private Mock<ILogger<Integration.EmailIntegration>> _loggerMock;
         private Mock<IImportDataMartHandler> _importDataMartHandlerMock;
         private Mock<IReportService> _reportServiceMock;
         private ApplicationConfiguration _configuration;
-        private EmailIntegration _sut;
-
+        private Integration.EmailIntegration _sut;
         [SetUp]
         public void SetUp()
         {
-            _loggerMock = new Mock<ILogger<EmailIntegration>>();
+            _loggerMock = new Mock<ILogger<EmailIntegration.Functions.EmailIntegration>>();
             _importDataMartHandlerMock = new Mock<IImportDataMartHandler>();
             _reportServiceMock = new Mock<IReportService>();
             _configuration = new ApplicationConfiguration
@@ -47,7 +47,7 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Functions
                     }
                 }
             };
-            _sut = new EmailIntegration(_loggerMock.Object, _importDataMartHandlerMock.Object, _configuration, _reportServiceMock.Object);
+            _sut = new Integration.EmailIntegration(_loggerMock.Object, _importDataMartHandlerMock.Object, _configuration, _reportServiceMock.Object);
         }
 
         [Test]
