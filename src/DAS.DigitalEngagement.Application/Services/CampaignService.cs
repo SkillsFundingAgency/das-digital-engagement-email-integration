@@ -232,16 +232,12 @@ public class CampaignService : ICampaignService
             return Enumerable.Empty<Send>();
         }
 
-        _logger.LogInformation("Retrieved {SendCount} total sends from e-shot API", allSends.Count());
-
         await _unitOfWork.BeginAsync();
         var importedMetadata = await _unitOfWork.CampaignImportMetadata.GetAllAsync();
         var completedSendIds = new HashSet<long>(
             importedMetadata
                 .Where(m => m.IsImportComplete)
                 .Select(m => m.CampaignId));
-
-        _logger.LogInformation("Found {CompletedCount} fully imported sends in metadata", completedSendIds.Count);
 
         var cutoffDate = DateTime.UtcNow.AddDays(-_importWindowDays);
 

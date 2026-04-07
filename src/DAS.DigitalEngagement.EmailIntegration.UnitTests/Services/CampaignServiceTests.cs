@@ -2135,7 +2135,7 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Services
 
             // Assert
             Assert.That(result.Count, Is.EqualTo(2));
-            Assert.That(result.Select(s => s.ID), Is.EquivalentTo(new[] { 1, 4 }));
+            Assert.That(result.Select(s => s.ID), Does.Contain(1).And.Contain(4));
         }
 
         [Test]
