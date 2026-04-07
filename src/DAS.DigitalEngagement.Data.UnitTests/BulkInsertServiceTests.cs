@@ -23,7 +23,7 @@ public class BulkInsertServiceTests
         _mockLogger = new Mock<ILogger<BulkInsertService>>();
         _mockConnection = new Mock<IDbConnection>();
 
-        _mockFactory.Setup(f => f.CreateConnection()).Returns(_mockConnection.Object);
+        _mockFactory.Setup(f => f.CreateConnectionAsync()).ReturnsAsync(_mockConnection.Object);
     }
 
     #region Constructor Tests
@@ -47,7 +47,7 @@ public class BulkInsertServiceTests
 
         // Assert
         Assert.That(service, Is.Not.Null);
-        _mockFactory.Verify(f => f.CreateConnection(), Times.Never,
+        _mockFactory.Verify(f => f.CreateConnectionAsync(), Times.Never,
             "Constructor should not create connection immediately");
     }
 
@@ -170,7 +170,7 @@ public class BulkInsertServiceTests
         }
 
         // Assert
-        _mockFactory.Verify(f => f.CreateConnection(), Times.Once,
+        _mockFactory.Verify(f => f.CreateConnectionAsync(), Times.Once,
             "BulkInsertAsync should use factory to create connection");
     }
 
@@ -205,7 +205,7 @@ public class BulkInsertServiceTests
             "BulkInsertAsync should attempt to execute and fail due to mock limitations");
 
         // Verify factory was called, proving the method started executing
-        _mockFactory.Verify(f => f.CreateConnection(), Times.Once);
+        _mockFactory.Verify(f => f.CreateConnectionAsync(), Times.Once);
     }
 
     [Test]
@@ -867,8 +867,8 @@ public class BulkInsertServiceTests
 
         var creationOrder = new List<string>();
 
-        factoryMock.Setup(f => f.CreateConnection())
-            .Returns(() =>
+        factoryMock.Setup(f => f.CreateConnectionAsync())
+            .ReturnsAsync(() =>
             {
                 creationOrder.Add("CreateConnection");
                 return connectionMock.Object;
@@ -910,7 +910,7 @@ public class BulkInsertServiceTests
         // Arrange
         var connectionMock = new Mock<IDbConnection>();
 
-        _mockFactory.Setup(f => f.CreateConnection()).Returns(connectionMock.Object);
+        _mockFactory.Setup(f => f.CreateConnectionAsync()).ReturnsAsync(connectionMock.Object);
 
         var service = new BulkInsertService(_mockFactory.Object, _mockLogger.Object);
         var data = new List<TestEntity>
@@ -937,7 +937,7 @@ public class BulkInsertServiceTests
         }
 
         // Assert
-        _mockFactory.Verify(f => f.CreateConnection(), Times.Once, "Connection should be created via factory (disposal is guaranteed by using statement)");
+        _mockFactory.Verify(f => f.CreateConnectionAsync(), Times.Once, "Connection should be created via factory (disposal is guaranteed by using statement)");
     }
 
     #endregion
@@ -950,8 +950,8 @@ public class BulkInsertServiceTests
         // Arrange
         var callCount = 0;
         var factoryMock = new Mock<IDbConnectionFactory>();
-        factoryMock.Setup(f => f.CreateConnection())
-            .Returns(() =>
+        factoryMock.Setup(f => f.CreateConnectionAsync())
+            .ReturnsAsync(() =>
             {
                 callCount++;
                 return _mockConnection.Object;
@@ -984,7 +984,7 @@ public class BulkInsertServiceTests
         // Assert
         Assert.That(callCount, Is.EqualTo(1), "CreateConnection should be called exactly once per BulkInsertAsync invocation");
 
-        factoryMock.Verify(f => f.CreateConnection(), Times.Once, "Factory should create exactly one connection");
+        factoryMock.Verify(f => f.CreateConnectionAsync(), Times.Once, "Factory should create exactly one connection");
     }
 
     [Test]
@@ -996,7 +996,7 @@ public class BulkInsertServiceTests
 
         // Assert
         Assert.That(service, Is.Not.Null, "Service should be created successfully");
-        factoryMock.Verify(f => f.CreateConnection(), Times.Never, "Connection should not be created until BulkInsertAsync is called");
+        factoryMock.Verify(f => f.CreateConnectionAsync(), Times.Never, "Connection should not be created until BulkInsertAsync is called");
     }
 
     [Test]
@@ -1005,8 +1005,8 @@ public class BulkInsertServiceTests
         // Arrange
         var callCount = 0;
         var factoryMock = new Mock<IDbConnectionFactory>();
-        factoryMock.Setup(f => f.CreateConnection())
-            .Returns(() =>
+        factoryMock.Setup(f => f.CreateConnectionAsync())
+            .ReturnsAsync(() =>
             {
                 callCount++;
                 return new Mock<IDbConnection>().Object;
@@ -1025,7 +1025,7 @@ public class BulkInsertServiceTests
         // Assert
         Assert.That(callCount, Is.EqualTo(2), "Each BulkInsertAsync call should create its own connection");
 
-        factoryMock.Verify(f => f.CreateConnection(), Times.Exactly(2), "Factory should be called once per BulkInsertAsync invocation");
+        factoryMock.Verify(f => f.CreateConnectionAsync(), Times.Exactly(2), "Factory should be called once per BulkInsertAsync invocation");
     }
 
     #endregion

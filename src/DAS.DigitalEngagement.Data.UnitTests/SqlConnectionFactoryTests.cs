@@ -49,13 +49,13 @@ public class SqlConnectionFactoryTests
     #region CreateConnection Tests
 
     [Test]
-    public void CreateConnection_Should_Return_SqlConnection_Instance()
+    public async Task CreateConnection_Should_Return_SqlConnection_Instance()
     {
         // Arrange
         var factory = new SqlConnectionFactory(ValidConnectionString);
 
         // Act
-        var connection = factory.CreateConnection();
+        var connection = await factory.CreateConnectionAsync();
 
         // Assert
         Assert.That(connection, Is.Not.Null);
@@ -63,13 +63,13 @@ public class SqlConnectionFactoryTests
     }
 
     [Test]
-    public void CreateConnection_Should_Return_IDbConnection_Instance()
+    public async Task CreateConnection_Should_Return_IDbConnection_Instance()
     {
         // Arrange
         var factory = new SqlConnectionFactory(ValidConnectionString);
 
         // Act
-        var connection = factory.CreateConnection();
+        var connection = await factory.CreateConnectionAsync();
 
         // Assert
         Assert.That(connection, Is.Not.Null);
@@ -77,13 +77,13 @@ public class SqlConnectionFactoryTests
     }
 
     [Test]
-    public void CreateConnection_Should_Return_Connection_With_Correct_Connection_String()
+    public async Task CreateConnection_Should_Return_Connection_With_Correct_Connection_String()
     {
         // Arrange
         var factory = new SqlConnectionFactory(ValidConnectionString);
 
         // Act
-        var connection = factory.CreateConnection() as SqlConnection;
+        var connection = await factory.CreateConnectionAsync() as SqlConnection;
 
         // Assert
         Assert.That(connection, Is.Not.Null);
@@ -91,28 +91,28 @@ public class SqlConnectionFactoryTests
     }
 
     [Test]
-    public void CreateConnection_Should_Return_Closed_Connection()
+    public async Task CreateConnection_Should_Return_Closed_Connection()
     {
         // Arrange
         var factory = new SqlConnectionFactory(ValidConnectionString);
 
         // Act
-        var connection = factory.CreateConnection();
+        var connection = await factory.CreateConnectionAsync();
 
         // Assert
         Assert.That(connection.State, Is.EqualTo(ConnectionState.Closed));
     }
 
     [Test]
-    public void CreateConnection_Should_Return_New_Instance_On_Each_Call()
+    public async Task CreateConnection_Should_Return_New_Instance_On_Each_Call()
     {
         // Arrange
         var factory = new SqlConnectionFactory(ValidConnectionString);
 
         // Act
-        var connection1 = factory.CreateConnection();
-        var connection2 = factory.CreateConnection();
-        var connection3 = factory.CreateConnection();
+        var connection1 = await factory.CreateConnectionAsync();
+        var connection2 = await factory.CreateConnectionAsync();
+        var connection3 = await factory.CreateConnectionAsync();
 
         Assert.Multiple(() =>
         {
@@ -130,7 +130,7 @@ public class SqlConnectionFactoryTests
     }
 
     [Test]
-    public void CreateConnection_Should_Handle_Multiple_Calls_With_Same_Connection_String()
+    public async Task CreateConnection_Should_Handle_Multiple_Calls_With_Same_Connection_String()
     {
         // Arrange
         var factory = new SqlConnectionFactory(ValidConnectionString);
@@ -139,7 +139,7 @@ public class SqlConnectionFactoryTests
         var connections = new List<IDbConnection>();
         for (int i = 0; i < 5; i++)
         {
-            connections.Add(factory.CreateConnection());
+            connections.Add(await factory.CreateConnectionAsync());
         }
 
         // Assert
@@ -168,14 +168,14 @@ public class SqlConnectionFactoryTests
     #region Connection String Variations Tests
 
     [Test]
-    public void CreateConnection_Should_Handle_Connection_String_With_Trusted_Connection()
+    public async Task CreateConnection_Should_Handle_Connection_String_With_Trusted_Connection()
     {
         // Arrange
         var connectionString = "Server=myServer;Database=myDB;Trusted_Connection=True;";
         var factory = new SqlConnectionFactory(connectionString);
 
         // Act
-        var connection = factory.CreateConnection() as SqlConnection;
+        var connection = await factory.CreateConnectionAsync() as SqlConnection;
 
         // Assert
         Assert.That(connection, Is.Not.Null);
@@ -183,14 +183,14 @@ public class SqlConnectionFactoryTests
     }
 
     [Test]
-    public void CreateConnection_Should_Handle_Connection_String_With_Username_Password()
+    public async Task CreateConnection_Should_Handle_Connection_String_With_Username_Password()
     {
         // Arrange
         var connectionString = "Server=myServer;Database=myDB;User Id=myUser;Password=myPassword;";
         var factory = new SqlConnectionFactory(connectionString);
 
         // Act
-        var connection = factory.CreateConnection() as SqlConnection;
+        var connection = await factory.CreateConnectionAsync() as SqlConnection;
 
         // Assert
         Assert.That(connection, Is.Not.Null);
@@ -202,14 +202,14 @@ public class SqlConnectionFactoryTests
     }
 
     [Test]
-    public void CreateConnection_Should_Handle_Connection_String_With_Additional_Parameters()
+    public async Task CreateConnection_Should_Handle_Connection_String_With_Additional_Parameters()
     {
         // Arrange
         var connectionString = "Server=myServer;Database=myDB;Integrated Security=true;Timeout=30;Encrypt=True;";
         var factory = new SqlConnectionFactory(connectionString);
 
         // Act
-        var connection = factory.CreateConnection() as SqlConnection;
+        var connection = await factory.CreateConnectionAsync() as SqlConnection;
 
         // Assert
         Assert.That(connection, Is.Not.Null);
@@ -225,14 +225,14 @@ public class SqlConnectionFactoryTests
     #region Edge Cases Tests
 
     [Test]
-    public void CreateConnection_With_Null_Connection_String_Should_Create_Connection()
+    public async Task CreateConnection_With_Null_Connection_String_Should_Create_Connection()
     {
         // Arrange
         string? nullConnectionString = null;
         var factory = new SqlConnectionFactory(nullConnectionString!);
 
         // Act
-        var connection = factory.CreateConnection() as SqlConnection;
+        var connection = await factory.CreateConnectionAsync() as SqlConnection;
 
         // Assert
         Assert.That(connection, Is.Not.Null);
@@ -240,13 +240,13 @@ public class SqlConnectionFactoryTests
     }
 
     [Test]
-    public void CreateConnection_With_Empty_Connection_String_Should_Create_Connection()
+    public async Task CreateConnection_With_Empty_Connection_String_Should_Create_Connection()
     {
         // Arrange
         var factory = new SqlConnectionFactory(string.Empty);
 
         // Act
-        var connection = factory.CreateConnection() as SqlConnection;
+        var connection = await factory.CreateConnectionAsync() as SqlConnection;
 
         // Assert
         Assert.That(connection, Is.Not.Null);
@@ -254,14 +254,14 @@ public class SqlConnectionFactoryTests
     }
 
     [Test]
-    public void CreateConnection_With_Whitespace_Connection_String_Should_Preserve_Whitespace()
+    public async Task CreateConnection_With_Whitespace_Connection_String_Should_Preserve_Whitespace()
     {
         // Arrange
         var whitespaceConnectionString = "   ";
         var factory = new SqlConnectionFactory(whitespaceConnectionString);
 
         // Act
-        var connection = factory.CreateConnection() as SqlConnection;
+        var connection = await factory.CreateConnectionAsync() as SqlConnection;
 
         // Assert
         Assert.That(connection, Is.Not.Null);
@@ -282,7 +282,7 @@ public class SqlConnectionFactoryTests
     }
 
     [Test]
-    public void CreateConnection_Through_Interface_Should_Return_IDbConnection()
+    public async Task CreateConnection_Through_Interface_Should_Return_IDbConnection()
     {
         // Arrange
 #pragma warning disable CA1859
@@ -290,7 +290,7 @@ public class SqlConnectionFactoryTests
 #pragma warning restore CA1859
 
         // Act
-        var connection = factory.CreateConnection();
+        var connection = await factory.CreateConnectionAsync();
 
         // Assert
         Assert.That(connection, Is.Not.Null);
@@ -303,7 +303,7 @@ public class SqlConnectionFactoryTests
     #region Multiple Factory Instances Tests
 
     [Test]
-    public void Multiple_Factories_With_Different_Connection_Strings_Should_Create_Distinct_Connections()
+    public async Task Multiple_Factories_With_Different_Connection_Strings_Should_Create_Distinct_Connections()
     {
         // Arrange
         var connectionString1 = "Server=server1;Database=db1;Integrated Security=true;";
@@ -313,8 +313,8 @@ public class SqlConnectionFactoryTests
         var factory2 = new SqlConnectionFactory(connectionString2);
 
         // Act
-        var connection1 = factory1.CreateConnection() as SqlConnection;
-        var connection2 = factory2.CreateConnection() as SqlConnection;
+        var connection1 = await factory1.CreateConnectionAsync() as SqlConnection;
+        var connection2 = await factory2.CreateConnectionAsync() as SqlConnection;
 
         Assert.Multiple(() =>
         {
@@ -331,15 +331,15 @@ public class SqlConnectionFactoryTests
     }
 
     [Test]
-    public void Multiple_Factories_With_Same_Connection_String_Should_Create_Independent_Connections()
+    public async Task Multiple_Factories_With_Same_Connection_String_Should_Create_Independent_Connections()
     {
         // Arrange
         var factory1 = new SqlConnectionFactory(ValidConnectionString);
         var factory2 = new SqlConnectionFactory(ValidConnectionString);
 
         // Act
-        var connection1 = factory1.CreateConnection();
-        var connection2 = factory2.CreateConnection();
+        var connection1 = await factory1.CreateConnectionAsync();
+        var connection2 = await factory2.CreateConnectionAsync();
 
         Assert.Multiple(() =>
         {
@@ -355,14 +355,14 @@ public class SqlConnectionFactoryTests
     #region Performance Tests
 
     [Test]
-    public void CreateConnection_Should_Execute_Quickly()
+    public async Task CreateConnection_Should_Execute_Quickly()
     {
         // Arrange
         var factory = new SqlConnectionFactory(ValidConnectionString);
         var stopwatch = System.Diagnostics.Stopwatch.StartNew();
 
         // Act
-        var connection = factory.CreateConnection();
+        var connection = await factory.CreateConnectionAsync();
         stopwatch.Stop();
 
         Assert.Multiple(() =>
@@ -375,7 +375,7 @@ public class SqlConnectionFactoryTests
     }
 
     [Test]
-    public void CreateConnection_Should_Handle_Rapid_Successive_Calls()
+    public async Task CreateConnection_Should_Handle_Rapid_Successive_Calls()
     {
         // Arrange
         var factory = new SqlConnectionFactory(ValidConnectionString);
@@ -385,7 +385,7 @@ public class SqlConnectionFactoryTests
         // Act
         for (int i = 0; i < 100; i++)
         {
-            connections.Add(factory.CreateConnection());
+            connections.Add(await factory.CreateConnectionAsync());
         }
         stopwatch.Stop();
 
@@ -403,43 +403,43 @@ public class SqlConnectionFactoryTests
     #region Connection Disposal Tests
 
     [Test]
-    public void Created_Connection_Should_Be_Disposable()
+    public async Task Created_Connection_Should_Be_Disposable()
     {
         // Arrange
         var factory = new SqlConnectionFactory(ValidConnectionString);
-        var connection = factory.CreateConnection();
+        var connection = await factory.CreateConnectionAsync();
 
         // Act & Assert
         Assert.DoesNotThrow(() => connection.Dispose());
     }
 
     [Test]
-    public void Created_Connection_Should_Support_Using_Statement()
+    public async Task Created_Connection_Should_Support_Using_Statement()
     {
         // Arrange
         var factory = new SqlConnectionFactory(ValidConnectionString);
 
         // Act & Assert
-        Assert.DoesNotThrow(() =>
+        Assert.DoesNotThrowAsync(async () =>
         {
-            using var connection = factory.CreateConnection();
+            using var connection = await factory.CreateConnectionAsync();
             Assert.That(connection, Is.Not.Null);
         });
     }
 
     [Test]
-    public void Disposing_Connection_Should_Not_Affect_Factory()
+    public async Task Disposing_Connection_Should_Not_Affect_Factory()
     {
         // Arrange
         var factory = new SqlConnectionFactory(ValidConnectionString);
 
         // Act
-        using (var connection1 = factory.CreateConnection())
+        using (var connection1 = await factory.CreateConnectionAsync())
         {
             Assert.That(connection1, Is.Not.Null);
         }
 
-        var connection2 = factory.CreateConnection();
+        var connection2 = await factory.CreateConnectionAsync();
 
         // Assert
         Assert.That(connection2, Is.Not.Null);

@@ -26,7 +26,7 @@ public class CampaignImportMetadataRepository(IDbConnectionFactory factory, ILog
         logger.LogInformation("Fetching CampaignImportMetadata by CampaignId {CampaignId} using stored procedure {StoredProcedure}", 
             campaignId, storedProcedure);
 
-        using var connection = (SqlConnection)factory.CreateConnection();
+        using var connection = (SqlConnection)await factory.CreateConnectionAsync();
         await connection.OpenAsync();
 
         var result = await connection.QuerySingleOrDefaultAsync<CampaignImportMetadata>(
@@ -44,7 +44,7 @@ public class CampaignImportMetadataRepository(IDbConnectionFactory factory, ILog
 
         logger.LogInformation("Fetching all CampaignImportMetadata using stored procedure {StoredProcedure}", storedProcedure);
 
-        using var connection = (SqlConnection)factory.CreateConnection();
+        using var connection = (SqlConnection)await factory.CreateConnectionAsync();
         await connection.OpenAsync();
 
         var result = await connection.QueryAsync<CampaignImportMetadata>(
@@ -63,7 +63,7 @@ public class CampaignImportMetadataRepository(IDbConnectionFactory factory, ILog
         logger.LogInformation("Fetching {Count} CampaignImportMetadata by campaignIds using stored procedure {StoredProcedure}", 
             campaignIds.Count(), storedProcedure);
 
-        using var connection = (SqlConnection)factory.CreateConnection();
+        using var connection = (SqlConnection)await factory.CreateConnectionAsync();
         await connection.OpenAsync();
 
         var result = await connection.QueryAsync<CampaignImportMetadata>(
@@ -84,7 +84,7 @@ public class CampaignImportMetadataRepository(IDbConnectionFactory factory, ILog
         logger.LogInformation("Upserting CampaignImportMetadata for CampaignId {CampaignId} using stored procedure {StoredProcedure}",
             campaignImportMetadata.CampaignId, storedProcedure);
 
-        using var connection = (SqlConnection)factory.CreateConnection();
+        using var connection = (SqlConnection)await factory.CreateConnectionAsync();
         await connection.OpenAsync();
 
         var rowsAffected = await connection.ExecuteAsync(storedProcedure, new

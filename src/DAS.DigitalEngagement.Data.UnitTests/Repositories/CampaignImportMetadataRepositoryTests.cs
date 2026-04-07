@@ -26,7 +26,7 @@ public class CampaignImportMetadataRepositoryTests
         _mockConnectionFactory = new Mock<IDbConnectionFactory>();
         _mockConnection = new Mock<IDbConnection>();
 
-        _mockConnectionFactory.Setup(f => f.CreateConnection()).Returns(_mockConnection.Object);
+        _mockConnectionFactory.Setup(f => f.CreateConnectionAsync()).ReturnsAsync(_mockConnection.Object);
         _repository = new CampaignImportMetadataRepository(_mockConnectionFactory.Object, _loggerMock.Object);
     }
 
@@ -51,7 +51,7 @@ public class CampaignImportMetadataRepositoryTests
 
         // Assert
         Assert.That(repository, Is.Not.Null);
-        _mockConnectionFactory.Verify(f => f.CreateConnection(), Times.Never,
+        _mockConnectionFactory.Verify(f => f.CreateConnectionAsync(), Times.Never,
             "Constructor should not create connection immediately");
     }
 
@@ -103,7 +103,7 @@ public class CampaignImportMetadataRepositoryTests
         }
 
         // Assert
-        _mockConnectionFactory.Verify(f => f.CreateConnection(), Times.Once,
+        _mockConnectionFactory.Verify(f => f.CreateConnectionAsync(), Times.Once,
             "Repository should use factory to create connection when calling GetByIdAsync");
     }
 
@@ -604,7 +604,7 @@ public class CampaignImportMetadataRepositoryTests
         }
 
         // Assert
-        _mockConnectionFactory.Verify(f => f.CreateConnection(), Times.Once, "Repository should use factory to create connection exactly once");
+        _mockConnectionFactory.Verify(f => f.CreateConnectionAsync(), Times.Once, "Repository should use factory to create connection exactly once");
     }
 
     [Test]
@@ -658,7 +658,7 @@ public class CampaignImportMetadataRepositoryTests
                 It.IsAny<Func<It.IsAnyType, Exception?, string>>()))
             .Callback(() => logWasCalled = true);
 
-        _mockConnectionFactory.Setup(f => f.CreateConnection()).Returns(_mockConnection.Object);
+        _mockConnectionFactory.Setup(f => f.CreateConnectionAsync()).ReturnsAsync(_mockConnection.Object);
         var repository = new CampaignImportMetadataRepository(_mockConnectionFactory.Object, _loggerMock.Object);
 
         // Act
@@ -776,7 +776,7 @@ public class CampaignImportMetadataRepositoryTests
         }
 
         // Assert
-        _mockConnectionFactory.Verify(f => f.CreateConnection(), Times.Once);
+        _mockConnectionFactory.Verify(f => f.CreateConnectionAsync(), Times.Once);
     }
 
     [Test]
@@ -824,7 +824,7 @@ public class CampaignImportMetadataRepositoryTests
         }
 
         // Assert - verify factory was called (indicates string formatting didn't throw)
-        _mockConnectionFactory.Verify(f => f.CreateConnection(), Times.Once);
+        _mockConnectionFactory.Verify(f => f.CreateConnectionAsync(), Times.Once);
     }
 
     [Test]
@@ -844,7 +844,7 @@ public class CampaignImportMetadataRepositoryTests
         }
 
         // Assert - verify factory was called (indicates string formatting didn't throw)
-        _mockConnectionFactory.Verify(f => f.CreateConnection(), Times.Once);
+        _mockConnectionFactory.Verify(f => f.CreateConnectionAsync(), Times.Once);
     }
 
     [Test]
@@ -970,7 +970,7 @@ public class CampaignImportMetadataRepositoryTests
         }
 
         // Assert
-        _mockConnectionFactory.Verify(f => f.CreateConnection(), Times.Once, "Factory.CreateConnection should be called exactly once");
+        _mockConnectionFactory.Verify(f => f.CreateConnectionAsync(), Times.Once, "Factory.CreateConnection should be called exactly once");
     }
 
     [Test]
@@ -1215,7 +1215,7 @@ public class CampaignImportMetadataRepositoryTests
         }
 
         // Assert
-        _mockConnectionFactory.Verify(f => f.CreateConnection(), Times.Once);
+        _mockConnectionFactory.Verify(f => f.CreateConnectionAsync(), Times.Once);
     }
 
     [Test]
@@ -1275,7 +1275,7 @@ public class CampaignImportMetadataRepositoryTests
         }
 
         // Assert - verify factory was called (indicates string formatting succeeded)
-        _mockConnectionFactory.Verify(f => f.CreateConnection(), Times.Once);
+        _mockConnectionFactory.Verify(f => f.CreateConnectionAsync(), Times.Once);
     }
 
     [Test]
@@ -1572,7 +1572,7 @@ public class CampaignImportMetadataRepositoryTests
         }
 
         // Assert
-        _mockConnectionFactory.Verify(x => x.CreateConnection(), Times.Once);
+        _mockConnectionFactory.Verify(x => x.CreateConnectionAsync(), Times.Once);
     }
 
     [Test]
@@ -1693,7 +1693,7 @@ public class CampaignImportMetadataRepositoryTests
         }
 
         // Assert - verify factory was called (indicates string formatting didn't throw)
-        _mockConnectionFactory.Verify(f => f.CreateConnection(), Times.Once);
+        _mockConnectionFactory.Verify(f => f.CreateConnectionAsync(), Times.Once);
     }
 
     [TestCase(long.MinValue, Description = "Minimum long value")]
@@ -1717,7 +1717,7 @@ public class CampaignImportMetadataRepositoryTests
 
         // Assert
         act.Should().ThrowAsync<InvalidCastException>();
-        _mockConnectionFactory.Verify(x => x.CreateConnection(), Times.Once);
+        _mockConnectionFactory.Verify(x => x.CreateConnectionAsync(), Times.Once);
     }
 
     [Test]
@@ -1737,7 +1737,7 @@ public class CampaignImportMetadataRepositoryTests
 
         // Assert
         act.Should().ThrowAsync<InvalidCastException>();
-        _mockConnectionFactory.Verify(x => x.CreateConnection(), Times.Once);
+        _mockConnectionFactory.Verify(x => x.CreateConnectionAsync(), Times.Once);
     }
 
     [Test]
@@ -1757,7 +1757,7 @@ public class CampaignImportMetadataRepositoryTests
 
         // Assert
         act.Should().ThrowAsync<InvalidCastException>();
-        _mockConnectionFactory.Verify(x => x.CreateConnection(), Times.Once);
+        _mockConnectionFactory.Verify(x => x.CreateConnectionAsync(), Times.Once);
     }
 
     [Test]
@@ -1777,7 +1777,7 @@ public class CampaignImportMetadataRepositoryTests
 
         // Assert
         act.Should().ThrowAsync<InvalidCastException>();
-        _mockConnectionFactory.Verify(x => x.CreateConnection(), Times.Once);
+        _mockConnectionFactory.Verify(x => x.CreateConnectionAsync(), Times.Once);
     }
 
     [Test]
@@ -1797,7 +1797,7 @@ public class CampaignImportMetadataRepositoryTests
 
         // Assert
         act.Should().ThrowAsync<InvalidCastException>();
-        _mockConnectionFactory.Verify(x => x.CreateConnection(), Times.Once);
+        _mockConnectionFactory.Verify(x => x.CreateConnectionAsync(), Times.Once);
     }
 
     [TestCase(true, Description = "Import complete")]
@@ -1807,7 +1807,7 @@ public class CampaignImportMetadataRepositoryTests
         // Arrange
         var mockConnectionFactory = new Mock<IDbConnectionFactory>();
         var mockConnection = new Mock<IDbConnection>();
-        mockConnectionFactory.Setup(x => x.CreateConnection()).Returns(mockConnection.Object);
+        mockConnectionFactory.Setup(x => x.CreateConnectionAsync()).ReturnsAsync(mockConnection.Object);
         var mockLogger = new Mock<ILogger<CampaignImportMetadataRepository>>();
         var repository = new CampaignImportMetadataRepository(mockConnectionFactory.Object, mockLogger.Object);
 
@@ -1824,7 +1824,7 @@ public class CampaignImportMetadataRepositoryTests
 
         // Assert
         act.Should().ThrowAsync<InvalidCastException>();
-        mockConnectionFactory.Verify(x => x.CreateConnection(), Times.Once);
+        mockConnectionFactory.Verify(x => x.CreateConnectionAsync(), Times.Once);
     }
 
     [Test]
@@ -1850,7 +1850,7 @@ public class CampaignImportMetadataRepositoryTests
         }
 
         // Assert
-        _mockConnectionFactory.Verify(x => x.CreateConnection(), Times.Once);
+        _mockConnectionFactory.Verify(x => x.CreateConnectionAsync(), Times.Once);
     }
 
     [TestCase(0L, "0")]
@@ -1962,7 +1962,7 @@ public class CampaignImportMetadataRepositoryTests
 
         // Assert
         act.Should().ThrowAsync<InvalidCastException>();
-        _mockConnectionFactory.Verify(x => x.CreateConnection(), Times.Once);
+        _mockConnectionFactory.Verify(x => x.CreateConnectionAsync(), Times.Once);
     }
 
     [Test]

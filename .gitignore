@@ -356,3 +356,4 @@ __azurite_db_queue_extent__.json
 __azurite_db_table__.json
 __blobstorage__/AzuriteConfig
 __blobstorage__/cb707d96-6478-477b-80b3-5690754852db
+/src/DAS.DigitalEngagement.EmailIntegration/local.settings.json

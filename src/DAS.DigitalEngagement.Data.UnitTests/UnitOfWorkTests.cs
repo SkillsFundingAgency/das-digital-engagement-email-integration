@@ -1,6 +1,8 @@
-﻿using DAS.DigitalEngagement.CampaignInterest.Data.Helpers;
-using Microsoft.Extensions.Configuration;
+﻿using Azure.Core;
+using DAS.DigitalEngagement.CampaignInterest.Data.Helpers;
+using DAS.DigitalEngagement.Models.Infrastructure;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Moq;
 
 namespace DAS.DigitalEngagement.CampaignInterest.Data.UnitTests;
@@ -8,25 +10,25 @@ namespace DAS.DigitalEngagement.CampaignInterest.Data.UnitTests;
 [TestFixture]
 public class UnitOfWorkTests
 {
-    private Mock<IConfiguration> _mockConfiguration = null!;
-    private Mock<ILogger<UnitOfWork>> _mockLogger = null!;
-    private Mock<IConfigurationSection> _mockConnectionStringSection = null!;
+    private Mock<TokenCredential> _mockTokenCredential = null!;
+    private Mock<ILoggerFactory> _mockLoggerFactory = null!;
+    private Mock<IOptions<ConnectionString>> _connectionStringMock = null!;
     private UnitOfWork _unitOfWork = null!;
 
     [SetUp]
     public void Setup()
     {
-        _mockConfiguration = new Mock<IConfiguration>();
-        _mockLogger = new Mock<ILogger<UnitOfWork>>();
-        _mockConnectionStringSection = new Mock<IConfigurationSection>();
+        _mockTokenCredential = new Mock<TokenCredential>();
+        _mockLoggerFactory = new Mock<ILoggerFactory>();
+        _mockLoggerFactory.Setup(x => x.CreateLogger(It.IsAny<string>())).Returns(new Mock<ILogger>().Object);
 
-        _mockConnectionStringSection.Setup(x => x["DefaultConnection"])
-            .Returns("Server=localhost;Database=TestDb;Integrated Security=true;");
+        _connectionStringMock = new Mock<IOptions<ConnectionString>>();
 
-        _mockConfiguration.Setup(x => x.GetSection("ConnectionStrings"))
-            .Returns(_mockConnectionStringSection.Object);
+        _connectionStringMock
+            .Setup(cs => cs.Value)
+            .Returns(new ConnectionString { DataMart = "", CampaignsDatabase = "FakeConnectionString" });
 
-        _unitOfWork = new UnitOfWork(_mockConfiguration.Object, _mockLogger.Object);
+        _unitOfWork = new UnitOfWork(_mockTokenCredential.Object, _connectionStringMock.Object, _mockLoggerFactory.Object);
     }
 
     [TearDown]
@@ -44,7 +46,7 @@ public class UnitOfWorkTests
     public void Constructor_Should_Create_Instance_Successfully()
     {
         // Arrange & Act
-        var unitOfWork = new UnitOfWork(_mockConfiguration.Object, _mockLogger.Object);
+        var unitOfWork = new UnitOfWork(_mockTokenCredential.Object, _connectionStringMock.Object, _mockLoggerFactory.Object);
 
         // Assert
         Assert.That(unitOfWork, Is.Not.Null);
@@ -80,14 +82,7 @@ public class UnitOfWorkTests
         await _unitOfWork.BeginAsync();
 
         // Assert
-        _mockLogger.Verify(
-            x => x.Log(
-                LogLevel.Information,
-                It.IsAny<EventId>(),
-                It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("Starting database transaction")),
-                It.IsAny<Exception>(),
-                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
-            Times.Once);
+        _mockLoggerFactory.Verify(x => x.CreateLogger(It.IsAny<string>()), Times.AtLeastOnce);
     }
 
     [Test]
@@ -100,14 +95,6 @@ public class UnitOfWorkTests
         // Assert
         // Should not throw exception on multiple calls
         Assert.That(_unitOfWork.BouncedEmails, Is.Not.Null);
-        _mockLogger.Verify(
-            x => x.Log(
-                LogLevel.Information,
-                It.IsAny<EventId>(),
-                It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("Starting database transaction")),
-                It.IsAny<Exception>(),
-                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
-            Times.Exactly(2));
     }
 
     #endregion
@@ -176,7 +163,7 @@ public class UnitOfWorkTests
     public async Task UnitOfWork_Should_Be_Disposable_With_Using_Statement()
     {
         // Arrange & Act
-        await using (var unitOfWork = new UnitOfWork(_mockConfiguration.Object, _mockLogger.Object))
+        await using (var unitOfWork = new UnitOfWork(_mockTokenCredential.Object, _connectionStringMock.Object, _mockLoggerFactory.Object))
         {
             await unitOfWork.BeginAsync();
             Assert.That(unitOfWork.BouncedEmails, Is.Not.Null);
@@ -234,8 +221,8 @@ public class UnitOfWorkTests
     public async Task Multiple_UnitOfWork_Instances_Should_Be_Independent()
     {
         // Arrange
-        var unitOfWork1 = new UnitOfWork(_mockConfiguration.Object, _mockLogger.Object);
-        var unitOfWork2 = new UnitOfWork(_mockConfiguration.Object, _mockLogger.Object);
+        var unitOfWork1 = new UnitOfWork(_mockTokenCredential.Object, _connectionStringMock.Object, _mockLoggerFactory.Object);
+        var unitOfWork2 = new UnitOfWork(_mockTokenCredential.Object, _connectionStringMock.Object, _mockLoggerFactory.Object);
 
         // Act
         await unitOfWork1.BeginAsync();

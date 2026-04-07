@@ -20,7 +20,7 @@ public class BulkInsertService(IDbConnectionFactory factory, ILogger<BulkInsertS
     public async Task BulkInsertAsync<T>(IEnumerable<T> data, string tableName)
     {
         var stopwatch = Stopwatch.StartNew();
-        using var connection = (SqlConnection)factory.CreateConnection();
+        using var connection = (SqlConnection)await factory.CreateConnectionAsync();
         await connection.OpenAsync();
         using var transaction = await connection.BeginTransactionAsync();
 

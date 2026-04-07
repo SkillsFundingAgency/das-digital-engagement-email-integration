@@ -15,6 +15,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\DAS.DigitalEngagement.Data\DAS.DigitalEngagement.CampaignInterest.Data.csproj" />
     <ProjectReference Include="..\DAS.DigitalEngagement.Models\DAS.DigitalEngagement.Models.csproj" />
   </ItemGroup>
 
