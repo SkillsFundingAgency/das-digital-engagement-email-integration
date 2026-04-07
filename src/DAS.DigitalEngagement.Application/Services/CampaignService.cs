@@ -247,6 +247,7 @@ public class CampaignService : ICampaignService
 
         var eligibleSends = allSends.Where(send =>
         {
+            // If already imported, skip
             if (completedSendIds.Contains(send.ID))
                 return false;
 
@@ -256,7 +257,9 @@ public class CampaignService : ICampaignService
                 return false;
             }
 
-            return sendCompletedDate >= cutoffDate;
+            // Only include sends that completed before the cutoff date to ensure we don't import sends that are still being interacted with
+            return sendCompletedDate <= cutoffDate;
+
         }).ToList();
 
         _logger.LogInformation("Determined {EligibleCount} eligible sends out of {TotalCount} total sends", eligibleSends.Count, allSends.Count());

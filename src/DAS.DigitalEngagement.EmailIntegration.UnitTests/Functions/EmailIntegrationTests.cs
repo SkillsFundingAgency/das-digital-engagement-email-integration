@@ -28,7 +28,7 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Functions
             _reportServiceMock = new Mock<IReportService>();
             _configuration = new ApplicationConfiguration
             {
-                ConnectionString = new ConnectionString { DataMart = "TestConnectionString" },
+                ConnectionString = new ConnectionString { DataMart = "TestConnectionString", CampaignsDatabase = "" },
                 EmailMarketingApi = new EmailMarketingApi
                 {
                     ApiBaseUrl = "https://api.test.com",

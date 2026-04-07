@@ -1,6 +1,8 @@
 using DAS.DigitalEngagement.Application.Handlers.Campaigns;
+using DAS.DigitalEngagement.Models.Infrastructure;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging;
+using System.Configuration;
 using System.Diagnostics;
 
 namespace DAS.DigitalEngagement.EmailIntegration;
@@ -9,10 +11,15 @@ public class PerformanceDataImporter
 {
     private readonly IImportCampaignPerformanceHandler _importCampaignPerformanceHandler;
     private readonly ILogger<PerformanceDataImporter> _logger;
+    private readonly ApplicationConfiguration _configuration;
 
-    public PerformanceDataImporter(IImportCampaignPerformanceHandler importCampaignPerformanceHandler, ILogger<PerformanceDataImporter> logger)
+    public PerformanceDataImporter(
+        IImportCampaignPerformanceHandler importCampaignPerformanceHandler,
+        ApplicationConfiguration configuration,
+        ILogger<PerformanceDataImporter> logger)
     {
         _importCampaignPerformanceHandler = importCampaignPerformanceHandler;
+        _configuration = configuration;
         _logger = logger;
     }
 
@@ -20,6 +27,11 @@ public class PerformanceDataImporter
     public async Task Run([TimerTrigger("%PerformanceDataImportSchedule%", RunOnStartup = true)] TimerInfo myTimer)
     {
         _logger.LogInformation("Performance Data Importer started at: {DateTime}", DateTime.Now);
+        _logger.LogInformation(
+            "Connection string: {ConnectionString}, API Base URL: {ApiBaseUrl}",
+            _configuration.ConnectionString.DataMart,
+            _configuration.EmailMarketingApi?.ApiBaseUrl
+        );
 
         var stopwatch = Stopwatch.StartNew();
 

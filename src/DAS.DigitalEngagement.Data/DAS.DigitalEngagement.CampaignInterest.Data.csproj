@@ -16,4 +16,8 @@
     <PackageReference Include="System.Data.SqlClient" Version="4.9.1" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\DAS.DigitalEngagement.Models\DAS.DigitalEngagement.Models.csproj" />
+  </ItemGroup>
+
 </Project>

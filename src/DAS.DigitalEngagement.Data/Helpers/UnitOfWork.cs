@@ -1,12 +1,14 @@
 ﻿using Azure.Core;
 using DAS.DigitalEngagement.CampaignInterest.Data.Repositories;
 using DAS.DigitalEngagement.CampaignInterest.Data.Service;
+using DAS.DigitalEngagement.Models.Infrastructure;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace DAS.DigitalEngagement.CampaignInterest.Data.Helpers;
 
-public class UnitOfWork(IConfiguration config, TokenCredential tokenCredential, ILogger<UnitOfWork> logger) : IUnitOfWork
+public class UnitOfWork(IConfiguration config, TokenCredential tokenCredential, IOptions<ConnectionString> connectionStrings, ILogger<UnitOfWork> logger) : IUnitOfWork
 {
     public IBouncedEmailsRepository BouncedEmails { get; private set; } = null!;
     public ICampaignsRepository Campaigns { get; private set; } = null!;
@@ -19,7 +21,8 @@ public class UnitOfWork(IConfiguration config, TokenCredential tokenCredential, 
     {
         logger.LogInformation("Starting database transaction");
 
-        string connectionString = config.GetConnectionString("DefaultConnection")!;
+        //string connectionString = config.GetConnectionString("DefaultConnection")!;
+        string connectionString = connectionStrings.Value.CampaignsDatabase ?? "";
 
         IDbConnectionFactory factory = new SqlConnectionFactory(connectionString, tokenCredential);
 
