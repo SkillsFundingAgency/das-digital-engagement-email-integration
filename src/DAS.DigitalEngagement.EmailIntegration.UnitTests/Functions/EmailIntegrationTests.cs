@@ -28,7 +28,7 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Functions
             _reportServiceMock = new Mock<IReportService>();
             _configuration = new ApplicationConfiguration
             {
-                ConnectionString = new ConnectionString { DataMart = "TestConnectionString" },
+                ConnectionString = new ConnectionString { DataMart = "TestConnectionString", CampaignsDatabase = "" },
                 EmailMarketingApi = new EmailMarketingApi
                 {
                     ApiBaseUrl = "https://api.test.com",
@@ -77,8 +77,7 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Functions
                 x => x.Log(
                     LogLevel.Information,
                     It.IsAny<EventId>(),
-                    // Updated to match the actual logged value (the type name)
-                    It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("Connection string: DAS.DigitalEngagement.Models.Infrastructure.ConnectionString")),
+                    It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("Connection string: TestConnectionString")),
                     null,
                     It.IsAny<Func<It.IsAnyType, Exception, string>>()),
                 Times.Once);

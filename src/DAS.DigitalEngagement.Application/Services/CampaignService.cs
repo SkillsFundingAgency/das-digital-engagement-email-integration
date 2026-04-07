@@ -1,8 +1,10 @@
 using DAS.DigitalEngagement.Application.Services.Interfaces;
+using DAS.DigitalEngagement.CampaignInterest.Data.Helpers;
 using DAS.DigitalEngagement.Models.Campaigns;
 using DAS.DigitalEngagement.Models.Infrastructure;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using System.Globalization;
 using System.Text.Json.Nodes;
 
 namespace DAS.DigitalEngagement.Application.Services;
@@ -10,17 +12,22 @@ namespace DAS.DigitalEngagement.Application.Services;
 public class CampaignService : ICampaignService
 {
     private readonly IExternalApiService _externalApiService;
+    private readonly IUnitOfWork _unitOfWork;
     private readonly ILogger<CampaignService> _logger;
     private readonly int _pageSize;
+    private readonly int _importWindowDays;
 
     public CampaignService(
         IExternalApiService externalApiService,
+        IUnitOfWork unitOfWork,
         ILogger<CampaignService> logger,
         IOptions<EmailMarketingApi> apiConfig)
     {
         _externalApiService = externalApiService;
+        _unitOfWork = unitOfWork;
         _logger = logger;
         _pageSize = apiConfig.Value.PageSize;
+        _importWindowDays = apiConfig.Value.ImportWindowDays;
     }
     public async Task<IEnumerable<Send>> GetAllSendsAsync(int? subAccountId = null, CancellationToken cancellationToken = default)
     {
@@ -211,6 +218,49 @@ public class CampaignService : ICampaignService
         _logger.LogInformation("Successfully retrieved {ContactCount} unsubscribed email contacts for Send {SendId}", unsubscribedContacts.Count, sendId);
 
         return unsubscribedContacts;
+    }
+
+    public async Task<IEnumerable<Send>> GetEligibleSendsAsync(int? subAccountId = null, CancellationToken cancellationToken = default)
+    {
+        _logger.LogInformation("Determining eligible sends for import with window of {ImportWindowDays} days", _importWindowDays);
+
+        var allSends = await GetAllSendsAsync(subAccountId, cancellationToken);
+
+        if (!allSends.Any())
+        {
+            _logger.LogWarning("No sends found from e-shot API");
+            return Enumerable.Empty<Send>();
+        }
+
+        await _unitOfWork.BeginAsync();
+        var importedMetadata = await _unitOfWork.CampaignImportMetadata.GetAllAsync();
+        var completedSendIds = new HashSet<long>(
+            importedMetadata
+                .Where(m => m.IsImportComplete)
+                .Select(m => m.CampaignId));
+
+        var cutoffDate = DateTime.UtcNow.AddDays(-_importWindowDays);
+
+        var eligibleSends = allSends.Where(send =>
+        {
+            // If already imported, skip
+            if (completedSendIds.Contains(send.ID))
+                return false;
+
+            if (!DateTime.TryParse(send.SendCompletedDate, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal, out var sendCompletedDate))
+            {
+                _logger.LogWarning("Unable to parse SendCompletedDate '{SendCompletedDate}' for Send {SendId}, skipping", send.SendCompletedDate, send.ID);
+                return false;
+            }
+
+            // Only include sends within the configured time window
+            return sendCompletedDate >= cutoffDate;
+
+        }).ToList();
+
+        _logger.LogInformation("Determined {EligibleCount} eligible sends out of {TotalCount} total sends", eligibleSends.Count, allSends.Count());
+
+        return eligibleSends;
     }
 
     #region Private helper methods

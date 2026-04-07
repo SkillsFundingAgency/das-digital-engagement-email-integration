@@ -8,6 +8,7 @@ using DAS.DigitalEngagement.Application.Repositories;
 using DAS.DigitalEngagement.Application.Repositories.Interfaces;
 using DAS.DigitalEngagement.Application.Services;
 using DAS.DigitalEngagement.Application.Services.Interfaces;
+using DAS.DigitalEngagement.CampaignInterest.Data.Helpers;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using System.Configuration;
@@ -29,6 +30,8 @@ namespace DAS.DigitalEngagement.EmailIntegration.Extensions
 
             services.AddTransient<IImportCampaignPerformanceHandler, ImportCampaignPerformanceHandler>();
             services.AddTransient<ICampaignService, CampaignService>();
+
+            services.AddTransient<IUnitOfWork, UnitOfWork>();
 
 
             services.AddTransient<IDataMartRepository, DataMartRepository>();

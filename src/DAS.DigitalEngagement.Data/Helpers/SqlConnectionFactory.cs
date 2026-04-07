@@ -1,17 +1,29 @@
-﻿using Microsoft.Data.SqlClient;
+using Azure.Core;
+using Microsoft.Data.SqlClient;
 using System.Data;
 
 namespace DAS.DigitalEngagement.CampaignInterest.Data.Helpers;
 
 public interface IDbConnectionFactory
 {
-    IDbConnection CreateConnection();
+    Task<IDbConnection> CreateConnectionAsync();
 }
 
-public class SqlConnectionFactory(string connectionString) : IDbConnectionFactory
+public class SqlConnectionFactory(string connectionString, TokenCredential? tokenCredential = null) : IDbConnectionFactory
 {
-    public IDbConnection CreateConnection()
+    private static readonly string[] SqlScopes = ["https://database.windows.net/.default"];
+
+    public async Task<IDbConnection> CreateConnectionAsync()
     {
-        return new SqlConnection(connectionString);
+        var connection = new SqlConnection(connectionString);
+
+        if (tokenCredential != null)
+        {
+            var token = await tokenCredential.GetTokenAsync(
+                new TokenRequestContext(SqlScopes), default);
+            connection.AccessToken = token.Token;
+        }
+
+        return connection;
     }
 }

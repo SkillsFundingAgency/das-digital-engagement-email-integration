@@ -6,5 +6,6 @@ namespace DAS.DigitalEngagement.Models.Infrastructure
     public class ConnectionString
     {
         public required string DataMart { get; set; }
+        public required string CampaignsDatabase { get; set; }
     }
 }

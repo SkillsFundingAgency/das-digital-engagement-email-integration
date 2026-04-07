@@ -44,7 +44,7 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Repositories
 
             connectionStringMock
                 .Setup(cs => cs.Value)
-                .Returns(new ConnectionString { DataMart = "FakeConnectionString" });
+                .Returns(new ConnectionString { DataMart = "FakeConnectionString", CampaignsDatabase = "" });
 
             // Create a single reusable repository instance for use by tests
             dataMartRepo = new DataMartRepository(
@@ -87,7 +87,7 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Repositories
                 .ThrowsAsync(new InvalidOperationException("Token acquisition failed"));
 
             var connectionStringMock = new Mock<IOptions<ConnectionString>>();
-            connectionStringMock.Setup(cs => cs.Value).Returns(new ConnectionString { DataMart = "FakeConnectionString" });
+            connectionStringMock.Setup(cs => cs.Value).Returns(new ConnectionString { DataMart = "FakeConnectionString", CampaignsDatabase = "" });
 
             var reader = new FakeDbDataReader();
             var command = new FakeDbCommand(reader);
@@ -116,7 +116,7 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Repositories
                 .ReturnsAsync(new AccessToken("fake-token", DateTimeOffset.UtcNow.AddHours(1)));
 
             var connectionStringMock = new Mock<IOptions<ConnectionString>>();
-            connectionStringMock.Setup(cs => cs.Value).Returns(new ConnectionString { DataMart = "FakeConnectionString" });
+            connectionStringMock.Setup(cs => cs.Value).Returns(new ConnectionString { DataMart = "FakeConnectionString", CampaignsDatabase = "" });
 
             var mockConnection = new Mock<DbConnection>();
             mockConnection
@@ -148,7 +148,7 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Repositories
             var connectionStringMock = new Mock<IOptions<ConnectionString>>();
             connectionStringMock
                 .Setup(cs => cs.Value)
-                .Returns(new ConnectionString { DataMart = "FakeConnectionString" });
+                .Returns(new ConnectionString { DataMart = "FakeConnectionString" , CampaignsDatabase = "" });
 
             var failingCommand = new FailingDbCommand();
             var connection = new FakeDbConnection(failingCommand);

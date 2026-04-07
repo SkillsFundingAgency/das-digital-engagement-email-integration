@@ -27,7 +27,7 @@ public class CampaignsRepositoryTests
         _mockConnection = new Mock<IDbConnection>();
         _mockLogger = new Mock<ILogger<CampaignsRepository>>();
 
-        _mockConnectionFactory.Setup(f => f.CreateConnection()).Returns(_mockConnection.Object);
+        _mockConnectionFactory.Setup(f => f.CreateConnectionAsync()).ReturnsAsync(_mockConnection.Object);
 
         _repository = new CampaignsRepository(_mockConnectionFactory.Object, _mockLogger.Object);
 
@@ -66,7 +66,7 @@ public class CampaignsRepositoryTests
     {
         // Assert
         Assert.That(_repository, Is.Not.Null);
-        _mockConnectionFactory.Verify(f => f.CreateConnection(), Times.Never, "Constructor should not create connection immediately");
+        _mockConnectionFactory.Verify(f => f.CreateConnectionAsync(), Times.Never, "Constructor should not create connection immediately");
     }
 
     [Test]
@@ -95,7 +95,7 @@ public class CampaignsRepositoryTests
         }
 
         // Assert - one distinct connection per method call
-        _mockConnectionFactory.Verify(f => f.CreateConnection(), Times.Exactly(4),
+        _mockConnectionFactory.Verify(f => f.CreateConnectionAsync(), Times.Exactly(4),
             "Each repository method should create its own independent connection; none are shared");
     }
 
@@ -138,7 +138,7 @@ public class CampaignsRepositoryTests
         }
 
         // Assert
-        _mockConnectionFactory.Verify(f => f.CreateConnection(), Times.Once, "Repository should use factory to create connection when calling GetByIdAsync");
+        _mockConnectionFactory.Verify(f => f.CreateConnectionAsync(), Times.Once, "Repository should use factory to create connection when calling GetByIdAsync");
     }
 
     #region UpsertAsync Tests
@@ -240,7 +240,7 @@ public class CampaignsRepositoryTests
         }
 
         // Assert
-        _mockConnectionFactory.Verify(f => f.CreateConnection(), Times.Once, "Repository should use factory to create connection when calling UpsertAsync");
+        _mockConnectionFactory.Verify(f => f.CreateConnectionAsync(), Times.Once, "Repository should use factory to create connection when calling UpsertAsync");
     }
 
     [Test]
@@ -274,7 +274,7 @@ public class CampaignsRepositoryTests
         Assert.ThrowsAsync<ArgumentNullException>(async () => await _repository.UpsertAsync(null!));
 
         // Assert - ArgumentNullException.ThrowIfNull fires before factory.CreateConnection() is reached
-        _mockConnectionFactory.Verify(f => f.CreateConnection(), Times.Never,
+        _mockConnectionFactory.Verify(f => f.CreateConnectionAsync(), Times.Never,
             "Connection should not be created when input validation fails before the factory call");
     }
 
@@ -284,7 +284,7 @@ public class CampaignsRepositoryTests
         Assert.ThrowsAsync<InvalidCastException>(async () => await _repository.UpsertAsync(campaign));
 
         // Factory was called before the cast failed
-        _mockConnectionFactory.Verify(f => f.CreateConnection(), Times.Once);
+        _mockConnectionFactory.Verify(f => f.CreateConnectionAsync(), Times.Once);
     }
 
     [Test]
@@ -606,7 +606,7 @@ public class CampaignsRepositoryTests
     {
         Assert.ThrowsAsync<InvalidCastException>(async () => await _repository.GetByIdAsync(1));
 
-        _mockConnectionFactory.Verify(f => f.CreateConnection(), Times.Once);
+        _mockConnectionFactory.Verify(f => f.CreateConnectionAsync(), Times.Once);
     }
 
     [Test]
@@ -650,7 +650,7 @@ public class CampaignsRepositoryTests
         }
 
         // Assert
-        _mockConnectionFactory.Verify(f => f.CreateConnection(), Times.Exactly(3),
+        _mockConnectionFactory.Verify(f => f.CreateConnectionAsync(), Times.Exactly(3),
             "Each method invocation should request a new connection from the factory");
     }
 
@@ -714,7 +714,7 @@ public class CampaignsRepositoryTests
         }
 
         // Assert
-        _mockConnectionFactory.Verify(f => f.CreateConnection(), Times.Once, "Repository should use factory to create connection when calling GetAllAsync");
+        _mockConnectionFactory.Verify(f => f.CreateConnectionAsync(), Times.Once, "Repository should use factory to create connection when calling GetAllAsync");
     }
 
     [Test]
@@ -746,7 +746,7 @@ public class CampaignsRepositoryTests
     {
         Assert.ThrowsAsync<InvalidCastException>(async () => await _repository.GetAllAsync());
 
-        _mockConnectionFactory.Verify(f => f.CreateConnection(), Times.Once);
+        _mockConnectionFactory.Verify(f => f.CreateConnectionAsync(), Times.Once);
     }
 
     [Test]
@@ -763,7 +763,7 @@ public class CampaignsRepositoryTests
         }
 
         // Assert
-        _mockConnectionFactory.Verify(f => f.CreateConnection(), Times.Exactly(2));
+        _mockConnectionFactory.Verify(f => f.CreateConnectionAsync(), Times.Exactly(2));
     }
 
     [Test]
@@ -818,7 +818,7 @@ public class CampaignsRepositoryTests
     {
         // Arrange
         var expectedException = new InvalidOperationException("Factory failed to create connection");
-        _mockConnectionFactory.Setup(f => f.CreateConnection()).Throws(expectedException);
+        _mockConnectionFactory.Setup(f => f.CreateConnectionAsync()).ThrowsAsync(expectedException);
         var repository = new CampaignsRepository(_mockConnectionFactory.Object, _mockLogger.Object);
 
         // Act
@@ -833,7 +833,7 @@ public class CampaignsRepositoryTests
     {
         // Arrange
         var expectedException = new InvalidOperationException("Factory failure");
-        _mockConnectionFactory.Setup(f => f.CreateConnection()).Throws(expectedException);
+        _mockConnectionFactory.Setup(f => f.CreateConnectionAsync()).ThrowsAsync(expectedException);
         var repository = new CampaignsRepository(_mockConnectionFactory.Object, _mockLogger.Object);
 
         // Act
@@ -875,7 +875,7 @@ public class CampaignsRepositoryTests
         await Task.WhenAll(tasks);
 
         // Assert
-        _mockConnectionFactory.Verify(f => f.CreateConnection(), Times.Exactly(3));
+        _mockConnectionFactory.Verify(f => f.CreateConnectionAsync(), Times.Exactly(3));
     }
 
     [Test]
@@ -912,7 +912,7 @@ public class CampaignsRepositoryTests
     {
         Assert.ThrowsAsync<InvalidCastException>(async () => await _repository.GetByIdsAsync([1L]));
 
-        _mockConnectionFactory.Verify(f => f.CreateConnection(), Times.Once);
+        _mockConnectionFactory.Verify(f => f.CreateConnectionAsync(), Times.Once);
     }
 
     [Test]
@@ -1101,7 +1101,7 @@ public class CampaignsRepositoryTests
         }
 
         // Assert
-        _mockConnectionFactory.Verify(x => x.CreateConnection(), Times.Once);
+        _mockConnectionFactory.Verify(x => x.CreateConnectionAsync(), Times.Once);
     }
 
     [Test]
@@ -1255,7 +1255,7 @@ public class CampaignsRepositoryTests
         }
 
         // Assert
-        _mockConnectionFactory.Verify(f => f.CreateConnection(), Times.Once);
+        _mockConnectionFactory.Verify(f => f.CreateConnectionAsync(), Times.Once);
     }
 
     [Test]
@@ -1289,7 +1289,7 @@ public class CampaignsRepositoryTests
     public void GetByIdsAsync_FactoryThrowsException_PropagatesExceptionToCaller()
     {
         // Arrange
-        _mockConnectionFactory.Setup(f => f.CreateConnection()).Throws(new InvalidOperationException("Factory error"));
+        _mockConnectionFactory.Setup(f => f.CreateConnectionAsync()).ThrowsAsync(new InvalidOperationException("Factory error"));
         var repository = new CampaignsRepository(_mockConnectionFactory.Object, _mockLogger.Object);
         var ids = new[] { 1L, 2L };
 
@@ -1326,14 +1326,14 @@ public class CampaignsRepositoryTests
         await Task.WhenAll(tasks);
 
         // Assert
-        _mockConnectionFactory.Verify(f => f.CreateConnection(), Times.Exactly(3), "Factory should be called once for each concurrent call");
+        _mockConnectionFactory.Verify(f => f.CreateConnectionAsync(), Times.Exactly(3), "Factory should be called once for each concurrent call");
     }
 
     [Test]
     public void GetByIdsAsync_FactoryThrows_LogsBeforeException()
     {
         // Arrange
-        _mockConnectionFactory.Setup(f => f.CreateConnection()).Throws(new InvalidOperationException("Factory error"));
+        _mockConnectionFactory.Setup(f => f.CreateConnectionAsync()).ThrowsAsync(new InvalidOperationException("Factory error"));
         var repository = new CampaignsRepository(_mockConnectionFactory.Object, _mockLogger.Object);
         var ids = new[] { 1L, 2L };
 
@@ -1495,7 +1495,7 @@ public class CampaignsRepositoryTests
         }
 
         // Assert
-        _mockConnectionFactory.Verify(f => f.CreateConnection(), Times.Once,
+        _mockConnectionFactory.Verify(f => f.CreateConnectionAsync(), Times.Once,
             "Repository should use factory to create connection when calling GetByIdsAsync");
     }
 

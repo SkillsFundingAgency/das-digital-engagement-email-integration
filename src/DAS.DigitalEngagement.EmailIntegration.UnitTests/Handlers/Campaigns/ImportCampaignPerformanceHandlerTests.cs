@@ -32,7 +32,7 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Handlers.Campaigns
         {
             // Arrange
             _campaignServiceMock
-                .Setup(x => x.GetAllSendsAsync(null, It.IsAny<CancellationToken>()))
+                .Setup(x => x.GetEligibleSendsAsync(null, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(Enumerable.Empty<Send>());
 
             // Act
@@ -40,14 +40,14 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Handlers.Campaigns
 
             // Assert
             _campaignServiceMock.Verify(
-                x => x.GetAllSendsAsync(null, It.IsAny<CancellationToken>()),
+                x => x.GetEligibleSendsAsync(null, It.IsAny<CancellationToken>()),
                 Times.Once);
 
             _loggerMock.Verify(
                 x => x.Log(
                     LogLevel.Warning,
                     It.IsAny<EventId>(),
-                    It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("No sends found")),
+                    It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("No eligible sends found for import")),
                     It.IsAny<Exception>(),
                     It.IsAny<Func<It.IsAnyType, Exception, string>>()),
                 Times.Once);
@@ -73,7 +73,7 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Handlers.Campaigns
             };
 
             _campaignServiceMock
-                .Setup(x => x.GetAllSendsAsync(null, It.IsAny<CancellationToken>()))
+                .Setup(x => x.GetEligibleSendsAsync(null, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(sends);
 
             _campaignServiceMock
@@ -124,7 +124,7 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Handlers.Campaigns
             };
 
             _campaignServiceMock
-                .Setup(x => x.GetAllSendsAsync(null, It.IsAny<CancellationToken>()))
+                .Setup(x => x.GetEligibleSendsAsync(null, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(sends);
 
             _campaignServiceMock
@@ -161,11 +161,11 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Handlers.Campaigns
         }
 
         [Test]
-        public async Task Handle_CallsGetAllSendsWithNullSubAccountId()
+        public async Task Handle_CallsGetEligibleSendsWithNullSubAccountId()
         {
             // Arrange
             _campaignServiceMock
-                .Setup(x => x.GetAllSendsAsync(null, It.IsAny<CancellationToken>()))
+                .Setup(x => x.GetEligibleSendsAsync(null, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(Enumerable.Empty<Send>());
 
             // Act
@@ -173,7 +173,7 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Handlers.Campaigns
 
             // Assert
             _campaignServiceMock.Verify(
-                x => x.GetAllSendsAsync(null, It.IsAny<CancellationToken>()),
+                x => x.GetEligibleSendsAsync(null, It.IsAny<CancellationToken>()),
                 Times.Once);
         }
 
@@ -182,7 +182,7 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Handlers.Campaigns
         {
             // Arrange
             _campaignServiceMock
-                .Setup(x => x.GetAllSendsAsync(null, It.IsAny<CancellationToken>()))
+                .Setup(x => x.GetEligibleSendsAsync(null, It.IsAny<CancellationToken>()))
                 .ThrowsAsync(new Exception("API failure"));
 
             // Act & Assert
@@ -199,7 +199,7 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Handlers.Campaigns
             };
 
             _campaignServiceMock
-                .Setup(x => x.GetAllSendsAsync(null, It.IsAny<CancellationToken>()))
+                .Setup(x => x.GetEligibleSendsAsync(null, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(sends);
 
             _campaignServiceMock
@@ -220,7 +220,7 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Handlers.Campaigns
             };
 
             _campaignServiceMock
-                .Setup(x => x.GetAllSendsAsync(null, It.IsAny<CancellationToken>()))
+                .Setup(x => x.GetEligibleSendsAsync(null, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(sends);
 
             _campaignServiceMock
@@ -247,7 +247,7 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Handlers.Campaigns
             };
 
             _campaignServiceMock
-                .Setup(x => x.GetAllSendsAsync(null, cancellationToken))
+                .Setup(x => x.GetEligibleSendsAsync(null, cancellationToken))
                 .ReturnsAsync(sends);
 
             _campaignServiceMock
@@ -274,7 +274,7 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Handlers.Campaigns
             await _sut.Handle(cancellationToken);
 
             // Assert
-            _campaignServiceMock.Verify(x => x.GetAllSendsAsync(null, cancellationToken), Times.Once);
+            _campaignServiceMock.Verify(x => x.GetEligibleSendsAsync(null, cancellationToken), Times.Once);
             _campaignServiceMock.Verify(x => x.GetUserAgentInfoForSendAsync(1, cancellationToken), Times.Once);
             _campaignServiceMock.Verify(x => x.GetDisplayedContactsForSendAsync(1, It.IsAny<IEnumerable<UserAgentInfo>>(), cancellationToken), Times.Once);
             _campaignServiceMock.Verify(x => x.GetClickedLinkContactsForSendAsync(1, It.IsAny<IEnumerable<UserAgentInfo>>(), cancellationToken), Times.Once);
@@ -287,7 +287,7 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Handlers.Campaigns
         {
             // Arrange
             _campaignServiceMock
-                .Setup(x => x.GetAllSendsAsync(null, It.IsAny<CancellationToken>()))
+                .Setup(x => x.GetEligibleSendsAsync(null, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(Enumerable.Empty<Send>());
 
             // Act
@@ -314,7 +314,7 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Handlers.Campaigns
             };
 
             _campaignServiceMock
-                .Setup(x => x.GetAllSendsAsync(null, It.IsAny<CancellationToken>()))
+                .Setup(x => x.GetEligibleSendsAsync(null, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(sends);
 
             _campaignServiceMock
@@ -375,7 +375,7 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Handlers.Campaigns
             };
 
             _campaignServiceMock
-                .Setup(x => x.GetAllSendsAsync(null, It.IsAny<CancellationToken>()))
+                .Setup(x => x.GetEligibleSendsAsync(null, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(sends);
 
             _campaignServiceMock
@@ -417,7 +417,7 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Handlers.Campaigns
             };
 
             _campaignServiceMock
-                .Setup(x => x.GetAllSendsAsync(null, It.IsAny<CancellationToken>()))
+                .Setup(x => x.GetEligibleSendsAsync(null, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(sends);
 
             _campaignServiceMock

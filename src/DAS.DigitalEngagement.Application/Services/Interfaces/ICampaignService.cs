@@ -52,4 +52,13 @@ public interface ICampaignService
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Collection of unique UserAgentInfo objects containing device and client information</returns>
     Task<IEnumerable<UserAgentInfo>> GetUserAgentInfoForSendAsync(int sendId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Determines which Sends are eligible for import by comparing all Sends from the e-shot API
+    /// against already-imported metadata, filtering by completion status and a configurable time window.
+    /// </summary>
+    /// <param name="subAccountId">Optional sub-account filter. If null, returns eligible Sends from all sub-accounts.</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Collection of Send objects that are eligible for import</returns>
+    Task<IEnumerable<Send>> GetEligibleSendsAsync(int? subAccountId = null, CancellationToken cancellationToken = default);
 }
