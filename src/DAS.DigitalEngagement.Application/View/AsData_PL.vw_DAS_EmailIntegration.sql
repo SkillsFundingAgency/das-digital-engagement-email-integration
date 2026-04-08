@@ -1,4 +1,4 @@
-DROP VIEW IF EXISTS [ASData_PL].[vw_DAS_EmailIntegration_Reg_Stages];
+DROP VIEW IF EXISTS [ASData_PL].[vw_DAS_EmailIntegration];
 GO
 
 SET ANSI_NULLS ON;
@@ -6,7 +6,7 @@ GO
 SET QUOTED_IDENTIFIER ON;
 GO
 
-CREATE VIEW [ASData_PL].[vw_DAS_EmailIntegration_Reg_Stages]
+CREATE VIEW [ASData_PL].[vw_DAS_EmailIntegration]
 AS
 
 WITH AccountUsersRanked AS (
@@ -90,18 +90,25 @@ EmployerSizeCTE AS (
             WHEN de.EmployeeSize1 LIKE '%(Large)%'  THEN 'Large'
             WHEN de.EmployeeSize1 LIKE '%(Macro)%'  THEN 'Macro'
             ELSE 'Others'
-        END AS NormalizedEmployerSize
+        END AS NormalizedEmployerSize,        
+        de.EmployerSectorEstimate
     FROM ASData_PL.DimEmployer de
 ),
 
-EmployerSizeAggregate AS (
+EmployerAttributesAggregate AS (
     SELECT
         au.Email AS EmployerEmail,
         CASE 
             WHEN COUNT(DISTINCT es.NormalizedEmployerSize) = 1
                 THEN MAX(es.NormalizedEmployerSize)
             ELSE ''
-        END AS EmployerSize
+        END AS EmployerSize,
+        CASE
+        WHEN COUNT(DISTINCT es.EmployerSectorEstimate) = 1
+            THEN LEFT(MAX(es.EmployerSectorEstimate), 50)
+        ELSE ''
+        END AS EmployerSector
+
     FROM ASData_PL.Acc_User au
     LEFT JOIN ASData_PL.Acc_UserAccountSettings aus
         ON aus.UserId = au.Id
@@ -124,7 +131,8 @@ AccountUsers AS (
         ala.AccountCount,
         ala.ConsolidatedLevyStatus,
         era.HasReservationsText AS ReservedFunding,
-        esa.EmployerSize,
+        eaa.EmployerSize,
+        eaa.EmployerSector,
 
         rs.Stage1a, rs.Stage1b, rs.Stage2, rs.Stage3,
         rs.Stage4a, rs.Stage4b, rs.Stage5a, rs.Stage5b,
@@ -161,8 +169,8 @@ AccountUsers AS (
         ON ena.EmployerEmail = aur.EmployerEmail
     LEFT JOIN EmailReservationsAggregate era
         ON era.EmployerEmail = aur.EmployerEmail
-    LEFT JOIN EmployerSizeAggregate esa
-        ON esa.EmployerEmail = aur.EmployerEmail
+    LEFT JOIN EmployerAttributesAggregate eaa
+        ON eaa.EmployerEmail = aur.EmployerEmail
     LEFT JOIN [ASData_PL].[vw_DAS_RegistrationStages] rs
         ON rs.UserEmail = aur.EmployerEmail
        AND ISNULL(rs.EmployerAccountId, -1) = ISNULL(aur.EmployerAccountID, -1)
@@ -228,6 +236,7 @@ Merged AS (
         au.DateOfLastAPIAutoSync,
         au.ReservedFunding,
         au.EmployerSize,
+        au.EmployerSector AS SectorEstimate,
         -- Registration
         au.Stage1a, au.Stage1b, au.Stage2, au.Stage3,
         au.Stage4a, au.Stage4b, au.Stage5a, au.Stage5b,
@@ -262,7 +271,7 @@ SELECT
     DateOfLastAPIAutoSync,
     ReservedFunding,
     EmployerSize,
-
+    SectorEstimate,
     Stage1a, Stage1b, Stage2, Stage3,
     Stage4a, Stage4b, Stage5a, Stage5b,
     RegistrationProgressScore,
