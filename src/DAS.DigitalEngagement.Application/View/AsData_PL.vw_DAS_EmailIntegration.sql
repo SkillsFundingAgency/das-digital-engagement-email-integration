@@ -129,7 +129,7 @@ AccountUsers AS (
         rs.Stage1a, rs.Stage1b, rs.Stage2, rs.Stage3,
         rs.Stage4a, rs.Stage4b, rs.Stage5a, rs.Stage5b,
 
-        -- ✅ Registration progress score (0–8)
+        -- Registration progress score (0–8)
         (
             CASE WHEN rs.Stage1a = 'Y' THEN 1 ELSE 0 END +
             CASE WHEN rs.Stage1b = 'Y' THEN 1 ELSE 0 END +
@@ -141,7 +141,7 @@ AccountUsers AS (
             CASE WHEN rs.Stage5b = 'Y' THEN 1 ELSE 0 END
         ) AS RegistrationProgressScore,
 
-        -- ✅ Highest completed stage label
+        --  Highest completed stage label
         CASE
             WHEN rs.Stage5a = 'Y' THEN 'Stage 5 – Provider added'
             WHEN rs.Stage5b = 'Y' THEN 'Stage 5 – Provider pending'
