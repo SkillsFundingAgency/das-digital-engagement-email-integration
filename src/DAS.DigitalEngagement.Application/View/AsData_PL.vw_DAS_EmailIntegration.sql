@@ -199,7 +199,7 @@ CampaignUsersRanked AS (
         cud.UkEmployerSize,
         cud.PrimaryIndustry,
         cud.PrimaryLocation,
-        cud.AppsgovSignUpDate,
+        CONVERT(VARCHAR(10), cud.AppsgovSignUpDate, 120) AS AppsgovSignUpDate,
         cud.PersonOrigin,
         cud.IncludeInUR,
         ROW_NUMBER() OVER (

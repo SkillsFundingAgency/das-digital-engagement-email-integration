@@ -4,7 +4,7 @@ using DAS.DigitalEngagement.Models.Infrastructure;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging;
 
-namespace DAS.DigitalEngagement.EmailIntegration;
+namespace DAS.DigitalEngagement.EmailIntegration.Functions;
 
 public class EmailIntegration
 {

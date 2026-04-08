@@ -1,4 +1,5 @@
 ﻿using DAS.DigitalEngagement.Application.Handlers.Campaigns;
+using DAS.DigitalEngagement.EmailIntegration.Functions;
 using DAS.DigitalEngagement.Models.Infrastructure;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging;

@@ -56,7 +56,7 @@ namespace DAS.DigitalEngagement.Application.Services
 
             var content = await response.Content.ReadAsStringAsync();
 
-            _logger.LogInformation("Received response: {Content}", content);
+            // s_logger.LogInformation("Received response: {Content}", content);
         
             return content;
         }
