@@ -1,8 +1,11 @@
 ﻿using DAS.DigitalEngagement.Application.Handlers.Campaigns;
+using DAS.DigitalEngagement.EmailIntegration.Functions;
+using DAS.DigitalEngagement.Models.Infrastructure;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging;
 using Moq;
 using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -12,11 +15,33 @@ public class PerformanceDataImporterTests
 {
     private readonly Mock<ILogger<PerformanceDataImporter>> _loggerMock;
     private readonly Mock<IImportCampaignPerformanceHandler> _importCampaignPerformanceHandlerMock;
+    private ApplicationConfiguration _configuration;
 
     public PerformanceDataImporterTests()
     {
         _loggerMock = new Mock<ILogger<PerformanceDataImporter>>();
         _importCampaignPerformanceHandlerMock = new Mock<IImportCampaignPerformanceHandler>();
+        _configuration = new ApplicationConfiguration
+        {
+            ConnectionString = new ConnectionString { DataMart = "", CampaignsDatabase = "TestConnectionString" },
+            EmailMarketingApi = new EmailMarketingApi
+            {
+                ApiBaseUrl = "https://api.test.com",
+                ApiKey = "TestClientId",
+                ApiRetryCount = 3,
+                ChunkSizeKB = 1024
+            },
+            DataMart = new List<DataMartSettings>
+                {
+                    new DataMartSettings
+                    {
+                        ViewName = "TestView",
+                        ObjectName = "TestObject",
+                        FieldMapping = "TestFieldMapping",
+                        TemplatedUploadId = 1
+                    }
+                }
+        };
     }
 
     [Test]
@@ -25,7 +50,7 @@ public class PerformanceDataImporterTests
         // Arrange
         var loggerMock = new Mock<ILogger<PerformanceDataImporter>>();
         var importHandlerMock = new Mock<IImportCampaignPerformanceHandler>();
-        var sut = new PerformanceDataImporter(importHandlerMock.Object, loggerMock.Object);
+        var sut = new PerformanceDataImporter(importHandlerMock.Object, _configuration, loggerMock.Object);
         var timerInfo = new TimerInfo();
         // Act
         await sut.Run(timerInfo);
@@ -57,7 +82,7 @@ public class PerformanceDataImporterTests
         importHandlerMock
             .Setup(x => x.Handle(It.IsAny<CancellationToken>()))
             .ThrowsAsync(new Exception("Handler failure"));
-        var sut = new PerformanceDataImporter(importHandlerMock.Object, loggerMock.Object);
+        var sut = new PerformanceDataImporter(importHandlerMock.Object, _configuration, loggerMock.Object);
         var timerInfo = new TimerInfo();
 
         // Act
@@ -83,7 +108,7 @@ public class PerformanceDataImporterTests
         importHandlerMock
             .Setup(x => x.Handle(It.IsAny<CancellationToken>()))
             .ThrowsAsync(new Exception("Handler failure"));
-        var sut = new PerformanceDataImporter(importHandlerMock.Object, loggerMock.Object);
+        var sut = new PerformanceDataImporter(importHandlerMock.Object, _configuration, loggerMock.Object);
         var timerInfo = new TimerInfo();
 
         // Act & Assert - should not throw
@@ -99,7 +124,7 @@ public class PerformanceDataImporterTests
         importHandlerMock
             .Setup(x => x.Handle(It.IsAny<CancellationToken>()))
             .ThrowsAsync(new Exception("Handler failure"));
-        var sut = new PerformanceDataImporter(importHandlerMock.Object, loggerMock.Object);
+        var sut = new PerformanceDataImporter(importHandlerMock.Object, _configuration, loggerMock.Object);
         var timerInfo = new TimerInfo();
 
         // Act
@@ -122,7 +147,7 @@ public class PerformanceDataImporterTests
         // Arrange
         var loggerMock = new Mock<ILogger<PerformanceDataImporter>>();
         var importHandlerMock = new Mock<IImportCampaignPerformanceHandler>();
-        var sut = new PerformanceDataImporter(importHandlerMock.Object, loggerMock.Object);
+        var sut = new PerformanceDataImporter(importHandlerMock.Object, _configuration, loggerMock.Object);
         var timerInfo = new TimerInfo { IsPastDue = true };
         // Act
         await sut.Run(timerInfo);
@@ -143,7 +168,7 @@ public class PerformanceDataImporterTests
         // Arrange
         var loggerMock = new Mock<ILogger<PerformanceDataImporter>>();
         var importHandlerMock = new Mock<IImportCampaignPerformanceHandler>();
-        var sut = new PerformanceDataImporter(importHandlerMock.Object, loggerMock.Object);
+        var sut = new PerformanceDataImporter(importHandlerMock.Object, _configuration, loggerMock.Object);
         var timerInfo = new TimerInfo();
 
         // Act
@@ -159,7 +184,7 @@ public class PerformanceDataImporterTests
         // Arrange
         var loggerMock = new Mock<ILogger<PerformanceDataImporter>>();
         var importHandlerMock = new Mock<IImportCampaignPerformanceHandler>();
-        var sut = new PerformanceDataImporter(importHandlerMock.Object, loggerMock.Object);
+        var sut = new PerformanceDataImporter(importHandlerMock.Object, _configuration, loggerMock.Object);
         var timerInfo = new TimerInfo();
 
         // Act
@@ -185,7 +210,7 @@ public class PerformanceDataImporterTests
         importHandlerMock
             .Setup(x => x.Handle(It.IsAny<CancellationToken>()))
             .ThrowsAsync(new Exception("Handler failure"));
-        var sut = new PerformanceDataImporter(importHandlerMock.Object, loggerMock.Object);
+        var sut = new PerformanceDataImporter(importHandlerMock.Object, _configuration, loggerMock.Object);
         var timerInfo = new TimerInfo();
 
         // Act
@@ -208,7 +233,7 @@ public class PerformanceDataImporterTests
         // Arrange
         var loggerMock = new Mock<ILogger<PerformanceDataImporter>>();
         var importHandlerMock = new Mock<IImportCampaignPerformanceHandler>();
-        var sut = new PerformanceDataImporter(importHandlerMock.Object, loggerMock.Object);
+        var sut = new PerformanceDataImporter(importHandlerMock.Object, _configuration, loggerMock.Object);
         var timerInfo = new TimerInfo { IsPastDue = false };
 
         // Act

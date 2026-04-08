@@ -18,18 +18,18 @@ public class ImportCampaignPerformanceHandler : IImportCampaignPerformanceHandle
 
     public async Task Handle(CancellationToken cancellationToken = default)
     {
-        // Set subAccountId = null for production. For local/testing, use sub-account 3 for lots of small sends, 5 for one hugh send
-        var sends = await _campaignService.GetAllSendsAsync(
+        // Set subAccountId = null for production. For local/testing, use sub-account 3 for lots of small sends, 5 for one huge send
+        var eligibleSends = await _campaignService.GetEligibleSendsAsync(
             subAccountId: null,
             cancellationToken: cancellationToken);
 
-        if (!sends.Any())
+        if (!eligibleSends.Any())
         {
-            _logger.LogWarning("No sends found");
+            _logger.LogWarning("No eligible sends found for import");
             return;
         }
 
-        foreach (var send in sends)
+        foreach (var send in eligibleSends)
         {
             _logger.LogInformation("Processing Send {SendId} for sub-account {Account}", send.ID, send.Account);
 

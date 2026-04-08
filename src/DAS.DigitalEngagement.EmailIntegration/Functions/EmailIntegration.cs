@@ -4,7 +4,7 @@ using DAS.DigitalEngagement.Models.Infrastructure;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging;
 
-namespace DAS.DigitalEngagement.EmailIntegration;
+namespace DAS.DigitalEngagement.EmailIntegration.Functions;
 
 public class EmailIntegration
 {
@@ -31,7 +31,7 @@ public class EmailIntegration
         _logger.LogInformation("Timer trigger function executed at: {ExecutionTime}", DateTime.Now);
         _logger.LogInformation(
             "Connection string: {ConnectionString}, API Base URL: {ApiBaseUrl}",
-            _configuration.ConnectionString,
+            _configuration.ConnectionString.DataMart,
             _configuration.EmailMarketingApi?.ApiBaseUrl
         );
 
