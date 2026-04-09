@@ -105,7 +105,7 @@ EmployerAttributesAggregate AS (
         END AS EmployerSize,
         CASE
         WHEN COUNT(DISTINCT es.EmployerSectorEstimate) = 1
-            THEN LEFT(MAX(es.EmployerSectorEstimate), 50)
+            THEN MAX(es.EmployerSectorEstimate)
         ELSE ''
         END AS EmployerSector
 
