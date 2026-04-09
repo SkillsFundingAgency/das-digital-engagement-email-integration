@@ -774,15 +774,13 @@ public class CampaignServiceTests
     {
         // Arrange
         int sendId = 123;
-        using (var cancellationTokenSource = new CancellationTokenSource())
-        {
-            cancellationTokenSource.Cancel();
+        using var cancellationTokenSource = new CancellationTokenSource();
+        cancellationTokenSource.Cancel();
 
-            _externalApiServiceMock.Setup(x => x.GetDataAsync(It.IsAny<string>())).ThrowsAsync(new OperationCanceledException());
+        _externalApiServiceMock.Setup(x => x.GetDataAsync(It.IsAny<string>())).ThrowsAsync(new OperationCanceledException());
 
-            // Act & Assert
-            Assert.ThrowsAsync<OperationCanceledException>(async () => await _sut.GetUserAgentInfoForSendAsync(sendId, cancellationTokenSource.Token));
-        }
+        // Act & Assert
+        Assert.ThrowsAsync<OperationCanceledException>(async () => await _sut.GetUserAgentInfoForSendAsync(sendId, cancellationTokenSource.Token));
     }
 
     /// <summary>
@@ -1055,7 +1053,7 @@ public class CampaignServiceTests
         _externalApiServiceMock.Setup(x => x.GetDataAsync(It.IsAny<string>())).ReturnsAsync(jsonResponse);
 
         // Act
-        var result = await _sut.GetDisplayedContactsForSendAsync(100, Enumerable.Empty<UserAgentInfo>());
+        var result = await _sut.GetDisplayedContactsForSendAsync(100, []);
 
         // Assert
         Assert.That(result, Is.Not.Null);
@@ -1071,7 +1069,7 @@ public class CampaignServiceTests
         _externalApiServiceMock.Setup(x => x.GetDataAsync(It.IsAny<string>())).ReturnsAsync(jsonResponse);
 
         // Act
-        var result = await _sut.GetDisplayedContactsForSendAsync(100, Enumerable.Empty<UserAgentInfo>());
+        var result = await _sut.GetDisplayedContactsForSendAsync(100, []);
 
         // Assert
         Assert.That(result, Is.Not.Null);
@@ -1108,7 +1106,7 @@ public class CampaignServiceTests
         _externalApiServiceMock.Setup(x => x.GetDataAsync(It.IsAny<string>())).ReturnsAsync(jsonResponse);
 
         // Act
-        var result = (await _sut.GetDisplayedContactsForSendAsync(100, Enumerable.Empty<UserAgentInfo>())).ToList();
+        var result = (await _sut.GetDisplayedContactsForSendAsync(100, [])).ToList();
 
         // Assert
         Assert.That(result.Count, Is.EqualTo(1));
@@ -1165,7 +1163,7 @@ public class CampaignServiceTests
         _externalApiServiceMock.Setup(x => x.GetDataAsync(It.IsAny<string>())).ReturnsAsync(jsonResponse);
 
         // Act
-        var result = (await _sut.GetDisplayedContactsForSendAsync(100, Enumerable.Empty<UserAgentInfo>())).ToList();
+        var result = (await _sut.GetDisplayedContactsForSendAsync(100, [])).ToList();
 
         // Assert
         Assert.That(result.Count, Is.EqualTo(1));
@@ -1192,7 +1190,7 @@ public class CampaignServiceTests
         _externalApiServiceMock.Setup(x => x.GetDataAsync(It.IsAny<string>())).ReturnsAsync(jsonResponse);
 
         // Act
-        var result = (await _sut.GetDisplayedContactsForSendAsync(100, Enumerable.Empty<UserAgentInfo>())).ToList();
+        var result = (await _sut.GetDisplayedContactsForSendAsync(100, [])).ToList();
 
         // Assert
         Assert.That(result.Count, Is.EqualTo(1));
@@ -1206,7 +1204,7 @@ public class CampaignServiceTests
         _externalApiServiceMock.Setup(x => x.GetDataAsync(It.IsAny<string>())).ThrowsAsync(new HttpRequestException("API error"));
 
         // Act & Assert
-        Assert.ThrowsAsync<HttpRequestException>(async () => await _sut.GetDisplayedContactsForSendAsync(100, Enumerable.Empty<UserAgentInfo>()));
+        Assert.ThrowsAsync<HttpRequestException>(async () => await _sut.GetDisplayedContactsForSendAsync(100, []));
     }
 
     [Test]
@@ -1239,7 +1237,7 @@ public class CampaignServiceTests
         var service = new CampaignService(_externalApiServiceMock.Object, _unitOfWorkMock.Object, _loggerMock.Object, apiConfigSmall.Object);
 
         // Act
-        var result = (await service.GetDisplayedContactsForSendAsync(100, Enumerable.Empty<UserAgentInfo>())).ToList();
+        var result = (await service.GetDisplayedContactsForSendAsync(100, [])).ToList();
 
         // Assert
         Assert.That(result.Count, Is.EqualTo(1));
@@ -1256,7 +1254,7 @@ public class CampaignServiceTests
         _externalApiServiceMock.Setup(x => x.GetDataAsync(It.IsAny<string>())).ReturnsAsync(jsonResponse);
 
         // Act
-        await _sut.GetDisplayedContactsForSendAsync(sendId, Enumerable.Empty<UserAgentInfo>());
+        await _sut.GetDisplayedContactsForSendAsync(sendId, []);
 
         // Assert
         _externalApiServiceMock.Verify(
@@ -1336,7 +1334,7 @@ public class CampaignServiceTests
         _externalApiServiceMock.Setup(x => x.GetDataAsync(It.IsAny<string>())).ReturnsAsync(jsonResponse);
 
         // Act
-        var result = await _sut.GetClickedLinkContactsForSendAsync(100, Enumerable.Empty<UserAgentInfo>());
+        var result = await _sut.GetClickedLinkContactsForSendAsync(100, []);
 
         // Assert
         Assert.That(result, Is.Not.Null);
@@ -1352,7 +1350,7 @@ public class CampaignServiceTests
         _externalApiServiceMock.Setup(x => x.GetDataAsync(It.IsAny<string>())).ReturnsAsync(jsonResponse);
 
         // Act
-        var result = await _sut.GetClickedLinkContactsForSendAsync(100, Enumerable.Empty<UserAgentInfo>());
+        var result = await _sut.GetClickedLinkContactsForSendAsync(100, []);
 
         // Assert
         Assert.That(result, Is.Not.Null);
@@ -1389,7 +1387,7 @@ public class CampaignServiceTests
         _externalApiServiceMock.Setup(x => x.GetDataAsync(It.IsAny<string>())).ReturnsAsync(jsonResponse);
 
         // Act
-        var result = (await _sut.GetClickedLinkContactsForSendAsync(100, Enumerable.Empty<UserAgentInfo>())).ToList();
+        var result = (await _sut.GetClickedLinkContactsForSendAsync(100, [])).ToList();
 
         // Assert
         Assert.That(result.Count, Is.EqualTo(1));
@@ -1414,7 +1412,7 @@ public class CampaignServiceTests
         _externalApiServiceMock.Setup(x => x.GetDataAsync(It.IsAny<string>())).ReturnsAsync(jsonResponse);
 
         // Act
-        var result = (await _sut.GetClickedLinkContactsForSendAsync(100, Enumerable.Empty<UserAgentInfo>())).ToList();
+        var result = (await _sut.GetClickedLinkContactsForSendAsync(100, [])).ToList();
 
         // Assert
         Assert.That(result.Count, Is.EqualTo(1));
@@ -1441,7 +1439,7 @@ public class CampaignServiceTests
         _externalApiServiceMock.Setup(x => x.GetDataAsync(It.IsAny<string>())).ReturnsAsync(jsonResponse);
 
         // Act
-        var result = (await _sut.GetClickedLinkContactsForSendAsync(100, Enumerable.Empty<UserAgentInfo>())).ToList();
+        var result = (await _sut.GetClickedLinkContactsForSendAsync(100, [])).ToList();
 
         // Assert
         Assert.That(result.Count, Is.EqualTo(1));
@@ -1456,7 +1454,7 @@ public class CampaignServiceTests
         _externalApiServiceMock.Setup(x => x.GetDataAsync(It.IsAny<string>())).ThrowsAsync(new HttpRequestException("API error"));
 
         // Act & Assert
-        Assert.ThrowsAsync<HttpRequestException>(async () => await _sut.GetClickedLinkContactsForSendAsync(100, Enumerable.Empty<UserAgentInfo>()));
+        Assert.ThrowsAsync<HttpRequestException>(async () => await _sut.GetClickedLinkContactsForSendAsync(100, []));
     }
 
     [Test]
@@ -1489,7 +1487,7 @@ public class CampaignServiceTests
         var service = new CampaignService(_externalApiServiceMock.Object, _unitOfWorkMock.Object, _loggerMock.Object, apiConfigSmall.Object);
 
         // Act
-        var result = (await service.GetClickedLinkContactsForSendAsync(100, Enumerable.Empty<UserAgentInfo>())).ToList();
+        var result = (await service.GetClickedLinkContactsForSendAsync(100, [])).ToList();
 
         // Assert
         Assert.That(result.Count, Is.EqualTo(1));
@@ -1506,7 +1504,7 @@ public class CampaignServiceTests
         _externalApiServiceMock.Setup(x => x.GetDataAsync(It.IsAny<string>())).ReturnsAsync(jsonResponse);
 
         // Act
-        await _sut.GetClickedLinkContactsForSendAsync(sendId, Enumerable.Empty<UserAgentInfo>());
+        await _sut.GetClickedLinkContactsForSendAsync(sendId, []);
 
         // Assert
         _externalApiServiceMock.Verify(
@@ -2064,7 +2062,7 @@ public class CampaignServiceTests
             }";
 
         _externalApiServiceMock.Setup(x => x.GetDataAsync(It.IsAny<string>())).ReturnsAsync(jsonResponse);
-        _metadataRepositoryMock.Setup(x => x.GetAllAsync()).ReturnsAsync(Enumerable.Empty<CampaignImportMetadata>());
+        _metadataRepositoryMock.Setup(x => x.GetAllAsync()).ReturnsAsync([]);
 
         // Act
         var result = (await _sut.GetEligibleSendsAsync()).ToList();
@@ -2131,7 +2129,7 @@ public class CampaignServiceTests
             }";
 
         _externalApiServiceMock.Setup(x => x.GetDataAsync(It.IsAny<string>())).ReturnsAsync(jsonResponse);
-        _metadataRepositoryMock.Setup(x => x.GetAllAsync()).ReturnsAsync(Enumerable.Empty<CampaignImportMetadata>());
+        _metadataRepositoryMock.Setup(x => x.GetAllAsync()).ReturnsAsync([]);
 
         // Act
         var result = (await _sut.GetEligibleSendsAsync()).ToList();
@@ -2182,8 +2180,8 @@ public class CampaignServiceTests
                 It.Is<LogLevel>(l => l == LogLevel.Information),
                 It.IsAny<EventId>(),
                 It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains($"Successfully retrieved campaign details for CampaignID {campaign.Id}")),
-                It.IsAny<Exception?>(),
-                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception, string>>()),
             Times.Once);
     }
 
@@ -2211,8 +2209,8 @@ public class CampaignServiceTests
                 It.Is<LogLevel>(l => l == LogLevel.Warning),
                 It.IsAny<EventId>(),
                 It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("No campaign details found in database for CampaignID 9999999")),
-                It.IsAny<Exception?>(),
-                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception, string>>()),
             Times.Once);
     }
 
@@ -2235,7 +2233,7 @@ public class CampaignServiceTests
             It.IsAny<EventId>(),
             It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains($"Error retrieving campaign details for CampaignID {campaign.Id} from database")),
             It.Is<Exception>(e => e == exception),
-            It.IsAny<Func<It.IsAnyType, Exception?, string>>()), Times.Once);
+            It.IsAny<Func<It.IsAnyType, Exception, string>>()), Times.Once);
     }
 
     [Test]
@@ -2255,8 +2253,8 @@ public class CampaignServiceTests
                 It.Is<LogLevel>(l => l == LogLevel.Information),
                 It.IsAny<EventId>(),
                 It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains($"Saving campaign details for CampaignID {campaign.Id} to database")),
-                It.IsAny<Exception?>(),
-                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception, string>>()),
             Times.Once);
 
         _loggerMock.Verify(
@@ -2264,8 +2262,8 @@ public class CampaignServiceTests
                 It.Is<LogLevel>(l => l == LogLevel.Information),
                 It.IsAny<EventId>(),
                 It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains($"Successfully saved campaign details for CampaignID {campaign.Id} to database")),
-                It.IsAny<Exception?>(),
-                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception, string>>()),
             Times.Once);
     }
 
@@ -2286,8 +2284,8 @@ public class CampaignServiceTests
                 It.Is<LogLevel>(l => l == LogLevel.Information),
                 It.IsAny<EventId>(),
                 It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains($"Saving campaign details for CampaignID {campaign.Id} to database")),
-                It.IsAny<Exception?>(),
-                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception, string>>()),
             Times.Once);
 
         _loggerMock.Verify(
@@ -2295,8 +2293,8 @@ public class CampaignServiceTests
                 It.Is<LogLevel>(l => l == LogLevel.Warning),
                 It.IsAny<EventId>(),
                 It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains($"No rows were inserted or updated when saving campaign details for CampaignID {campaign.Id}")),
-                It.IsAny<Exception?>(),
-                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception, string>>()),
             Times.Once);
     }
 
@@ -2329,7 +2327,7 @@ public class CampaignServiceTests
             It.IsAny<EventId>(),
             It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains($"Error saving campaign details for CampaignID {campaign.Id} to database")),
             It.Is<Exception>(e => e == exception),
-            It.IsAny<Func<It.IsAnyType, Exception?, string>>()), Times.Once);
+            It.IsAny<Func<It.IsAnyType, Exception, string>>()), Times.Once);
     }
 
     #endregion
@@ -2354,8 +2352,8 @@ public class CampaignServiceTests
                 It.Is<LogLevel>(l => l == LogLevel.Information),
                 It.IsAny<EventId>(),
                 It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains($"Successfully retrieved campaign import metadata for CampaignID {campaign.Id}")),
-                It.IsAny<Exception?>(),
-                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception, string>>()),
             Times.Once);
     }
 
@@ -2383,8 +2381,8 @@ public class CampaignServiceTests
                 It.Is<LogLevel>(l => l == LogLevel.Warning),
                 It.IsAny<EventId>(),
                 It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("No campaign import metadata found in database for CampaignID 9999999")),
-                It.IsAny<Exception?>(),
-                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception, string>>()),
             Times.Once);
     }
 
@@ -2409,7 +2407,7 @@ public class CampaignServiceTests
                 It.IsAny<EventId>(),
                 It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains($"Error retrieving campaign import metadata for CampaignID {campaign.Id} from database")),
                 It.Is<Exception>(e => e == exception),
-                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+                It.IsAny<Func<It.IsAnyType, Exception, string>>()),
             Times.Once);
     }
 
@@ -2430,8 +2428,8 @@ public class CampaignServiceTests
                 It.Is<LogLevel>(l => l == LogLevel.Information),
                 It.IsAny<EventId>(),
                 It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains($"Upserting campaign import metadata for CampaignID {campaign.Id} to database")),
-                It.IsAny<Exception?>(),
-                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception, string>>()),
             Times.Once);
 
         _loggerMock.Verify(
@@ -2439,8 +2437,8 @@ public class CampaignServiceTests
                 It.Is<LogLevel>(l => l == LogLevel.Information),
                 It.IsAny<EventId>(),
                 It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains($"Successfully upserted campaign import metadata for CampaignID {campaign.Id} to database")),
-                It.IsAny<Exception?>(),
-                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception, string>>()),
             Times.Once);
     }
 
@@ -2461,8 +2459,8 @@ public class CampaignServiceTests
                 It.Is<LogLevel>(l => l == LogLevel.Information),
                 It.IsAny<EventId>(),
                 It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains($"Upserting campaign import metadata for CampaignID {campaign.Id} to database")),
-                It.IsAny<Exception?>(),
-                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception, string>>()),
             Times.Once);
 
         _loggerMock.Verify(
@@ -2470,8 +2468,8 @@ public class CampaignServiceTests
                 It.Is<LogLevel>(l => l == LogLevel.Warning),
                 It.IsAny<EventId>(),
                 It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains($"No rows were inserted or updated when upserting campaign import metadata for CampaignID {campaign.Id}")),
-                It.IsAny<Exception?>(),
-                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception, string>>()),
             Times.Once);
     }
 
@@ -2506,7 +2504,7 @@ public class CampaignServiceTests
                 It.IsAny<EventId>(),
                 It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains($"Error upserting campaign import metadata for CampaignID {campaignImportMetadata.CampaignId} to database")),
                 It.Is<Exception>(e => e == exception),
-                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+                It.IsAny<Func<It.IsAnyType, Exception, string>>()),
             Times.Once);
     }
 
@@ -2528,8 +2526,8 @@ public class CampaignServiceTests
                 It.Is<LogLevel>(l => l == LogLevel.Information),
                 It.IsAny<EventId>(),
                 It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains($"Bulk inserting {bouncedEmails.Count} bounced contacts into database")),
-                It.IsAny<Exception?>(),
-                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception, string>>()),
             Times.Once);
 
         _loggerMock.Verify(
@@ -2537,8 +2535,8 @@ public class CampaignServiceTests
                 It.Is<LogLevel>(l => l == LogLevel.Information),
                 It.IsAny<EventId>(),
                 It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains($"Successfully bulk inserted {bouncedEmails.Count} bounced contacts into database")),
-                It.IsAny<Exception?>(),
-                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception, string>>()),
             Times.Once);
     }
 
@@ -2556,8 +2554,8 @@ public class CampaignServiceTests
                 It.Is<LogLevel>(l => l == LogLevel.Information),
                 It.IsAny<EventId>(),
                 It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("Bulk inserting 0 bounced contacts into database")),
-                It.IsAny<Exception?>(),
-                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception, string>>()),
             Times.Once);
 
         _loggerMock.Verify(
@@ -2565,8 +2563,8 @@ public class CampaignServiceTests
                 It.Is<LogLevel>(l => l == LogLevel.Warning),
                 It.IsAny<EventId>(),
                 It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("No bounced contacts to insert into database")),
-                It.IsAny<Exception?>(),
-                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception, string>>()),
             Times.Once);
     }
 
@@ -2591,7 +2589,7 @@ public class CampaignServiceTests
                 It.IsAny<EventId>(),
                 It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("Error bulk inserting bounced contacts into database")),
                 It.Is<Exception>(e => e == exception),
-                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+                It.IsAny<Func<It.IsAnyType, Exception, string>>()),
             Times.Once);
     }
 
@@ -2613,8 +2611,8 @@ public class CampaignServiceTests
                 It.Is<LogLevel>(l => l == LogLevel.Information),
                 It.IsAny<EventId>(),
                 It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains($"Bulk inserting {clickedLinks.Count} clicked link contacts into database")),
-                It.IsAny<Exception?>(),
-                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception, string>>()),
             Times.Once);
 
         _loggerMock.Verify(
@@ -2622,8 +2620,8 @@ public class CampaignServiceTests
                 It.Is<LogLevel>(l => l == LogLevel.Information),
                 It.IsAny<EventId>(),
                 It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains($"Successfully bulk inserted {clickedLinks.Count} clicked link contacts into database")),
-                It.IsAny<Exception?>(),
-                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception, string>>()),
             Times.Once);
     }
 
@@ -2641,8 +2639,8 @@ public class CampaignServiceTests
                 It.Is<LogLevel>(l => l == LogLevel.Information),
                 It.IsAny<EventId>(),
                 It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("Bulk inserting 0 clicked link contacts into database")),
-                It.IsAny<Exception?>(),
-                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception, string>>()),
             Times.Once);
 
         _loggerMock.Verify(
@@ -2650,8 +2648,8 @@ public class CampaignServiceTests
                 It.Is<LogLevel>(l => l == LogLevel.Warning),
                 It.IsAny<EventId>(),
                 It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("No clicked link contacts to insert into database")),
-                It.IsAny<Exception?>(),
-                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception, string>>()),
             Times.Once);
     }
 
@@ -2676,7 +2674,7 @@ public class CampaignServiceTests
                 It.IsAny<EventId>(),
                 It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("Error bulk inserting clicked link contacts into database")),
                 It.Is<Exception>(e => e == exception),
-                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+                It.IsAny<Func<It.IsAnyType, Exception, string>>()),
             Times.Once);
     }
 
@@ -2698,8 +2696,8 @@ public class CampaignServiceTests
                 It.Is<LogLevel>(l => l == LogLevel.Information),
                 It.IsAny<EventId>(),
                 It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains($"Bulk inserting {displayedEmails.Count} displayed email contacts into database")),
-                It.IsAny<Exception?>(),
-                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception, string>>()),
             Times.Once);
 
         _loggerMock.Verify(
@@ -2707,8 +2705,8 @@ public class CampaignServiceTests
                 It.Is<LogLevel>(l => l == LogLevel.Information),
                 It.IsAny<EventId>(),
                 It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains($"Successfully bulk inserted {displayedEmails.Count} displayed email contacts into database")),
-                It.IsAny<Exception?>(),
-                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception, string>>()),
             Times.Once);
     }
 
@@ -2726,8 +2724,8 @@ public class CampaignServiceTests
                 It.Is<LogLevel>(l => l == LogLevel.Information),
                 It.IsAny<EventId>(),
                 It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("Bulk inserting 0 displayed email contacts into database")),
-                It.IsAny<Exception?>(),
-                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception, string>>()),
             Times.Once);
 
         _loggerMock.Verify(
@@ -2735,8 +2733,8 @@ public class CampaignServiceTests
                 It.Is<LogLevel>(l => l == LogLevel.Warning),
                 It.IsAny<EventId>(),
                 It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("No displayed email contacts to insert into database")),
-                It.IsAny<Exception?>(),
-                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception, string>>()),
             Times.Once);
     }
 
@@ -2761,7 +2759,7 @@ public class CampaignServiceTests
                 It.IsAny<EventId>(),
                 It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("Error bulk inserting displayed email contacts into database")),
                 It.Is<Exception>(e => e == exception),
-                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+                It.IsAny<Func<It.IsAnyType, Exception, string>>()),
             Times.Once);
     }
 
@@ -2783,8 +2781,8 @@ public class CampaignServiceTests
                 It.Is<LogLevel>(l => l == LogLevel.Information),
                 It.IsAny<EventId>(),
                 It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains($"Bulk inserting {unsubscribedContacts.Count} unsubscribed contacts into database")),
-                It.IsAny<Exception?>(),
-                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception, string>>()),
             Times.Once);
 
         _loggerMock.Verify(
@@ -2792,8 +2790,8 @@ public class CampaignServiceTests
                 It.Is<LogLevel>(l => l == LogLevel.Information),
                 It.IsAny<EventId>(),
                 It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains($"Successfully bulk inserted {unsubscribedContacts.Count} unsubscribed contacts into database")),
-                It.IsAny<Exception?>(),
-                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception, string>>()),
             Times.Once);
     }
 
@@ -2811,8 +2809,8 @@ public class CampaignServiceTests
                 It.Is<LogLevel>(l => l == LogLevel.Information),
                 It.IsAny<EventId>(),
                 It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("Bulk inserting 0 unsubscribed contacts into database")),
-                It.IsAny<Exception?>(),
-                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception, string>>()),
             Times.Once);
 
         _loggerMock.Verify(
@@ -2820,8 +2818,8 @@ public class CampaignServiceTests
                 It.Is<LogLevel>(l => l == LogLevel.Warning),
                 It.IsAny<EventId>(),
                 It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("No unsubscribed contacts to insert into database")),
-                It.IsAny<Exception?>(),
-                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception, string>>()),
             Times.Once);
     }
 
@@ -2846,7 +2844,7 @@ public class CampaignServiceTests
                 It.IsAny<EventId>(),
                 It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("Error bulk inserting unsubscribed contacts into database")),
                 It.Is<Exception>(e => e == exception),
-                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+                It.IsAny<Func<It.IsAnyType, Exception, string>>()),
             Times.Once);
     }
 
