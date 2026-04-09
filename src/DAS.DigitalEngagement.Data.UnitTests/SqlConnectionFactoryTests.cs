@@ -1,5 +1,7 @@
-﻿using DAS.DigitalEngagement.CampaignInterest.Data.Helpers;
+﻿using Azure.Core;
+using DAS.DigitalEngagement.CampaignInterest.Data.Helpers;
 using Microsoft.Data.SqlClient;
+using Moq;
 using System.Data;
 
 namespace DAS.DigitalEngagement.CampaignInterest.Data.UnitTests;
@@ -21,24 +23,15 @@ public class SqlConnectionFactoryTests
         Assert.That(factory, Is.Not.Null);
     }
 
+    // Additional constructor tests with token credentials
     [Test]
-    public void Constructor_Should_Accept_Null_Connection_String()
+    public void Constructor_Should_Accept_Valid_Connection_String_And_Token_Credential()
     {
         // Arrange
-        string? nullConnectionString = null;
+        var tokenCredential = new Mock<TokenCredential>();
 
         // Act
-        var factory = new SqlConnectionFactory(nullConnectionString!);
-
-        // Assert
-        Assert.That(factory, Is.Not.Null);
-    }
-
-    [Test]
-    public void Constructor_Should_Accept_Empty_Connection_String()
-    {
-        // Act
-        var factory = new SqlConnectionFactory(string.Empty);
+        var factory = new SqlConnectionFactory(ValidConnectionString, tokenCredential.Object);
 
         // Assert
         Assert.That(factory, Is.Not.Null);
@@ -163,6 +156,18 @@ public class SqlConnectionFactoryTests
         }
     }
 
+    [Test]
+    public void CreateConnection_Should_Throw_Exception_For_Null_Or_Empty_Connection_String()
+    {
+        // Arrange
+        var factoryWithNull = new SqlConnectionFactory(null!);
+        var factoryWithEmpty = new SqlConnectionFactory(string.Empty);
+
+        // Act & Assert
+        Assert.That(async () => await factoryWithNull.CreateConnectionAsync(), Throws.InvalidOperationException);
+        Assert.That(async () => await factoryWithEmpty.CreateConnectionAsync(), Throws.InvalidOperationException);
+    }
+
     #endregion
 
     #region Connection String Variations Tests
@@ -218,53 +223,6 @@ public class SqlConnectionFactoryTests
             Assert.That(connection!.ConnectionString, Contains.Substring("Timeout"));
             Assert.That(connection.ConnectionString, Contains.Substring("Encrypt"));
         });
-    }
-
-    #endregion
-
-    #region Edge Cases Tests
-
-    [Test]
-    public async Task CreateConnection_With_Null_Connection_String_Should_Create_Connection()
-    {
-        // Arrange
-        string? nullConnectionString = null;
-        var factory = new SqlConnectionFactory(nullConnectionString!);
-
-        // Act
-        var connection = await factory.CreateConnectionAsync() as SqlConnection;
-
-        // Assert
-        Assert.That(connection, Is.Not.Null);
-        Assert.That(connection!.ConnectionString, Is.Empty);
-    }
-
-    [Test]
-    public async Task CreateConnection_With_Empty_Connection_String_Should_Create_Connection()
-    {
-        // Arrange
-        var factory = new SqlConnectionFactory(string.Empty);
-
-        // Act
-        var connection = await factory.CreateConnectionAsync() as SqlConnection;
-
-        // Assert
-        Assert.That(connection, Is.Not.Null);
-        Assert.That(connection!.ConnectionString, Is.Empty);
-    }
-
-    [Test]
-    public async Task CreateConnection_With_Whitespace_Connection_String_Should_Preserve_Whitespace()
-    {
-        // Arrange
-        var whitespaceConnectionString = "   ";
-        var factory = new SqlConnectionFactory(whitespaceConnectionString);
-
-        // Act
-        var connection = await factory.CreateConnectionAsync() as SqlConnection;
-
-        // Assert
-        Assert.That(connection, Is.Not.Null);
     }
 
     #endregion

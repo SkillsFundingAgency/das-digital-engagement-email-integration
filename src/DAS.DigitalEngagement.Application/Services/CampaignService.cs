@@ -10,14 +10,12 @@ using System.Text.Json.Nodes;
 
 namespace DAS.DigitalEngagement.Application.Services;
 
-public class CampaignService(
-    IExternalApiService externalApiService,
-    IUnitOfWork unitOfWork,
-    ILogger<CampaignService> logger,
-    IOptions<EmailMarketingApi> apiConfig) : ICampaignService
+public class CampaignService(IExternalApiService externalApiService, IUnitOfWork unitOfWork, ILogger<CampaignService> logger, IOptions<EmailMarketingApi> apiConfig) : ICampaignService
 {
     private readonly int _pageSize = apiConfig.Value.PageSize;
     private readonly int _importWindowDays = apiConfig.Value.ImportWindowDays;
+    private const string ContactProperty = "Contact";
+    private const string EmailProperty = "Email";
 
     public async Task<IEnumerable<Send>> GetAllSendsAsync(int? subAccountId = null, CancellationToken cancellationToken = default)
     {
@@ -33,7 +31,7 @@ public class CampaignService(
         var response = await externalApiService.GetDataAsync(endpoint);
         var sends = ParseSendsFromResponse(response);
 
-        logger.LogInformation("Successfully retrieved {SendCount} Sends for sub-account {SubAccountId}", sends.Count(), subAccountId);
+        logger.LogInformation("Successfully retrieved {SendCount} Sends for sub-account {SubAccountId}", sends.Count, subAccountId);
 
         return sends;
     }
@@ -54,10 +52,10 @@ public class CampaignService(
 
             userAgentInfos.AddRange(userAgents);
 
-            logger.LogInformation("Retrieved {UserAgentCount} user agent records for Send {SendId} at skip={Skip}", userAgents.Count(), sendId, skip);
+            logger.LogInformation("Retrieved {UserAgentCount} user agent records for Send {SendId} at skip={Skip}", userAgents.Count, sendId, skip);
 
             // Determine if there are more pages
-            if (userAgents.Count() < _pageSize)
+            if (userAgents.Count < _pageSize)
             {
                 hasMorePages = false;
             }
@@ -88,10 +86,10 @@ public class CampaignService(
 
             displayedContacts.AddRange(contacts);
 
-            logger.LogInformation("Retrieved {ContactCount} displayed contacts for Send {SendId} at skip={Skip}", contacts.Count(), sendId, skip);
+            logger.LogInformation("Retrieved {ContactCount} displayed contacts for Send {SendId} at skip={Skip}", contacts.Count, sendId, skip);
 
             // Determine if there are more pages
-            if (contacts.Count() < _pageSize)
+            if (contacts.Count < _pageSize)
             {
                 hasMorePages = false;
             }
@@ -122,10 +120,10 @@ public class CampaignService(
 
             clickedLinkContacts.AddRange(contacts);
 
-            logger.LogInformation("Retrieved {ContactCount} clicked link contacts for Send {SendId} at skip={Skip}", contacts.Count(), sendId, skip);
+            logger.LogInformation("Retrieved {ContactCount} clicked link contacts for Send {SendId} at skip={Skip}", contacts.Count, sendId, skip);
 
             // Determine if there are more pages
-            if (contacts.Count() < _pageSize)
+            if (contacts.Count < _pageSize)
             {
                 hasMorePages = false;
             }
@@ -159,7 +157,7 @@ public class CampaignService(
             bouncedContacts.AddRange(contacts);
 
             // Determine if there are more pages
-            if (contacts.Count() < _pageSize)
+            if (contacts.Count < _pageSize)
             {
                 hasMorePages = false;
             }
@@ -192,10 +190,10 @@ public class CampaignService(
 
             unsubscribedContacts.AddRange(contacts);
 
-            logger.LogInformation("Retrieved {ContactCount} clicked link contacts for Send {SendId} at skip={Skip}", contacts.Count(), sendId, skip);
+            logger.LogInformation("Retrieved {ContactCount} clicked link contacts for Send {SendId} at skip={Skip}", contacts.Count, sendId, skip);
 
             // Determine if there are more pages
-            if (contacts.Count() < _pageSize)
+            if (contacts.Count < _pageSize)
             {
                 hasMorePages = false;
             }
@@ -253,9 +251,15 @@ public class CampaignService(
     #region Campaign data access methods
 
     // Campaigns
-    public async Task<Campaigns?> GetCampaignDetailsAsync(int campaignId)
+    public async Task<Campaigns?> GetCampaignDetailsAsync(long campaignId, CancellationToken cancellationToken = default)
     {
         logger.LogInformation("Retrieving campaign details for CampaignID {CampaignId} from database", campaignId);
+
+        if (campaignId <= 0)
+        {
+            logger.LogWarning("Invalid CampaignID {CampaignId} provided for retrieval", campaignId);
+            return null;
+        }
 
         try
         {
@@ -264,11 +268,10 @@ public class CampaignService(
             if (campaign == null)
             {
                 logger.LogWarning("No campaign details found in database for CampaignID {CampaignId}", campaignId);
+                return null;
             }
-            else
-            {
-                logger.LogInformation("Successfully retrieved campaign details for CampaignID {CampaignId}", campaignId);
-            }
+
+            logger.LogInformation("Successfully retrieved campaign details for CampaignID {CampaignId}", campaignId);
             return campaign;
         }
         catch (Exception ex)
@@ -278,26 +281,42 @@ public class CampaignService(
         }
     }
 
-    public async Task SaveCampaignDetailsAsync(Campaigns campaign)
+    public async Task<bool> SaveCampaignDetailsAsync(Campaigns campaign, CancellationToken cancellationToken = default)
     {
         logger.LogInformation("Saving campaign details for CampaignID {CampaignId} to database", campaign.Id);
 
         try
         {
             await unitOfWork.BeginAsync();
-            await unitOfWork.Campaigns.UpsertAsync(campaign);
+            int rowsAffected = await unitOfWork.Campaigns.UpsertAsync(campaign);
+
+            if (rowsAffected == 0)
+            {
+                logger.LogWarning("No rows were inserted or updated when saving campaign details for CampaignID {CampaignId}", campaign.Id);
+                return false;
+            }
+
             logger.LogInformation("Successfully saved campaign details for CampaignID {CampaignId} to database", campaign.Id);
+            return true;
         }
         catch (Exception ex)
         {
             logger.LogError(ex, "Error saving campaign details for CampaignID {CampaignId} to database", campaign.Id);
+            return false;
         }
     }
 
     // CampaignImportMetadata
-    public async Task<CampaignImportMetadata?> GetCampaignImportMetadataAsync(int campaignId)
+    public async Task<CampaignImportMetadata?> GetCampaignImportMetadataAsync(long campaignId, CancellationToken cancellationToken = default)
     {
         logger.LogInformation("Retrieving campaign import metadata for CampaignID {CampaignId} from database", campaignId);
+
+        if (campaignId <= 0)
+        {
+            logger.LogWarning("Invalid CampaignID {CampaignId} provided for retrieval", campaignId);
+            return null;
+        }
+
         try
         {
             await unitOfWork.BeginAsync();
@@ -305,11 +324,10 @@ public class CampaignService(
             if (metadata == null)
             {
                 logger.LogWarning("No campaign import metadata found in database for CampaignID {CampaignId}", campaignId);
+                return null;
             }
-            else
-            {
-                logger.LogInformation("Successfully retrieved campaign import metadata for CampaignID {CampaignId}", campaignId);
-            }
+
+            logger.LogInformation("Successfully retrieved campaign import metadata for CampaignID {CampaignId}", campaignId);
             return metadata;
         }
         catch (Exception ex)
@@ -319,82 +337,127 @@ public class CampaignService(
         }
     }
 
-    public async Task UpsertCampaignImportMetadataAsync(CampaignImportMetadata metadata)
+    public async Task<bool> UpsertCampaignImportMetadataAsync(CampaignImportMetadata metadata, CancellationToken cancellationToken = default)
     {
         logger.LogInformation("Upserting campaign import metadata for CampaignID {CampaignId} to database", metadata.CampaignId);
         try
         {
             await unitOfWork.BeginAsync();
-            await unitOfWork.CampaignImportMetadata.UpsertAsync(metadata);
+            int rowsAffected = await unitOfWork.CampaignImportMetadata.UpsertAsync(metadata);
+
+            if (rowsAffected == 0)
+            {
+                logger.LogWarning("No rows were inserted or updated when upserting campaign import metadata for CampaignID {CampaignId}", metadata.CampaignId);
+                return false;
+            }
+
             logger.LogInformation("Successfully upserted campaign import metadata for CampaignID {CampaignId} to database", metadata.CampaignId);
+            return true;
         }
         catch (Exception ex)
         {
             logger.LogError(ex, "Error upserting campaign import metadata for CampaignID {CampaignId} to database", metadata.CampaignId);
+            return false;
         }
     }
 
     // BouncedEmails
-    public async Task BulkInsertBouncedContactsAsync(IEnumerable<BouncedEmails> bouncedEmails)
+    public async Task<bool> BulkInsertBouncedContactsAsync(IEnumerable<BouncedEmails> bouncedEmails, CancellationToken cancellationToken = default)
     {
         logger.LogInformation("Bulk inserting {ContactCount} bounced contacts into database", bouncedEmails.Count());
+
+        if (!bouncedEmails.Any())
+        {
+            logger.LogWarning("No bounced contacts to insert into database");
+            return true;
+        }
+
         try
         {
             await unitOfWork.BeginAsync();
             await unitOfWork.BouncedEmails.BulkInsertAsync(bouncedEmails);
             logger.LogInformation("Successfully bulk inserted {ContactCount} bounced contacts into database", bouncedEmails.Count());
+            return true;
         }
         catch (Exception ex)
         {
             logger.LogError(ex, "Error bulk inserting bounced contacts into database");
+            return false;
         }
     }
 
     // ClickedLinks
-    public async Task BulkInsertClickedLinksAsync(IEnumerable<ClickedLinks> clickedLinks)
+    public async Task<bool> BulkInsertClickedLinksAsync(IEnumerable<ClickedLinks> clickedLinks, CancellationToken cancellationToken = default)
     {
         logger.LogInformation("Bulk inserting {ContactCount} clicked link contacts into database", clickedLinks.Count());
+
+        if (!clickedLinks.Any())
+        {
+            logger.LogWarning("No clicked link contacts to insert into database");
+            return true;
+        }
+
         try
         {
             await unitOfWork.BeginAsync();
             await unitOfWork.ClickedLinks.BulkInsertAsync(clickedLinks);
             logger.LogInformation("Successfully bulk inserted {ContactCount} clicked link contacts into database", clickedLinks.Count());
+            return true;
         }
         catch (Exception ex)
         {
             logger.LogError(ex, "Error bulk inserting clicked link contacts into database");
+            return false;
         }
     }
 
     // DisplayedEmails
-    public async Task BulkInsertDisplayedContactsAsync(IEnumerable<DisplayedEmails> displayedEmails)
+    public async Task<bool> BulkInsertDisplayedContactsAsync(IEnumerable<DisplayedEmails> displayedEmails, CancellationToken cancellationToken = default)
     {
         logger.LogInformation("Bulk inserting {ContactCount} displayed email contacts into database", displayedEmails.Count());
+
+        if (!displayedEmails.Any())
+        {
+            logger.LogWarning("No displayed email contacts to insert into database");
+            return true;
+        }
+
         try
         {
             await unitOfWork.BeginAsync();
             await unitOfWork.DisplayedEmails.BulkInsertAsync(displayedEmails);
             logger.LogInformation("Successfully bulk inserted {ContactCount} displayed email contacts into database", displayedEmails.Count());
+            return true;
         }
         catch (Exception ex)
         {
             logger.LogError(ex, "Error bulk inserting displayed email contacts into database");
+            return false;
         }
     }
 
     // UnsubscribedContacts
-    public async Task BulkInsertUnsubscribedContactsAsync(IEnumerable<UnsubscribedContacts> unsubscribedContacts)
+    public async Task<bool> BulkInsertUnsubscribedContactsAsync(IEnumerable<UnsubscribedContacts> unsubscribedContacts, CancellationToken cancellationToken = default)
     {
         logger.LogInformation("Bulk inserting {ContactCount} unsubscribed contacts into database", unsubscribedContacts.Count());
+
+        if (!unsubscribedContacts.Any())
+        {
+            logger.LogWarning("No unsubscribed contacts to insert into database");
+            return true;
+        }
+
         try
         {
             await unitOfWork.BeginAsync();
             await unitOfWork.UnsubscribedContacts.BulkInsertAsync(unsubscribedContacts);
             logger.LogInformation("Successfully bulk inserted {ContactCount} unsubscribed contacts into database", unsubscribedContacts.Count());
+            return true;
         }
         catch (Exception ex)
         {
             logger.LogError(ex, "Error bulk inserting unsubscribed contacts into database");
+            return false;
         }
     }
 
@@ -448,14 +511,14 @@ public class CampaignService(
         return $"UserAgents?$filter={filter}&$orderby={orderBy}&$skip={skip}&$top={top}";
     }
 
-    private IEnumerable<DisplayedContact> ParseDisplayedContactsFromResponse(string jsonResponse, IEnumerable<UserAgentInfo> userAgentInfos)
+    private List<DisplayedContact> ParseDisplayedContactsFromResponse(string jsonResponse, IEnumerable<UserAgentInfo> userAgentInfos)
     {
         var valueArray = GetValueArrayFromJsonResponse(jsonResponse);
 
         if (valueArray == null || valueArray.Count == 0)
         {
             logger.LogWarning("No displayed contacts found in e-shot response");
-            return Enumerable.Empty<DisplayedContact>();
+            return [];
         }
 
         var contacts = new List<DisplayedContact>();
@@ -470,7 +533,7 @@ public class CampaignService(
             {
                 ID = item?["ID"]?.GetValue<int>() ?? 0,
                 DisplayDate = item?["DisplayDate"]?.GetValue<string>(),
-                ContactEmail = item?["Contact"]?["Email"]?.GetValue<string>(),
+                ContactEmail = item?[ContactProperty]?[EmailProperty]?.GetValue<string>(),
                 Format = item?["Format"]?.GetValue<string>(),
                 SendID = item?[nameof(DisplayedContact.SendID)]?.GetValue<int>() ?? 0,
                 CampaignID = item?[nameof(DisplayedContact.CampaignID)]?.GetValue<int>() ?? 0,
@@ -498,14 +561,14 @@ public class CampaignService(
         return contacts;
     }
 
-    private IEnumerable<ClickedLinkContact> ParseClickedLinkContactsFromResponse(string jsonResponse, IEnumerable<UserAgentInfo> userAgentInfos)
+    private List<ClickedLinkContact> ParseClickedLinkContactsFromResponse(string jsonResponse, IEnumerable<UserAgentInfo> userAgentInfos)
     {
         var valueArray = GetValueArrayFromJsonResponse(jsonResponse);
 
         if (valueArray == null || valueArray.Count == 0)
         {
             logger.LogWarning("No clicked link contacts found in e-shot response");
-            return Enumerable.Empty<ClickedLinkContact>();
+            return [];
         }
 
         var contacts = new List<ClickedLinkContact>();
@@ -551,14 +614,14 @@ public class CampaignService(
         return contacts;
     }
 
-    private IEnumerable<BouncedContact> ParseBouncedContactsFromResponse(string jsonResponse)
+    private List<BouncedContact> ParseBouncedContactsFromResponse(string jsonResponse)
     {
         var valueArray = GetValueArrayFromJsonResponse(jsonResponse);
 
         if (valueArray == null || valueArray.Count == 0)
         {
             logger.LogWarning("No bounced email contacts found in e-shot response");
-            return Enumerable.Empty<BouncedContact>();
+            return [];
         }
 
         var contacts = new List<BouncedContact>();
@@ -571,7 +634,7 @@ public class CampaignService(
                 BounceReason = item?["BounceReason"]?.GetValue<string>(),
                 BounceType = item?["BounceType"]?.GetValue<string>(),
                 BounceDate = item?["BounceDate"]?.GetValue<string>(),
-                ContactEmail = item?["Contact"]?["Email"]?.GetValue<string>(),
+                ContactEmail = item?[ContactProperty]?[EmailProperty]?.GetValue<string>(),
                 SendID = item?[nameof(BouncedContact.SendID)]?.GetValue<int>() ?? 0,
                 CampaignID = item?[nameof(BouncedContact.CampaignID)]?.GetValue<int>() ?? 0,
                 ResponseText = item?["ResponseText"]?.GetValue<string>()
@@ -590,14 +653,14 @@ public class CampaignService(
         return contacts;
     }
 
-    private IEnumerable<UnsubscribedContact> ParseUnsubscribedContactsFromResponse(string jsonResponse)
+    private List<UnsubscribedContact> ParseUnsubscribedContactsFromResponse(string jsonResponse)
     {
         var valueArray = GetValueArrayFromJsonResponse(jsonResponse);
 
         if (valueArray == null || valueArray.Count == 0)
         {
             logger.LogWarning("No unsubscribed email contacts found in e-shot response");
-            return Enumerable.Empty<UnsubscribedContact>();
+            return [];
         }
 
         var contacts = new List<UnsubscribedContact>();
@@ -608,7 +671,7 @@ public class CampaignService(
             {
                 ID = item?["ID"]?.GetValue<int>() ?? 0,
                 UnsubscribedDate = item?["UnsubscribedDate"]?.GetValue<string>(),
-                ContactEmail = item?["Contact"]?["Email"]?.GetValue<string>(),
+                ContactEmail = item?[ContactProperty]?[EmailProperty]?.GetValue<string>(),
                 SendID = item?[nameof(UnsubscribedContact.SendID)]?.GetValue<int>() ?? 0,
                 CampaignID = item?[nameof(UnsubscribedContact.CampaignID)]?.GetValue<int>() ?? 0,
                 IsGlobalUnsubscribe = item?["IsGlobalUnsubscribe"]?.GetValue<bool>() ?? false,
@@ -628,14 +691,14 @@ public class CampaignService(
         return contacts;
     }
 
-    private IEnumerable<Send> ParseSendsFromResponse(string jsonResponse)
+    private List<Send> ParseSendsFromResponse(string jsonResponse)
     {
         var valueArray = GetValueArrayFromJsonResponse(jsonResponse);
 
         if (valueArray == null || valueArray.Count == 0)
         {
             logger.LogWarning("No Sends found in e-shot response");
-            return Enumerable.Empty<Send>();
+            return [];
         }
 
         var sends = new List<Send>();
@@ -677,14 +740,14 @@ public class CampaignService(
         return sends;
     }
 
-    private IEnumerable<UserAgentInfo> ParseUserAgentInfoFromResponse(string jsonResponse)
+    private List<UserAgentInfo> ParseUserAgentInfoFromResponse(string jsonResponse)
     {
         var valueArray = GetValueArrayFromJsonResponse(jsonResponse);
 
         if (valueArray == null || valueArray.Count == 0)
         {
             logger.LogWarning("No user agent information found in e-shot response");
-            return Enumerable.Empty<UserAgentInfo>();
+            return [];
         }
 
         var userAgentInfos = new List<UserAgentInfo>();

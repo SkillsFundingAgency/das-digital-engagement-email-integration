@@ -15,12 +15,16 @@ public class SqlConnectionFactory(string connectionString, TokenCredential? toke
 
     public async Task<IDbConnection> CreateConnectionAsync()
     {
+        if (string.IsNullOrEmpty(connectionString) || string.IsNullOrWhiteSpace(connectionString))
+        {
+            throw new InvalidOperationException("Connection string cannot be null or empty.");
+        }
+
         var connection = new SqlConnection(connectionString);
 
         if (tokenCredential != null)
         {
-            var token = await tokenCredential.GetTokenAsync(
-                new TokenRequestContext(SqlScopes), default);
+            var token = await tokenCredential.GetTokenAsync(new TokenRequestContext(SqlScopes), default);
             connection.AccessToken = token.Token;
         }
 
