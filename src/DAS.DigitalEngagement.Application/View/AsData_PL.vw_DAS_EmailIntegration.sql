@@ -124,7 +124,10 @@ AccountUsers AS (
         aur.EmployerEmail,
         ena.EmployerFirstName,
         CASE WHEN ena.EmployerFirstName = '' THEN '' ELSE ena.EmployerLastName END AS EmployerLastName,
-        aur.EmployerAccountID,
+        CASE
+            WHEN ala.AccountCount > 1 THEN ''
+            ELSE CAST(aur.EmployerAccountID AS varchar(100))
+        END AS EmployerAccountID,
         aur.LevyStatus,
         aur.LastLogin,
         aur.DateOfLastAPIAutoSync,

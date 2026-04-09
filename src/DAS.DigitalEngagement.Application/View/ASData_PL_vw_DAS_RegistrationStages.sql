@@ -38,26 +38,26 @@ cte_Stages AS (
         a.Name AS EmployerName,
         u.Email AS UserEmail,
 
-        CASE WHEN u.Email IS NOT NULL THEN 'Y' ELSE 'N' END AS Stage1a,
-        CASE WHEN aur.Role IS NOT NULL THEN 'Y' ELSE 'N' END AS Stage1b,
-        CASE WHEN paye.PayeAdded IS NOT NULL THEN 'Y' ELSE 'N' END AS Stage2,
+        CASE WHEN u.Email IS NOT NULL THEN 'true' ELSE 'false' END AS Stage1a,
+        CASE WHEN aur.Role IS NOT NULL THEN 'true' ELSE 'false' END AS Stage1b,
+        CASE WHEN paye.PayeAdded IS NOT NULL THEN 'true' ELSE 'false' END AS Stage2,
 
         CASE 
             WHEN a.NameConfirmed = 1 
              AND a.ApprenticeshipEmployerType <> 2
              AND a.Name <> 'MY ACCOUNT'
-            THEN 'Y'
-            ELSE 'N'
+            THEN 'true'
+            ELSE 'false'
         END AS Stage3,
 
-        CASE WHEN ag.SignedAgreementId IS NOT NULL THEN 'Y' ELSE 'N' END AS Stage4a,
-        CASE WHEN ag.Acknowledged = 1 AND ag.SignedAgreementId IS NULL THEN 'Y' ELSE 'N' END AS Stage4b,
+        CASE WHEN ag.SignedAgreementId IS NOT NULL THEN 'true' ELSE 'false' END AS Stage4a,
+        CASE WHEN ag.Acknowledged = 1 AND ag.SignedAgreementId IS NULL THEN 'true' ELSE 'false' END AS Stage4b,
 
-        CASE WHEN a.AddTrainingProviderAcknowledged = 1 THEN 'Y' ELSE 'N' END AS Stage5a,
+        CASE WHEN a.AddTrainingProviderAcknowledged = 1 THEN 'true' ELSE 'false' END AS Stage5a,
         CASE 
             WHEN prov.AccountId IS NULL 
              AND a.AddTrainingProviderAcknowledged = 0
-            THEN 'Y' ELSE 'N'
+            THEN 'true' ELSE 'false'
         END AS Stage5b
 
     FROM ASData_PL.Acc_User u
