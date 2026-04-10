@@ -11,6 +11,7 @@ public class UnsubscribedContactsRepositoryTests
     private UnsubscribedContactsRepository _unsubscribedContactsRepository = null!;
     private Mock<IBulkInsertService> _mockBulkInsertService = null!;
     private List<UnsubscribedContacts> _unsubscribedContacts;
+
     [SetUp]
     public void Setup()
     {

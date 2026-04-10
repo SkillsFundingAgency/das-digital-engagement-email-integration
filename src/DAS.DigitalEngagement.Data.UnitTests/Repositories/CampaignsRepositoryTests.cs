@@ -23,10 +23,10 @@ public class CampaignsRepositoryTests
     [SetUp]
     public void Setup()
     {
-        _mockConnectionFactory = new Mock<IDbConnectionFactory>();
         _mockConnection = new Mock<IDbConnection>();
         _mockLogger = new Mock<ILogger<CampaignsRepository>>();
 
+        _mockConnectionFactory = new Mock<IDbConnectionFactory>();
         _mockConnectionFactory.Setup(f => f.CreateConnectionAsync()).ReturnsAsync(_mockConnection.Object);
 
         _repository = new CampaignsRepository(_mockConnectionFactory.Object, _mockLogger.Object);
