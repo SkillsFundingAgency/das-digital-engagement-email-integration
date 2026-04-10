@@ -1,14 +1,11 @@
-﻿/****** Object:  View [ASData_PL].[vw_DAS_RegistrationStages]    Script Date: 07/04/2026 01:12:32 ******/
-DROP VIEW [ASData_PL].[vw_DAS_RegistrationStages]
+﻿DROP VIEW [ASData_PL].[vw_DAS_RegistrationStages]
 GO
 
-/****** Object:  View [ASData_PL].[vw_DAS_RegistrationStages]    Script Date: 07/04/2026 01:12:32 ******/
 SET ANSI_NULLS ON
 GO
 
 SET QUOTED_IDENTIFIER ON
 GO
-
 
 
 CREATE VIEW [ASData_PL].[vw_DAS_RegistrationStages]
@@ -59,7 +56,6 @@ cte_Stages AS (
              AND a.AddTrainingProviderAcknowledged = 0
             THEN 'true' ELSE 'false'
         END AS Stage5b
-
     FROM ASData_PL.Acc_User u
     LEFT JOIN ASData_PL.Acc_AccountUserRole aur ON u.Id = aur.UserId
     LEFT JOIN ASData_PL.Acc_Account a ON aur.AccountId = a.Id
@@ -70,9 +66,18 @@ cte_Stages AS (
 )
 
 SELECT
-    EmployerAccountId,
-    MAX(EmployerName) AS EmployerName,
     UserEmail,
+
+    COUNT(DISTINCT EmployerAccountId) AS AccountCount,
+
+    /* Optional: expose account only if unambiguous */
+    CASE
+        WHEN COUNT(DISTINCT EmployerAccountId) = 1
+            THEN MAX(EmployerAccountId)
+        ELSE NULL
+    END AS EmployerAccountId,
+
+    MAX(EmployerName) AS EmployerName,
 
     CASE WHEN MIN(Stage1a) = MAX(Stage1a) THEN MIN(Stage1a) ELSE '' END AS Stage1a,
     CASE WHEN MIN(Stage1b) = MAX(Stage1b) THEN MIN(Stage1b) ELSE '' END AS Stage1b,
@@ -85,11 +90,6 @@ SELECT
 
 FROM cte_Stages
 GROUP BY
-    UserEmail,
-    EmployerAccountId
---ORDER BY
---    UserEmail,
---    EmployerAccountId;
-GO
+    UserEmail;
 
 
