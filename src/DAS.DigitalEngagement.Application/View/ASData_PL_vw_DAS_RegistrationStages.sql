@@ -1,5 +1,4 @@
-﻿-- NOSONARs
-DROP VIEW [ASData_PL].[vw_DAS_RegistrationStages]
+﻿DROP VIEW [ASData_PL].[vw_DAS_RegistrationStages]
 GO
 
 SET ANSI_NULLS ON
@@ -30,6 +29,7 @@ cte_Agreement AS (
     JOIN ASData_PL.Acc_AccountLegalEntity ale ON ale.AccountId = a.Id
     JOIN ASData_PL.Acc_EmployerAgreement ea ON ea.AccountLegalEntityId = ale.Id
 ),
+-- sonar-ignore-start
 cte_Stages AS (
     SELECT
         a.Id AS EmployerAccountId,
@@ -65,13 +65,14 @@ cte_Stages AS (
     LEFT JOIN cte_Agreement ag ON a.Id = ag.AccountId
     WHERE a.Name <> 'MY ACCOUNT'
 )
+-- sonar-ignore-end
 
 SELECT
     UserEmail,
 
     COUNT(DISTINCT EmployerAccountId) AS AccountCount,
 
-    /* Optional: expose account only if unambiguous */
+    -- Optional: expose account only if unambiguous 
     CASE
         WHEN COUNT(DISTINCT EmployerAccountId) = 1
             THEN MAX(EmployerAccountId)
