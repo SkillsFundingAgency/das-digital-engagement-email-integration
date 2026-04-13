@@ -1,4 +1,5 @@
-﻿DROP VIEW [ASData_PL].[vw_DAS_RegistrationStages]
+﻿-- NOSONARs
+DROP VIEW [ASData_PL].[vw_DAS_RegistrationStages]
 GO
 
 SET ANSI_NULLS ON

@@ -140,14 +140,14 @@ AccountUsers AS (
 
         -- Highest completed stage label
         CASE
-            WHEN rs.Stage5a = 'Y' THEN 'Stage 5 – Provider added'
-            WHEN rs.Stage5b = 'Y' THEN 'Stage 5 – Provider pending'
-            WHEN rs.Stage4a = 'Y' THEN 'Stage 4 – Agreement signed'
-            WHEN rs.Stage4b = 'Y' THEN 'Stage 4 – Agreement acknowledged'
-            WHEN rs.Stage3  = 'Y' THEN 'Stage 3 – Account confirmed'
-            WHEN rs.Stage2  = 'Y' THEN 'Stage 2 – PAYE added'
-            WHEN rs.Stage1b = 'Y' THEN 'Stage 1 – Role assigned'
-            WHEN rs.Stage1a = 'Y' THEN 'Stage 1 – User registered'
+            WHEN rs.Stage5a = 'Y' THEN 'Stage 5 - Provider added'
+            WHEN rs.Stage5b = 'Y' THEN 'Stage 5 - Provider pending'
+            WHEN rs.Stage4a = 'Y' THEN 'Stage 4 - Agreement signed'
+            WHEN rs.Stage4b = 'Y' THEN 'Stage 4 - Agreement acknowledged'
+            WHEN rs.Stage3  = 'Y' THEN 'Stage 3 - Account confirmed'
+            WHEN rs.Stage2  = 'Y' THEN 'Stage 2 - PAYE added'
+            WHEN rs.Stage1b = 'Y' THEN 'Stage 1 - Role assigned'
+            WHEN rs.Stage1a = 'Y' THEN 'Stage 1 - User registered'
             ELSE 'Not started'
         END AS CurrentRegistrationStage
     FROM AccountAggregate aa
