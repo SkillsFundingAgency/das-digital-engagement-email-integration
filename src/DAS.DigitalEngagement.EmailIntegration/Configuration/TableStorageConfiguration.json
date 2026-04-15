@@ -114,6 +114,14 @@
         {
           "Source": "SectorEstimate",
           "Target": "SectorEstimate"
+        },
+        {
+          "Source": "Registrationtype",
+          "Target": "Registrationtype"
+        },
+        {
+          "Source": "AccountCreationDate",
+          "Target": "AccountCreationDate"
         }
       ]
     }

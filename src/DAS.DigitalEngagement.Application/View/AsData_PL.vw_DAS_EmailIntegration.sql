@@ -97,10 +97,42 @@ EmployerAttributesAggregate AS (
             WHEN COUNT(DISTINCT es.EmployerSectorEstimate) = 1
                 THEN MAX(es.EmployerSectorEstimate)
             ELSE ''
-        END AS EmployerSector
+        END AS EmployerSector,
+        CASE
+            WHEN COUNT(DISTINCT acc.CreatedDate) = 1
+                THEN MAX(acc.CreatedDate)
+            ELSE NULL
+        END AS AccountCreationDate
+
     FROM AccountUsersBase aub
     LEFT JOIN EmployerSizeCTE es
         ON es.EmployerAccountId = aub.EmployerAccountID
+    GROUP BY aub.EmployerEmail
+),
+EmployerLedAccountCTE AS (
+    SELECT
+        acc.Id AS EmployerAccountID,
+        CASE
+            WHEN pr.RequestType IS NOT NULL THEN 'ProviderLed'
+            ELSE 'EmployerLed'
+        END AS EmployerOrProviderLed
+    FROM ASData_PL.Acc_Account acc
+    LEFT JOIN ASData_PL.PREL_Requests pr
+        ON acc.Name = pr.EmployerOrganisationName
+       AND pr.RequestType = 'CreateAccount'
+       AND pr.Status = 'Accepted'
+),
+EmployerLedAggregate AS (
+    SELECT
+        aub.EmployerEmail,
+        CASE
+            WHEN COUNT(DISTINCT ela.EmployerOrProviderLed) = 1
+                THEN MAX(ela.EmployerOrProviderLed)
+            ELSE ''
+        END AS EmployerOrProviderLed
+    FROM AccountUsersBase aub
+    LEFT JOIN EmployerLedAccountCTE ela
+        ON ela.EmployerAccountID = aub.EmployerAccountID
     GROUP BY aub.EmployerEmail
 ),
 AccountUsers AS (
@@ -117,6 +149,8 @@ AccountUsers AS (
         era.HasReservationsText AS ReservedFunding,
         eaa.EmployerSize,
         eaa.EmployerSector,
+        ela.EmployerOrProviderLed,
+        eaa.AccountCreationDate,
         rs.Stage1a,
         rs.Stage1b,
         rs.Stage2,
@@ -156,7 +190,9 @@ AccountUsers AS (
     LEFT JOIN EmailReservationsAggregate era
         ON era.EmployerEmail = aa.EmployerEmail
     LEFT JOIN EmployerAttributesAggregate eaa
-        ON eaa.EmployerEmail = aa.EmployerEmail  
+        ON eaa.EmployerEmail = aa.EmployerEmail          
+    LEFT JOIN EmployerLedAggregate ela
+        ON ela.EmployerEmail = aa.EmployerEmail
     LEFT JOIN [ASData_PL].[vw_DAS_RegistrationStages] rs
         ON rs.UserEmail = aa.EmployerEmail
         AND aa.EmployerAccountID IS NOT NULL
@@ -219,6 +255,7 @@ Merged AS (
         au.ReservedFunding,
         au.EmployerSize,
         au.EmployerSector AS SectorEstimate,
+        au.EmployerOrProviderLed,
 
         -- Registration
         au.Stage1a,
@@ -261,6 +298,8 @@ SELECT
     ReservedFunding,
     EmployerSize,
     SectorEstimate,
+    AccountCreationDate,
+    EmployerOrProviderLed AS Registrationtype,
     Stage1a,
     Stage1b,
     Stage2,
