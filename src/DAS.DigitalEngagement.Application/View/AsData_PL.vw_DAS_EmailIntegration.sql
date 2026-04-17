@@ -1,3 +1,4 @@
+
 DROP VIEW IF EXISTS [ASData_PL].[vw_DAS_EmailIntegration];
 GO
 
@@ -13,6 +14,7 @@ WITH AccountUsersBase AS (
         au.Email AS EmployerEmail,
         acc.Id AS EmployerAccountID,
         acc.ApprenticeshipEmployerType AS LevyStatus,
+        acc.CreatedDate,
         CONVERT(VARCHAR(10), au.LastLogin, 120) AS LastLogin,
         CONVERT(VARCHAR(10), GETDATE(), 120) AS DateOfLastAPIAutoSync
     FROM ASData_PL.Acc_User au
@@ -99,8 +101,8 @@ EmployerAttributesAggregate AS (
             ELSE ''
         END AS EmployerSector,
         CASE
-            WHEN COUNT(DISTINCT acc.CreatedDate) = 1
-                THEN MAX(acc.CreatedDate)
+            WHEN COUNT(DISTINCT aub.CreatedDate) = 1
+                THEN MAX(aub.CreatedDate)
             ELSE NULL
         END AS AccountCreationDate
 
@@ -135,6 +137,69 @@ EmployerLedAggregate AS (
         ON ela.EmployerAccountID = aub.EmployerAccountID
     GROUP BY aub.EmployerEmail
 ),
+EmployerCommitmentAccountCTE AS (
+    SELECT
+        e.Id AS EmployerAccountID,
+     
+        --  StartDate: blank if multiple different values for the same account
+        CASE
+            WHEN COUNT(DISTINCT a.StartDate) = 1
+                THEN MAX(a.StartDate)
+            ELSE NULL
+        END AS StartDate,
+
+        -- EndDate (same rule applied for consistency)
+        CASE
+            WHEN COUNT(DISTINCT a.EndDate) = 1
+                THEN MAX(a.EndDate)
+            ELSE NULL
+        END AS EndDate,
+
+        -- CompletionDate (same rule applied for consistency)
+        CASE
+            WHEN COUNT(DISTINCT a.CompletionDate) = 1
+                THEN MAX(a.CompletionDate)
+            ELSE NULL
+        END AS CompletionDate
+
+     FROM [ASData_PL].[Acc_Account] e
+        LEFT JOIN  ASData_PL.Comt_Commitment  c ON e.Id = c.EmployerAccountId
+        LEFT JOIN ASData_PL.Comt_Apprenticeship a ON c.Id = a.CommitmentId
+    GROUP BY
+        e.Id
+),
+EmployerCommitmentAggregate AS (
+    SELECT
+        aub.EmployerEmail,
+
+        -- Start Date
+        CASE
+            WHEN COUNT(DISTINCT eca.StartDate) = 1
+                THEN MAX(eca.StartDate)
+            ELSE NULL
+        END AS ApprenticeshipStartDate,
+
+        -- End Date
+        CASE
+            WHEN COUNT(DISTINCT eca.EndDate) = 1
+                THEN MAX(eca.EndDate)
+            ELSE NULL
+        END AS ApprenticeshipEndDate,
+
+        -- Completion Date
+        CASE
+            WHEN COUNT(DISTINCT eca.CompletionDate) = 1
+                THEN MAX(eca.CompletionDate)
+            ELSE NULL
+        END AS ApprenticeshipCompletionDate
+
+    FROM AccountUsersBase aub
+    LEFT JOIN EmployerCommitmentAccountCTE eca
+        ON eca.EmployerAccountID = aub.EmployerAccountID
+    GROUP BY
+        aub.EmployerEmail
+),
+
 AccountUsers AS (
     SELECT
         aa.EmployerEmail,
@@ -151,6 +216,11 @@ AccountUsers AS (
         eaa.EmployerSector,
         ela.EmployerOrProviderLed,
         eaa.AccountCreationDate,
+        
+        ecm.ApprenticeshipStartDate,
+        ecm.ApprenticeshipEndDate,
+        ecm.ApprenticeshipCompletionDate,
+
         rs.Stage1a,
         rs.Stage1b,
         rs.Stage2,
@@ -192,7 +262,9 @@ AccountUsers AS (
     LEFT JOIN EmployerAttributesAggregate eaa
         ON eaa.EmployerEmail = aa.EmployerEmail          
     LEFT JOIN EmployerLedAggregate ela
-        ON ela.EmployerEmail = aa.EmployerEmail
+        ON ela.EmployerEmail = aa.EmployerEmail       
+    LEFT JOIN EmployerCommitmentAggregate ecm
+        ON ecm.EmployerEmail = aa.EmployerEmail
     LEFT JOIN [ASData_PL].[vw_DAS_RegistrationStages] rs
         ON rs.UserEmail = aa.EmployerEmail
         AND aa.EmployerAccountID IS NOT NULL
@@ -256,6 +328,11 @@ Merged AS (
         au.EmployerSize,
         au.EmployerSector AS SectorEstimate,
         au.EmployerOrProviderLed,
+        au.AccountCreationDate,
+        
+        au.ApprenticeshipStartDate,
+        au.ApprenticeshipEndDate,
+        au.ApprenticeshipCompletionDate,
 
         -- Registration
         au.Stage1a,
@@ -300,6 +377,11 @@ SELECT
     SectorEstimate,
     AccountCreationDate,
     EmployerOrProviderLed AS Registrationtype,
+
+    ApprenticeshipStartDate AS DateOfFirstStart,
+    ApprenticeshipEndDate AS DateOfLastStart,
+    ApprenticeshipCompletionDate AS DateOfLastCompletion,
+
     Stage1a,
     Stage1b,
     Stage2,
