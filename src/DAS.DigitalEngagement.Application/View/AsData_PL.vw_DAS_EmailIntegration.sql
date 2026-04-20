@@ -1,10 +1,10 @@
-
-DROP VIEW IF EXISTS [ASData_PL].[vw_DAS_EmailIntegration];
+DROP VIEW [ASData_PL].[vw_DAS_EmailIntegration]
 GO
 
-SET ANSI_NULLS ON;
+SET ANSI_NULLS ON
 GO
-SET QUOTED_IDENTIFIER ON;
+
+SET QUOTED_IDENTIFIER ON
 GO
 
 CREATE VIEW [ASData_PL].[vw_DAS_EmailIntegration]
@@ -25,24 +25,75 @@ WITH AccountUsersBase AS (
 ),
 ReservationsSummary AS (
     SELECT
-        AccountId,
-        CASE WHEN COUNT(DISTINCT Id) > 0 THEN 'true' ELSE 'false' END AS HasReservationsText
-    FROM ASData_PL.Resv_Reservation
-    WHERE IsLevyAccount = 0
-    GROUP BY AccountId
+        r.AccountId,
+
+        -- Has EVER had any reservation (past or present)
+        CAST(
+            CASE
+                WHEN COUNT(*) > 0 THEN 1
+                ELSE 0
+            END
+        AS BIT) AS HasReservations,
+
+        -- Has CURRENTLY ACTIVE reservation
+        CAST(
+            CASE
+                WHEN MAX(
+                    CASE
+                        WHEN r.ExpiryDate > GETDATE()
+                             OR r.ExpiryDate IS NULL
+                        THEN 1
+                        ELSE 0
+                    END
+                ) = 1
+                THEN 1
+                ELSE 0
+            END
+        AS BIT) AS HasActiveReservation
+
+    FROM ASData_PL.Resv_Reservation r
+    WHERE r.IsLevyAccount = 0
+    GROUP BY r.AccountId
+),
+EmailActiveReservationAggregate AS (
+    SELECT
+        aub.EmployerEmail,
+        CAST(
+            CASE
+                -- No linked accounts → FALSE
+                WHEN COUNT(aub.EmployerAccountID) = 0
+                    THEN 0
+
+                -- Any active OR missing value → TRUE
+                WHEN MAX(COALESCE(rs.HasActiveReservation, 1)) = 1
+                    THEN 1
+
+                -- All explicitly inactive
+                ELSE 0
+            END
+        AS BIT) AS HasActiveReservation
+    FROM AccountUsersBase aub
+    LEFT JOIN ReservationsSummary rs
+        ON rs.AccountId = aub.EmployerAccountID
+    GROUP BY aub.EmployerEmail
 ),
 EmailReservationsAggregate AS (
     SELECT
         aub.EmployerEmail,
         CASE
-            WHEN COUNT(DISTINCT rs.HasReservationsText) = 1
-                THEN MAX(rs.HasReservationsText)
+            WHEN COUNT(DISTINCT rs.HasReservations) = 1
+                THEN CASE
+                        WHEN MAX(CAST(rs.HasReservations AS INT)) = 1
+                            THEN 'true'
+                        ELSE 'false'
+                     END
             ELSE ''
         END AS HasReservationsText
     FROM AccountUsersBase aub
     LEFT JOIN ReservationsSummary rs
         ON rs.AccountId = aub.EmployerAccountID
-    GROUP BY aub.EmployerEmail
+    GROUP BY
+        aub.EmployerEmail
 ),
 EmailNameAggregate AS (
     SELECT
@@ -212,6 +263,7 @@ AccountUsers AS (
         aa.AccountCount,
         aa.ConsolidatedLevyStatus,
         era.HasReservationsText AS ReservedFunding,
+        CASE WHEN ear.HasActiveReservation =1 THEN 'true' Else 'false' END AS HasActiveReservation,
         eaa.EmployerSize,
         eaa.EmployerSector,
         ela.EmployerOrProviderLed,
@@ -258,7 +310,9 @@ AccountUsers AS (
     LEFT JOIN EmailNameAggregate ena
         ON ena.EmployerEmail = aa.EmployerEmail
     LEFT JOIN EmailReservationsAggregate era
-        ON era.EmployerEmail = aa.EmployerEmail
+        ON era.EmployerEmail = aa.EmployerEmail    
+    LEFT JOIN EmailActiveReservationAggregate ear
+        ON ear.EmployerEmail = aa.EmployerEmail
     LEFT JOIN EmployerAttributesAggregate eaa
         ON eaa.EmployerEmail = aa.EmployerEmail          
     LEFT JOIN EmployerLedAggregate ela
@@ -325,6 +379,7 @@ Merged AS (
         au.LastLogin,
         au.DateOfLastAPIAutoSync,
         au.ReservedFunding,
+        au.HasActiveReservation,
         au.EmployerSize,
         au.EmployerSector AS SectorEstimate,
         au.EmployerOrProviderLed,
@@ -373,6 +428,7 @@ SELECT
     LastLogin,
     DateOfLastAPIAutoSync,
     ReservedFunding,
+    HasActiveReservation,
     EmployerSize,
     SectorEstimate,
     AccountCreationDate,
