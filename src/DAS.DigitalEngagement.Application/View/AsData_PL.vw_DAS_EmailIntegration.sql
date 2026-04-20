@@ -87,7 +87,7 @@ EmailReservationsAggregate AS (
                             THEN 'true'
                         ELSE 'false'
                      END
-            ELSE ''
+            ELSE 'false'
         END AS HasReservationsText
     FROM AccountUsersBase aub
     LEFT JOIN ReservationsSummary rs
