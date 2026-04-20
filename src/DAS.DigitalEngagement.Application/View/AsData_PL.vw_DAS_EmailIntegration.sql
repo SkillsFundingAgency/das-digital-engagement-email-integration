@@ -527,7 +527,7 @@ SELECT
     ApprenticeshipCompletionDate AS DateOfLastCompletion,
 
     ActiveApprentices,
-    ActiveVacancies
+    ActiveVacancies,
 
     Stage1a,
     Stage1b,
