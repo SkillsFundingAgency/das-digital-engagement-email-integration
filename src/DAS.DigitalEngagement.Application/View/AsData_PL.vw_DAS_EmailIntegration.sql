@@ -63,11 +63,11 @@ EmailActiveReservationAggregate AS (
         aub.EmployerEmail,
         CAST(
             CASE
-                -- No linked accounts => FALSE
+                -- No linked accounts  FALSE
                 WHEN COUNT(aub.EmployerAccountID) = 0
                     THEN 0
 
-                -- Any active OR missing value => TRUE
+                -- Any active OR missing value  TRUE
                 WHEN MAX(COALESCE(rs.HasActiveReservation, 1)) = 1
                     THEN 1
 
@@ -322,7 +322,39 @@ EmployerVacancyAggregate AS (
     GROUP BY
         aub.EmployerEmail
 ),
+EmployerAccountRoleCTE AS (
+    SELECT
+        e.Id AS EmployerAccountID,
+        CASE
+            WHEN aur.Role = 1 THEN 'Owner'
+            WHEN aur.Role = 2 THEN 'Transactor'
+            WHEN aur.Role = 3 THEN 'TBC'
+            ELSE ''      -- NULL or unexpected values
+        END AS AccountRole
+    FROM ASData_PL.Acc_Account e
+    LEFT JOIN ASData_PL.Acc_AccountUserRole aur
+        ON aur.AccountId = e.Id
+),
+EmployerAccountRoleAggregate AS (
+    SELECT
+        aub.EmployerEmail,
+        CASE
+            -- No linked accounts → blank
+            WHEN COUNT(aub.EmployerAccountID) = 0
+                THEN ''
 
+            -- All accounts have the same role → return it
+            WHEN COUNT(DISTINCT ear.AccountRole) = 1
+                THEN MAX(ear.AccountRole)
+
+            -- Mixed roles → blank
+            ELSE ''
+        END AS EmployerRole
+    FROM AccountUsersBase aub
+    LEFT JOIN EmployerAccountRoleCTE ear
+        ON ear.EmployerAccountID = aub.EmployerAccountID
+    GROUP BY aub.EmployerEmail
+),
 AccountUsers AS (
     SELECT
         aa.EmployerEmail,
@@ -349,6 +381,7 @@ AccountUsers AS (
             ELSE ''
         END AS ActiveVacancies,
 
+        er.EmployerRole AS AccountUserRole,
 
         ecm.ApprenticeshipStartDate,
         ecm.ApprenticeshipEndDate,
@@ -404,6 +437,8 @@ AccountUsers AS (
         on ecm.EmployerEmail =eaaa.EmployerEmail        
     LEFT JOIN EmployerVacancyAggregate eva
         ON eva.EmployerEmail = aa.EmployerEmail
+    LEFT JOIN EmployerAccountRoleAggregate er
+        ON er.EmployerEmail = aa.EmployerEmail
     LEFT JOIN [ASData_PL].[vw_DAS_RegistrationStages] rs
         ON rs.UserEmail = aa.EmployerEmail
         AND aa.EmployerAccountID IS NOT NULL
@@ -477,6 +512,8 @@ Merged AS (
         au.ActiveApprentices,
         au.ActiveVacancies,
 
+        au.AccountUserRole,
+
         -- Registration
         au.Stage1a,
         au.Stage1b,
@@ -528,7 +565,7 @@ SELECT
 
     ActiveApprentices,
     ActiveVacancies,
-
+    AccountUserRole,
     Stage1a,
     Stage1b,
     Stage2,
@@ -549,3 +586,5 @@ SELECT
     RecordSource
 FROM Merged;
 GO
+
+
