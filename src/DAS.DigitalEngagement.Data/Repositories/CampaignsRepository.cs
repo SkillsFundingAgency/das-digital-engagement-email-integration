@@ -10,7 +10,7 @@ namespace DAS.DigitalEngagement.CampaignInterest.Data.Repositories;
 
 public interface ICampaignsRepository
 {
-    Task<int> UpsertAsync(Campaigns campaign);
+    Task<long> UpsertAsync(Campaigns campaign);
     Task<Campaigns?> GetByIdAsync(long id);
     Task<IEnumerable<Campaigns>> GetAllAsync();
     Task<IEnumerable<Campaigns>> GetByIdsAsync(IEnumerable<long> ids);
@@ -19,22 +19,22 @@ public interface ICampaignsRepository
 [ExcludeFromCodeCoverage]
 public class CampaignsRepository(IDbConnectionFactory factory, ILogger<CampaignsRepository> logger) : ICampaignsRepository
 {
-    public async Task<int> UpsertAsync(Campaigns campaign)
+    public async Task<long> UpsertAsync(Campaigns campaign)
     {
         ArgumentNullException.ThrowIfNull(campaign);
 
         const string storedProcedure = "dbo.Usp_Campaigns_Upsert";
-
         logger.LogInformation("Upserting Campaign with CampaignId {CampaignId} using stored procedure {StoredProcedure}", campaign.Id, storedProcedure);
 
         using var connection = (SqlConnection)await factory.CreateConnectionAsync();
         await connection.OpenAsync();
 
-        var rowsAffected = await connection.ExecuteAsync(storedProcedure, new
+        var campaignId = await connection.ExecuteScalarAsync<long>(storedProcedure, new
         {
-            campaign.Id,
-            campaign.ExternalId,
-            campaign.Name,
+            campaign.ExternalCampaignId,
+            campaign.ExternalSendId,
+            campaign.CampaignName,
+            campaign.SendName,
             campaign.Type,
             campaign.CreatedBy,
             campaign.CreatedOn,
@@ -52,16 +52,13 @@ public class CampaignsRepository(IDbConnectionFactory factory, ILogger<Campaigns
         }, commandType: CommandType.StoredProcedure);
 
         await connection.CloseAsync();
-
-        logger.LogInformation("Upserted Campaign with CampaignId {CampaignId}, rows affected: {RowsAffected}", campaign.Id, rowsAffected);
-
-        return rowsAffected;
+        logger.LogInformation("Upserted Campaign with CampaignId {CampaignId}", campaignId);
+        return campaignId;
     }
 
     public async Task<Campaigns?> GetByIdAsync(long id)
     {
         const string storedProcedure = "dbo.Usp_Campaigns_Get";
-
         logger.LogInformation("Fetching Campaign by Id {Id} using stored procedure {StoredProcedure}", id, storedProcedure);
 
         using var connection = (SqlConnection)await factory.CreateConnectionAsync();
@@ -76,7 +73,6 @@ public class CampaignsRepository(IDbConnectionFactory factory, ILogger<Campaigns
     public async Task<IEnumerable<Campaigns>> GetAllAsync()
     {
         const string storedProcedure = "dbo.Usp_Campaigns_Get";
-
         logger.LogInformation("Fetching all Campaigns using stored procedure {StoredProcedure}", storedProcedure);
 
         using var connection = (SqlConnection)await factory.CreateConnectionAsync();

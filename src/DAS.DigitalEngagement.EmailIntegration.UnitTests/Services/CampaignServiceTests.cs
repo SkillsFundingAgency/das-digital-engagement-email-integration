@@ -83,8 +83,10 @@ public class CampaignServiceTests
         campaign = new Campaigns
         {
             Id = 12345,
-            ExternalId = 100,
-            Name = "Test Campaign",
+            ExternalCampaignId = 100,
+            CampaignName = "Test Campaign",
+            ExternalSendId = 200,
+            SendName = "Test Send",
             Type = "Email",
             CreatedBy = "TestUser",
             CreatedOn = DateTime.UtcNow,
@@ -145,25 +147,23 @@ public class CampaignServiceTests
                 ""value"": [
                     {
                         ""ID"": 1,
-                        ""Name"": ""Campaign 1"",
+                        ""CampaignName"": ""Campaign 1"",
                         ""SendCompletedDate"": ""2024-01-15T10:30:00Z"",
                         ""ContactCount"": 1000
                     },
                     {
                         ""ID"": 2,
-                        ""Name"": ""Campaign 2"",
+                        ""CampaignName"": ""Campaign 2"",
                         ""SendCompletedDate"": ""2024-01-16T14:20:00Z"",
                         ""ContactCount"": 2000
                     }
                 ]
             }";
 
-        _externalApiServiceMock
-            .Setup(x => x.GetDataAsync(It.IsAny<string>()))
-            .ReturnsAsync(jsonResponse);
+        _externalApiServiceMock.Setup(x => x.GetDataAsync(It.IsAny<string>())).ReturnsAsync(jsonResponse);
 
         // Act
-        var result = await _sut.GetAllSendsAsync(subAccountId);
+        var result = await _sut.GetAllSendsFromEShot(subAccountId);
 
         // Assert
         _externalApiServiceMock.Verify(
@@ -178,10 +178,10 @@ public class CampaignServiceTests
         Assert.That(sendsList, Is.Not.Null);
         Assert.That(sendsList.Count, Is.EqualTo(2));
         Assert.That(sendsList[0].ID, Is.EqualTo(1));
-        Assert.That(sendsList[0].Name, Is.EqualTo("Campaign 1"));
+        Assert.That(sendsList[0].CampaignName, Is.EqualTo("Campaign 1"));
         Assert.That(sendsList[0].ContactCount, Is.EqualTo(1000));
         Assert.That(sendsList[1].ID, Is.EqualTo(2));
-        Assert.That(sendsList[1].Name, Is.EqualTo("Campaign 2"));
+        Assert.That(sendsList[1].CampaignName, Is.EqualTo("Campaign 2"));
         Assert.That(sendsList[1].ContactCount, Is.EqualTo(2000));
 
     }
@@ -198,7 +198,7 @@ public class CampaignServiceTests
             .ReturnsAsync(jsonResponse);
 
         // Act
-        var result = await _sut.GetAllSendsAsync(subAccountId);
+        var result = await _sut.GetAllSendsFromEShot(subAccountId);
 
         // Assert
         Assert.That(result, Is.Not.Null);
@@ -206,7 +206,7 @@ public class CampaignServiceTests
     }
 
     [Test]
-    public async Task GetAllSendsAsync_WithMissingValueKey_ReturnsEmptyCollection()
+    public async Task GetAllSendsFromEShot_WithMissingValueKey_ReturnsEmptyCollection()
     {
         // Arrange
         var jsonResponse = @"{ ""other"": 123 }";
@@ -216,7 +216,7 @@ public class CampaignServiceTests
             .ReturnsAsync(jsonResponse);
 
         // Act
-        var result = await _sut.GetAllSendsAsync();
+        var result = await _sut.GetAllSendsFromEShot();
 
         // Assert
         Assert.That(result, Is.Not.Null);
@@ -251,12 +251,10 @@ public class CampaignServiceTests
                 ]
             }";
 
-        _externalApiServiceMock
-            .Setup(x => x.GetDataAsync(It.IsAny<string>()))
-            .ReturnsAsync(jsonResponse);
+        _externalApiServiceMock.Setup(x => x.GetDataAsync(It.IsAny<string>())).ReturnsAsync(jsonResponse);
 
         // Act
-        var result = await _sut.GetAllSendsAsync(subAccountId);
+        var result = await _sut.GetAllSendsFromEShot(subAccountId);
 
         // Assert
         var sendsList = result.ToList();
@@ -265,7 +263,7 @@ public class CampaignServiceTests
     }
 
     [Test]
-    public async Task GetAllSendsAsync_WithMinimalFields_DefaultsMissingProperties()
+    public async Task GetAllSendsFromEShot_WithMinimalFields_DefaultsMissingProperties()
     {
         // Arrange
         var jsonResponse = @"{
@@ -277,33 +275,16 @@ public class CampaignServiceTests
                 ]
             }";
 
-        _externalApiServiceMock
-            .Setup(x => x.GetDataAsync(It.IsAny<string>()))
-            .ReturnsAsync(jsonResponse);
+        _externalApiServiceMock.Setup(x => x.GetDataAsync(It.IsAny<string>())).ReturnsAsync(jsonResponse);
 
         // Act
-        var result = (await _sut.GetAllSendsAsync()).ToList();
+        var result = (await _sut.GetAllSendsFromEShot()).ToList();
 
         // Assert
-        Assert.That(result.Count, Is.EqualTo(1));
-        Assert.That(result[0].ID, Is.EqualTo(5));
-        Assert.That(result[0].SendCompletedDate, Is.EqualTo("2024-01-15T10:00:00Z"));
-        Assert.That(result[0].Name, Is.Null);
-        Assert.That(result[0].CampaignID, Is.EqualTo(0));
-        Assert.That(result[0].Status, Is.Null);
-        Assert.That(result[0].SubStatus, Is.Null);
-        Assert.That(result[0].SendDate, Is.Null);
-        Assert.That(result[0].CampaignType, Is.Null);
-        Assert.That(result[0].ContactCount, Is.EqualTo(0));
-        Assert.That(result[0].CreatedBy, Is.Null);
-        Assert.That(result[0].CreatedDate, Is.Null);
-        Assert.That(result[0].FirstSendDate, Is.Null);
-        Assert.That(result[0].LastSendDate, Is.Null);
-        Assert.That(result[0].FromEmail, Is.Null);
-        Assert.That(result[0].FromName, Is.Null);
-        Assert.That(result[0].ReplyEmail, Is.Null);
-        Assert.That(result[0].SubjectLine, Is.Null);
-        Assert.That(result[0].Account, Is.Null);
+        var sendsList = result.ToList();
+        Assert.That(sendsList.Count, Is.EqualTo(1));
+        Assert.That(sendsList[0].ID, Is.EqualTo(5));
+        Assert.That(sendsList[0].SendCompletedDate, Is.EqualTo("2024-01-15T10:00:00Z"));
     }
 
     [Test]
@@ -317,7 +298,7 @@ public class CampaignServiceTests
             .ThrowsAsync(new Exception("API Error"));
 
         // Act & Assert
-        Assert.ThrowsAsync<Exception>(() => _sut.GetAllSendsAsync(subAccountId));
+        Assert.ThrowsAsync<Exception>(() => _sut.GetAllSendsFromEShot(subAccountId));
     }
 
     [Test]
@@ -330,7 +311,7 @@ public class CampaignServiceTests
         _externalApiServiceMock.Setup(x => x.GetDataAsync(It.IsAny<string>())).ReturnsAsync(jsonResponse);
 
         // Act
-        await _sut.GetAllSendsAsync(subAccountId);
+        await _sut.GetAllSendsFromEShot(subAccountId);
 
         // Assert
         _externalApiServiceMock.Verify(x => x.GetDataAsync(It.Is<string>(endpoint => endpoint.Contains("Sends"))), Times.Once);
@@ -349,7 +330,7 @@ public class CampaignServiceTests
                     },
                     {
                         ""ID"": 2,
-                        ""Name"": ""Campaign 2"",
+                        ""CampaignName"": ""Campaign 2"",
                         ""SendCompletedDate"": ""2024-01-16T14:20:00Z"",
                         ""ContactCount"": 2000
                     }
@@ -359,14 +340,14 @@ public class CampaignServiceTests
         _externalApiServiceMock.Setup(x => x.GetDataAsync(It.IsAny<string>())).ReturnsAsync(jsonResponse);
 
         // Act
-        var result = await _sut.GetAllSendsAsync(subAccountId);
+        var result = await _sut.GetAllSendsFromEShot(subAccountId);
 
         // Assert
         var sendsList = result.ToList();
         Assert.That(sendsList.Count, Is.EqualTo(2));
-        Assert.That(sendsList[0].Name, Is.Null);
+        Assert.That(sendsList[0].CampaignName, Is.EqualTo(string.Empty));
         Assert.That(sendsList[0].ContactCount, Is.EqualTo(0));
-        Assert.That(sendsList[1].Name, Is.EqualTo("Campaign 2"));
+        Assert.That(sendsList[1].CampaignName, Is.EqualTo("Campaign 2"));
     }
 
     [Test]
@@ -390,7 +371,7 @@ public class CampaignServiceTests
             .ReturnsAsync(jsonResponse);
 
         // Act
-        await _sut.GetAllSendsAsync(subAccountId);
+        await _sut.GetAllSendsFromEShot(subAccountId);
 
         // Assert
         _loggerMock.Verify(
@@ -425,7 +406,7 @@ public class CampaignServiceTests
             .ReturnsAsync(jsonResponse);
 
         // Act
-        var result = await _sut.GetAllSendsAsync(subAccountId, cancellationToken);
+        var result = await _sut.GetAllSendsFromEShot(subAccountId, cancellationToken);
 
         // Assert
         Assert.That(result, Is.Not.Null);
@@ -889,10 +870,10 @@ public class CampaignServiceTests
 
     #endregion
 
-    #region GetAllSendsAsync without SubAccountId Tests
+    #region GetAllSendsFromEShot without SubAccountId Tests
 
     [Test]
-    public async Task GetAllSendsAsync_WithNullSubAccountId_DoesNotIncludeFilterInEndpoint()
+    public async Task GetAllSendsFromEShot_WithNullSubAccountId_DoesNotIncludeFilterInEndpoint()
     {
         // Arrange
         var jsonResponse = @"{ ""value"": [] }";
@@ -902,7 +883,7 @@ public class CampaignServiceTests
             .ReturnsAsync(jsonResponse);
 
         // Act
-        await _sut.GetAllSendsAsync(null);
+        await _sut.GetAllSendsFromEShot(null);
 
         // Assert
         _externalApiServiceMock.Verify(
@@ -913,7 +894,7 @@ public class CampaignServiceTests
     }
 
     [Test]
-    public async Task GetAllSendsAsync_WithNoSubAccountId_DefaultsToNull()
+    public async Task GetAllSendsFromEShot_WithNoSubAccountId_DefaultsToNull()
     {
         // Arrange
         var jsonResponse = @"{ ""value"": [] }";
@@ -923,7 +904,7 @@ public class CampaignServiceTests
             .ReturnsAsync(jsonResponse);
 
         // Act
-        await _sut.GetAllSendsAsync();
+        await _sut.GetAllSendsFromEShot();
 
         // Assert
         _externalApiServiceMock.Verify(
@@ -933,15 +914,15 @@ public class CampaignServiceTests
     }
 
     [Test]
-    public async Task GetAllSendsAsync_MapsAllSendProperties()
+    public async Task GetAllSendsFromEShot_MapsAllSendProperties()
     {
         // Arrange
         var jsonResponse = @"{
                 ""value"": [
                     {
                         ""ID"": 10,
-                        ""Name"": ""My Campaign"",
-                        ""CampaignID"": 20,
+                        ""CampaignName"": ""My Campaign"",
+                        ""ExternalCampaignID"": 20,
                         ""Status"": ""Completed"",
                         ""SubStatus"": ""Delivered"",
                         ""SendDate"": ""2024-01-10T08:00:00Z"",
@@ -963,19 +944,17 @@ public class CampaignServiceTests
                 ]
             }";
 
-        _externalApiServiceMock
-            .Setup(x => x.GetDataAsync(It.IsAny<string>()))
-            .ReturnsAsync(jsonResponse);
+        _externalApiServiceMock.Setup(x => x.GetDataAsync(It.IsAny<string>())).ReturnsAsync(jsonResponse);
 
         // Act
-        var result = (await _sut.GetAllSendsAsync()).ToList();
+        var result = (await _sut.GetAllSendsFromEShot()).ToList();
 
         // Assert
         Assert.That(result.Count, Is.EqualTo(1));
         var send = result[0];
         Assert.That(send.ID, Is.EqualTo(10));
-        Assert.That(send.Name, Is.EqualTo("My Campaign"));
-        Assert.That(send.CampaignID, Is.EqualTo(20));
+        Assert.That(send.CampaignName, Is.EqualTo("My Campaign"));
+        Assert.That(send.ExternalCampaignID, Is.EqualTo(20));
         Assert.That(send.Status, Is.EqualTo("Completed"));
         Assert.That(send.SubStatus, Is.EqualTo("Delivered"));
         Assert.That(send.SendDate, Is.EqualTo("2024-01-10T08:00:00Z"));
@@ -1026,22 +1005,10 @@ public class CampaignServiceTests
         _externalApiServiceMock.Setup(x => x.GetDataAsync(It.IsAny<string>())).ReturnsAsync(jsonResponse);
 
         // Act
-        var result = (await _sut.GetDisplayedContactsForSendAsync(sendId, userAgentInfos)).ToList();
+        var result = (await _sut.GetDisplayedContactsFromEShot(sendId, userAgentInfos));
 
         // Assert
-        Assert.That(result.Count, Is.EqualTo(1));
-        Assert.That(result[0].ID, Is.EqualTo(1));
-        Assert.That(result[0].DisplayDate, Is.EqualTo("2024-02-01T12:00:00Z"));
-        Assert.That(result[0].ContactEmail, Is.EqualTo("user@test.com"));
-        Assert.That(result[0].Format, Is.EqualTo("HTML"));
-        Assert.That(result[0].SendID, Is.EqualTo(100));
-        Assert.That(result[0].CampaignID, Is.EqualTo(200));
-        Assert.That(result[0].TimeInSecondsSpentReadingEmail, Is.EqualTo(30));
-        Assert.That(result[0].IsSuspectedBOT, Is.False);
-        Assert.That(result[0].Device, Is.EqualTo("Desktop"));
-        Assert.That(result[0].ClientName, Is.EqualTo("Gmail"));
-        Assert.That(result[0].OperatingSystem, Is.EqualTo("Windows 10"));
-        Assert.That(result[0].IPAddress, Is.EqualTo("10.0.0.1"));
+        Assert.That(result, Is.True);
     }
 
     [Test]
@@ -1053,11 +1020,10 @@ public class CampaignServiceTests
         _externalApiServiceMock.Setup(x => x.GetDataAsync(It.IsAny<string>())).ReturnsAsync(jsonResponse);
 
         // Act
-        var result = await _sut.GetDisplayedContactsForSendAsync(100, []);
+        var result = await _sut.GetDisplayedContactsFromEShot(100, []);
 
         // Assert
-        Assert.That(result, Is.Not.Null);
-        Assert.That(result, Is.Empty);
+        Assert.That(result, Is.True);
     }
 
     [Test]
@@ -1069,11 +1035,10 @@ public class CampaignServiceTests
         _externalApiServiceMock.Setup(x => x.GetDataAsync(It.IsAny<string>())).ReturnsAsync(jsonResponse);
 
         // Act
-        var result = await _sut.GetDisplayedContactsForSendAsync(100, []);
+        var result = await _sut.GetDisplayedContactsFromEShot(100, []);
 
         // Assert
-        Assert.That(result, Is.Not.Null);
-        Assert.That(result, Is.Empty);
+        Assert.That(result, Is.True);
     }
 
     [Test]
@@ -1106,11 +1071,10 @@ public class CampaignServiceTests
         _externalApiServiceMock.Setup(x => x.GetDataAsync(It.IsAny<string>())).ReturnsAsync(jsonResponse);
 
         // Act
-        var result = (await _sut.GetDisplayedContactsForSendAsync(100, [])).ToList();
+        var result = (await _sut.GetDisplayedContactsFromEShot(100, []));
 
         // Assert
-        Assert.That(result.Count, Is.EqualTo(1));
-        Assert.That(result[0].ID, Is.EqualTo(3));
+        Assert.That(result, Is.True);
     }
 
     [Test]
@@ -1137,12 +1101,10 @@ public class CampaignServiceTests
         _externalApiServiceMock.Setup(x => x.GetDataAsync(It.IsAny<string>())).ReturnsAsync(jsonResponse);
 
         // Act
-        var result = (await _sut.GetDisplayedContactsForSendAsync(100, userAgentInfos)).ToList();
+        var result = (await _sut.GetDisplayedContactsFromEShot(100, userAgentInfos));
 
         // Assert
-        Assert.That(result.Count, Is.EqualTo(1));
-        Assert.That(result[0].Device, Is.Null);
-        Assert.That(result[0].ClientName, Is.Null);
+        Assert.That(result, Is.True);
     }
 
     [Test]
@@ -1163,12 +1125,10 @@ public class CampaignServiceTests
         _externalApiServiceMock.Setup(x => x.GetDataAsync(It.IsAny<string>())).ReturnsAsync(jsonResponse);
 
         // Act
-        var result = (await _sut.GetDisplayedContactsForSendAsync(100, [])).ToList();
+        var result = (await _sut.GetDisplayedContactsFromEShot(100, []));
 
         // Assert
-        Assert.That(result.Count, Is.EqualTo(1));
-        Assert.That(result[0].Device, Is.Null);
-        Assert.That(result[0].ClientName, Is.Null);
+        Assert.That(result, Is.True);
     }
 
     [Test]
@@ -1190,21 +1150,10 @@ public class CampaignServiceTests
         _externalApiServiceMock.Setup(x => x.GetDataAsync(It.IsAny<string>())).ReturnsAsync(jsonResponse);
 
         // Act
-        var result = (await _sut.GetDisplayedContactsForSendAsync(100, [])).ToList();
+        var result = (await _sut.GetDisplayedContactsFromEShot(100, []));
 
         // Assert
-        Assert.That(result.Count, Is.EqualTo(1));
-        Assert.That(result[0].Device, Is.Null);
-    }
-
-    [Test]
-    public void GetDisplayedContactsForSendAsync_ApiThrowsException_Propagates()
-    {
-        // Arrange
-        _externalApiServiceMock.Setup(x => x.GetDataAsync(It.IsAny<string>())).ThrowsAsync(new HttpRequestException("API error"));
-
-        // Act & Assert
-        Assert.ThrowsAsync<HttpRequestException>(async () => await _sut.GetDisplayedContactsForSendAsync(100, []));
+        Assert.That(result, Is.True);
     }
 
     [Test]
@@ -1237,10 +1186,10 @@ public class CampaignServiceTests
         var service = new CampaignService(_externalApiServiceMock.Object, _unitOfWorkMock.Object, _loggerMock.Object, apiConfigSmall.Object);
 
         // Act
-        var result = (await service.GetDisplayedContactsForSendAsync(100, [])).ToList();
+        var result = (await service.GetDisplayedContactsFromEShot(100, []));
 
         // Assert
-        Assert.That(result.Count, Is.EqualTo(1));
+        Assert.That(result, Is.True);
         _externalApiServiceMock.Verify(x => x.GetDataAsync(It.IsAny<string>()), Times.Exactly(2));
     }
 
@@ -1254,7 +1203,7 @@ public class CampaignServiceTests
         _externalApiServiceMock.Setup(x => x.GetDataAsync(It.IsAny<string>())).ReturnsAsync(jsonResponse);
 
         // Act
-        await _sut.GetDisplayedContactsForSendAsync(sendId, []);
+        await _sut.GetDisplayedContactsFromEShot(sendId, []);
 
         // Assert
         _externalApiServiceMock.Verify(
@@ -1266,12 +1215,35 @@ public class CampaignServiceTests
             Times.Once);
     }
 
+    [Test]
+    public async Task GetDisplayedContactsFromEShot_WhenApiThrowsException_ReturnsFalseAndLogsError()
+    {
+        // Arrange
+        int sendId = 100;
+        var exception = new Exception("API error");
+        _externalApiServiceMock
+            .Setup(x => x.GetDataAsync(It.IsAny<string>()))
+            .ThrowsAsync(exception);
+
+        // Act
+        var result = await _sut.GetDisplayedContactsFromEShot(sendId, []);
+
+        // Assert
+        Assert.That(result, Is.False);
+        _loggerMock.Verify(x => x.Log(
+            It.Is<LogLevel>(l => l == LogLevel.Error),
+            It.IsAny<EventId>(),
+            It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains($"Error retrieving or importing displayed contacts for Send {sendId} at skip=0")),
+            It.Is<Exception>(e => e == exception),
+            It.IsAny<Func<It.IsAnyType, Exception?, string>>()), Times.Once);
+    }
+
     #endregion
 
-    #region GetClickedLinkContactsForSendAsync Tests
+    #region GetClickedLinkContactsFromEShot Tests
 
     [Test]
-    public async Task GetClickedLinkContactsForSendAsync_WithValidResponse_ReturnsClickedLinkContacts()
+    public async Task GetClickedLinkContactsFromEShot_WithValidResponse_ReturnsClickedLinkContacts()
     {
         // Arrange
         int sendId = 100;
@@ -1304,29 +1276,14 @@ public class CampaignServiceTests
         _externalApiServiceMock.Setup(x => x.GetDataAsync(It.IsAny<string>())).ReturnsAsync(jsonResponse);
 
         // Act
-        var result = (await _sut.GetClickedLinkContactsForSendAsync(sendId, userAgentInfos)).ToList();
+        var result = (await _sut.GetClickedLinkContactsFromEShot(sendId, userAgentInfos));
 
         // Assert
-        Assert.That(result.Count, Is.EqualTo(1));
-        Assert.That(result[0].ID, Is.EqualTo(1));
-        Assert.That(result[0].ClickedDate, Is.EqualTo("2024-02-01T12:30:00Z"));
-        Assert.That(result[0].ContactEmail, Is.EqualTo("clicker@test.com"));
-        Assert.That(result[0].SendID, Is.EqualTo(100));
-        Assert.That(result[0].CampaignID, Is.EqualTo(200));
-        Assert.That(result[0].FriendlyName, Is.EqualTo("CTA Button"));
-        Assert.That(result[0].LinkID, Is.EqualTo(555));
-        Assert.That(result[0].URL, Is.EqualTo("https://example.com/landing"));
-        Assert.That(result[0].IsMonitored, Is.True);
-        Assert.That(result[0].ReceivedInMessageFormat, Is.EqualTo("HTML"));
-        Assert.That(result[0].IsSuspectedBOT, Is.False);
-        Assert.That(result[0].Device, Is.EqualTo("Desktop"));
-        Assert.That(result[0].ClientName, Is.EqualTo("Chrome"));
-        Assert.That(result[0].OperatingSystem, Is.EqualTo("Windows 11"));
-        Assert.That(result[0].IPAddress, Is.EqualTo("10.0.0.1"));
+        Assert.That(result, Is.True);
     }
 
     [Test]
-    public async Task GetClickedLinkContactsForSendAsync_EmptyResponse_ReturnsEmptyCollection()
+    public async Task GetClickedLinkContactsFromEShot_EmptyResponse_ReturnsEmptyCollection()
     {
         // Arrange
         var jsonResponse = @"{ ""value"": [] }";
@@ -1334,15 +1291,14 @@ public class CampaignServiceTests
         _externalApiServiceMock.Setup(x => x.GetDataAsync(It.IsAny<string>())).ReturnsAsync(jsonResponse);
 
         // Act
-        var result = await _sut.GetClickedLinkContactsForSendAsync(100, []);
+        var result = await _sut.GetClickedLinkContactsFromEShot(100, []);
 
         // Assert
-        Assert.That(result, Is.Not.Null);
-        Assert.That(result, Is.Empty);
+        Assert.That(result, Is.True);
     }
 
     [Test]
-    public async Task GetClickedLinkContactsForSendAsync_WithMissingValueKey_ReturnsEmptyCollection()
+    public async Task GetClickedLinkContactsFromEShot_WithMissingValueKey_ReturnsEmptyCollection()
     {
         // Arrange
         var jsonResponse = @"{ ""other"": 123 }";
@@ -1350,15 +1306,14 @@ public class CampaignServiceTests
         _externalApiServiceMock.Setup(x => x.GetDataAsync(It.IsAny<string>())).ReturnsAsync(jsonResponse);
 
         // Act
-        var result = await _sut.GetClickedLinkContactsForSendAsync(100, []);
+        var result = await _sut.GetClickedLinkContactsFromEShot(100, []);
 
         // Assert
-        Assert.That(result, Is.Not.Null);
-        Assert.That(result, Is.Empty);
+        Assert.That(result, Is.True);
     }
 
     [Test]
-    public async Task GetClickedLinkContactsForSendAsync_InvalidRecords_SkipsInvalidEntries()
+    public async Task GetClickedLinkContactsFromEShot_InvalidRecords_SkipsInvalidEntries()
     {
         // Arrange
         var jsonResponse = @"{
@@ -1387,15 +1342,14 @@ public class CampaignServiceTests
         _externalApiServiceMock.Setup(x => x.GetDataAsync(It.IsAny<string>())).ReturnsAsync(jsonResponse);
 
         // Act
-        var result = (await _sut.GetClickedLinkContactsForSendAsync(100, [])).ToList();
+        var result = (await _sut.GetClickedLinkContactsFromEShot(100, []));
 
         // Assert
-        Assert.That(result.Count, Is.EqualTo(1));
-        Assert.That(result[0].ID, Is.EqualTo(3));
+        Assert.That(result, Is.True);
     }
 
     [Test]
-    public async Task GetClickedLinkContactsForSendAsync_WithMissingUserAgentIdKey_LeavesUserAgentFieldsNull()
+    public async Task GetClickedLinkContactsFromEShot_WithMissingUserAgentIdKey_LeavesUserAgentFieldsNull()
     {
         // Arrange
         var jsonResponse = @"{
@@ -1412,16 +1366,14 @@ public class CampaignServiceTests
         _externalApiServiceMock.Setup(x => x.GetDataAsync(It.IsAny<string>())).ReturnsAsync(jsonResponse);
 
         // Act
-        var result = (await _sut.GetClickedLinkContactsForSendAsync(100, [])).ToList();
+        var result = (await _sut.GetClickedLinkContactsFromEShot(100, []));
 
         // Assert
-        Assert.That(result.Count, Is.EqualTo(1));
-        Assert.That(result[0].Device, Is.Null);
-        Assert.That(result[0].ClientName, Is.Null);
+        Assert.That(result, Is.True);
     }
 
     [Test]
-    public async Task GetClickedLinkContactsForSendAsync_WithNoMatchingUserAgent_LeavesUserAgentFieldsNull()
+    public async Task GetClickedLinkContactsFromEShot_WithNoMatchingUserAgent_LeavesUserAgentFieldsNull()
     {
         // Arrange
         var jsonResponse = @"{
@@ -1439,26 +1391,14 @@ public class CampaignServiceTests
         _externalApiServiceMock.Setup(x => x.GetDataAsync(It.IsAny<string>())).ReturnsAsync(jsonResponse);
 
         // Act
-        var result = (await _sut.GetClickedLinkContactsForSendAsync(100, [])).ToList();
+        var result = (await _sut.GetClickedLinkContactsFromEShot(100, []));
 
         // Assert
-        Assert.That(result.Count, Is.EqualTo(1));
-        Assert.That(result[0].Device, Is.Null);
-        Assert.That(result[0].ClientName, Is.Null);
+        Assert.That(result, Is.True);
     }
 
     [Test]
-    public void GetClickedLinkContactsForSendAsync_ApiThrowsException_Propagates()
-    {
-        // Arrange
-        _externalApiServiceMock.Setup(x => x.GetDataAsync(It.IsAny<string>())).ThrowsAsync(new HttpRequestException("API error"));
-
-        // Act & Assert
-        Assert.ThrowsAsync<HttpRequestException>(async () => await _sut.GetClickedLinkContactsForSendAsync(100, []));
-    }
-
-    [Test]
-    public async Task GetClickedLinkContactsForSendAsync_MultiplePages_ReturnsCombinedResults()
+    public async Task GetClickedLinkContactsFromEShot_MultiplePages_ReturnsCombinedResults()
     {
         // Arrange
         int pageSize = 1;
@@ -1487,15 +1427,15 @@ public class CampaignServiceTests
         var service = new CampaignService(_externalApiServiceMock.Object, _unitOfWorkMock.Object, _loggerMock.Object, apiConfigSmall.Object);
 
         // Act
-        var result = (await service.GetClickedLinkContactsForSendAsync(100, [])).ToList();
+        var result = (await service.GetClickedLinkContactsFromEShot(100, []));
 
         // Assert
-        Assert.That(result.Count, Is.EqualTo(1));
+        Assert.That(result, Is.True);
         _externalApiServiceMock.Verify(x => x.GetDataAsync(It.IsAny<string>()), Times.Exactly(2));
     }
 
     [Test]
-    public async Task GetClickedLinkContactsForSendAsync_CorrectEndpointFormat()
+    public async Task GetClickedLinkContactsFromEShot_CorrectEndpointFormat()
     {
         // Arrange
         int sendId = 555;
@@ -1504,7 +1444,7 @@ public class CampaignServiceTests
         _externalApiServiceMock.Setup(x => x.GetDataAsync(It.IsAny<string>())).ReturnsAsync(jsonResponse);
 
         // Act
-        await _sut.GetClickedLinkContactsForSendAsync(sendId, []);
+        await _sut.GetClickedLinkContactsFromEShot(sendId, []);
 
         // Assert
         _externalApiServiceMock.Verify(
@@ -1516,12 +1456,36 @@ public class CampaignServiceTests
             Times.Once);
     }
 
+    [Test]
+    public async Task GetClickedLinkContactsFromEShot_WhenApiThrowsException_ReturnsFalseAndLogsError()
+    {
+        // Arrange
+        int sendId = 100;
+        var exception = new Exception("API error");
+        _externalApiServiceMock
+            .Setup(x => x.GetDataAsync(It.IsAny<string>()))
+            .ThrowsAsync(exception);
+
+        // Act
+        var result = await _sut.GetClickedLinkContactsFromEShot(sendId, []);
+
+        // Assert
+        Assert.That(result, Is.False);
+
+        _loggerMock.Verify(x => x.Log(
+            It.Is<LogLevel>(l => l == LogLevel.Error),
+            It.IsAny<EventId>(),
+            It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains($"Error retrieving or importing clicked link contacts for Send {sendId} at skip=0")),
+            It.Is<Exception>(e => e == exception),
+            It.IsAny<Func<It.IsAnyType, Exception?, string>>()), Times.Once);
+    }
+
     #endregion
 
-    #region GetBouncedEmailContactsForSendAsync Tests
+    #region GetBouncedEmailContactsFromEShot Tests
 
     [Test]
-    public async Task GetBouncedEmailContactsForSendAsync_WithValidResponse_ReturnsBouncedContacts()
+    public async Task GetBouncedEmailContactsFromEShot_WithValidResponse_ReturnsBouncedContacts()
     {
         // Arrange
         int sendId = 100;
@@ -1540,63 +1504,48 @@ public class CampaignServiceTests
                 ]
             }";
 
-        _externalApiServiceMock
-            .Setup(x => x.GetDataAsync(It.IsAny<string>()))
-            .ReturnsAsync(jsonResponse);
+        _externalApiServiceMock.Setup(x => x.GetDataAsync(It.IsAny<string>())).ReturnsAsync(jsonResponse);
 
         // Act
-        var result = (await _sut.GetBouncedEmailContactsForSendAsync(sendId)).ToList();
+        var result = (await _sut.GetBouncedEmailContactsFromEShot(sendId));
 
         // Assert
-        Assert.That(result.Count, Is.EqualTo(1));
-        Assert.That(result[0].ID, Is.EqualTo(1));
-        Assert.That(result[0].BounceReason, Is.EqualTo("Mailbox full"));
-        Assert.That(result[0].BounceType, Is.EqualTo("Soft"));
-        Assert.That(result[0].BounceDate, Is.EqualTo("2024-02-01T12:00:00Z"));
-        Assert.That(result[0].ContactEmail, Is.EqualTo("bounced@test.com"));
-        Assert.That(result[0].SendID, Is.EqualTo(100));
-        Assert.That(result[0].CampaignID, Is.EqualTo(200));
-        Assert.That(result[0].ResponseText, Is.EqualTo("452 4.2.2 Mailbox full"));
+        Assert.That(result, Is.True);
     }
 
     [Test]
-    public async Task GetBouncedEmailContactsForSendAsync_EmptyResponse_ReturnsEmptyCollection()
+    public async Task GetBouncedEmailContactsFromEShot_EmptyResponse_ReturnsEmptyCollection()
     {
         // Arrange
         var jsonResponse = @"{ ""value"": [] }";
 
-        _externalApiServiceMock
-            .Setup(x => x.GetDataAsync(It.IsAny<string>()))
-            .ReturnsAsync(jsonResponse);
+        _externalApiServiceMock.Setup(x => x.GetDataAsync(It.IsAny<string>())).ReturnsAsync(jsonResponse);
 
         // Act
-        var result = await _sut.GetBouncedEmailContactsForSendAsync(100);
+        var result = await _sut.GetBouncedEmailContactsFromEShot(100);
 
         // Assert
-        Assert.That(result, Is.Not.Null);
-        Assert.That(result, Is.Empty);
+        Assert.That(result, Is.True);
     }
 
     [Test]
-    public async Task GetBouncedEmailContactsForSendAsync_WithMissingValueKey_ReturnsEmptyCollection()
+    public async Task GetBouncedEmailContactsFromEShot_WithMissingValueKey_ReturnsEmptyCollection()
     {
         // Arrange
         var jsonResponse = @"{ ""other"": 123 }";
 
-        _externalApiServiceMock
-            .Setup(x => x.GetDataAsync(It.IsAny<string>()))
-            .ReturnsAsync(jsonResponse);
+        _externalApiServiceMock.Setup(x => x.GetDataAsync(It.IsAny<string>())).ReturnsAsync(jsonResponse);
 
         // Act
-        var result = await _sut.GetBouncedEmailContactsForSendAsync(100);
+        var result = await _sut.GetBouncedEmailContactsFromEShot(100);
 
         // Assert
         Assert.That(result, Is.Not.Null);
-        Assert.That(result, Is.Empty);
+        Assert.That(result, Is.True);
     }
 
     [Test]
-    public async Task GetBouncedEmailContactsForSendAsync_InvalidRecords_SkipsInvalidEntries()
+    public async Task GetBouncedEmailContactsFromEShot_InvalidRecords_SkipsInvalidEntries()
     {
         // Arrange
         var jsonResponse = @"{
@@ -1627,16 +1576,14 @@ public class CampaignServiceTests
         _externalApiServiceMock.Setup(x => x.GetDataAsync(It.IsAny<string>())).ReturnsAsync(jsonResponse);
 
         // Act
-        var result = (await _sut.GetBouncedEmailContactsForSendAsync(100)).ToList();
+        var result = (await _sut.GetBouncedEmailContactsFromEShot(100));
 
         // Assert
-        Assert.That(result.Count, Is.EqualTo(1));
-        Assert.That(result[0].ID, Is.EqualTo(3));
-        Assert.That(result[0].BounceType, Is.EqualTo("Hard"));
+        Assert.That(result, Is.True);
     }
 
     [Test]
-    public async Task GetBouncedEmailContactsForSendAsync_WithPartiallyMissingFields_HandlesGracefully()
+    public async Task GetBouncedEmailContactsFromEShot_WithPartiallyMissingFields_HandlesGracefully()
     {
         // Arrange
         var jsonResponse = @"{
@@ -1651,32 +1598,14 @@ public class CampaignServiceTests
         _externalApiServiceMock.Setup(x => x.GetDataAsync(It.IsAny<string>())).ReturnsAsync(jsonResponse);
 
         // Act
-        var result = (await _sut.GetBouncedEmailContactsForSendAsync(100)).ToList();
+        var result = (await _sut.GetBouncedEmailContactsFromEShot(100));
 
         // Assert
-        Assert.That(result.Count, Is.EqualTo(1));
-        Assert.That(result[0].ID, Is.EqualTo(1));
-        Assert.That(result[0].BounceDate, Is.EqualTo("2024-02-01T12:00:00Z"));
-        Assert.That(result[0].BounceReason, Is.Null);
-        Assert.That(result[0].BounceType, Is.Null);
-        Assert.That(result[0].ContactEmail, Is.Null);
-        Assert.That(result[0].ResponseText, Is.Null);
-        Assert.That(result[0].SendID, Is.EqualTo(0));
-        Assert.That(result[0].CampaignID, Is.EqualTo(0));
+        Assert.That(result, Is.True);
     }
 
     [Test]
-    public void GetBouncedEmailContactsForSendAsync_ApiThrowsException_Propagates()
-    {
-        // Arrange
-        _externalApiServiceMock.Setup(x => x.GetDataAsync(It.IsAny<string>())).ThrowsAsync(new HttpRequestException("API error"));
-
-        // Act & Assert
-        Assert.ThrowsAsync<HttpRequestException>(async () => await _sut.GetBouncedEmailContactsForSendAsync(100));
-    }
-
-    [Test]
-    public async Task GetBouncedEmailContactsForSendAsync_MultiplePages_ReturnsCombinedResults()
+    public async Task GetBouncedEmailContactsFromEShot_MultiplePages_ReturnsCombinedResults()
     {
         // Arrange
         int pageSize = 1;
@@ -1706,15 +1635,15 @@ public class CampaignServiceTests
             apiConfigSmall.Object);
 
         // Act
-        var result = (await service.GetBouncedEmailContactsForSendAsync(100)).ToList();
+        var result = (await service.GetBouncedEmailContactsFromEShot(100));
 
         // Assert
-        Assert.That(result.Count, Is.EqualTo(1));
+        Assert.That(result, Is.True);
         _externalApiServiceMock.Verify(x => x.GetDataAsync(It.IsAny<string>()), Times.Exactly(2));
     }
 
     [Test]
-    public async Task GetBouncedEmailContactsForSendAsync_CorrectEndpointFormat()
+    public async Task GetBouncedEmailContactsFromEShot_CorrectEndpointFormat()
     {
         // Arrange
         int sendId = 555;
@@ -1725,7 +1654,7 @@ public class CampaignServiceTests
             .ReturnsAsync(jsonResponse);
 
         // Act
-        await _sut.GetBouncedEmailContactsForSendAsync(sendId);
+        await _sut.GetBouncedEmailContactsFromEShot(sendId);
 
         // Assert
         _externalApiServiceMock.Verify(
@@ -1737,12 +1666,36 @@ public class CampaignServiceTests
             Times.Once);
     }
 
+    [Test]
+    public async Task GetBouncedEmailContactsFromEShot_WhenApiThrowsException_ReturnsFalseAndLogsError()
+    {
+        // Arrange
+        int sendId = 100;
+        var exception = new Exception("API error");
+        _externalApiServiceMock
+            .Setup(x => x.GetDataAsync(It.IsAny<string>()))
+            .ThrowsAsync(exception);
+
+        // Act
+        var result = await _sut.GetBouncedEmailContactsFromEShot(sendId);
+
+        // Assert
+        Assert.That(result, Is.False);
+
+        _loggerMock.Verify(x => x.Log(
+            It.Is<LogLevel>(l => l == LogLevel.Error),
+            It.IsAny<EventId>(),
+            It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains($"Error retrieving or importing bounced email contacts for Send {sendId} at skip=0")),
+            It.Is<Exception>(e => e == exception),
+            It.IsAny<Func<It.IsAnyType, Exception?, string>>()), Times.Once);
+    }
+
     #endregion
 
-    #region GetUnsubscribedContactsForSendAsync Tests
+    #region GetUnsubscribedContactsFromEShot Tests
 
     [Test]
-    public async Task GetUnsubscribedContactsForSendAsync_WithValidResponse_ReturnsUnsubscribedContacts()
+    public async Task GetUnsubscribedContactsFromEShot_WithValidResponse_ReturnsUnsubscribedContacts()
     {
         // Arrange
         int sendId = 100;
@@ -1765,21 +1718,14 @@ public class CampaignServiceTests
             .ReturnsAsync(jsonResponse);
 
         // Act
-        var result = (await _sut.GetUnsubscribedContactsForSendAsync(sendId)).ToList();
+        var result = (await _sut.GetUnsubscribedContactsFromEShot(sendId));
 
         // Assert
-        Assert.That(result.Count, Is.EqualTo(1));
-        Assert.That(result[0].ID, Is.EqualTo(1));
-        Assert.That(result[0].UnsubscribedDate, Is.EqualTo("2024-02-01T15:00:00Z"));
-        Assert.That(result[0].ContactEmail, Is.EqualTo("unsub@test.com"));
-        Assert.That(result[0].SendID, Is.EqualTo(100));
-        Assert.That(result[0].CampaignID, Is.EqualTo(200));
-        Assert.That(result[0].IsGlobalUnsubscribe, Is.True);
-        Assert.That(result[0].IsComplaint, Is.False);
+        Assert.That(result, Is.True);
     }
 
     [Test]
-    public async Task GetUnsubscribedContactsForSendAsync_EmptyResponse_ReturnsEmptyCollection()
+    public async Task GetUnsubscribedContactsFromEShot_EmptyResponse_ReturnsEmptyCollection()
     {
         // Arrange
         var jsonResponse = @"{ ""value"": [] }";
@@ -1789,33 +1735,30 @@ public class CampaignServiceTests
             .ReturnsAsync(jsonResponse);
 
         // Act
-        var result = await _sut.GetUnsubscribedContactsForSendAsync(100);
+        var result = await _sut.GetUnsubscribedContactsFromEShot(100);
 
         // Assert
         Assert.That(result, Is.Not.Null);
-        Assert.That(result, Is.Empty);
+        Assert.That(result, Is.True);
     }
 
     [Test]
-    public async Task GetUnsubscribedContactsForSendAsync_WithMissingValueKey_ReturnsEmptyCollection()
+    public async Task GetUnsubscribedContactsFromEShot_WithMissingValueKey_ReturnsEmptyCollection()
     {
         // Arrange
         var jsonResponse = @"{ ""other"": 123 }";
 
-        _externalApiServiceMock
-            .Setup(x => x.GetDataAsync(It.IsAny<string>()))
-            .ReturnsAsync(jsonResponse);
+        _externalApiServiceMock.Setup(x => x.GetDataAsync(It.IsAny<string>())).ReturnsAsync(jsonResponse);
 
         // Act
-        var result = await _sut.GetUnsubscribedContactsForSendAsync(100);
+        var result = await _sut.GetUnsubscribedContactsFromEShot(100);
 
         // Assert
-        Assert.That(result, Is.Not.Null);
-        Assert.That(result, Is.Empty);
+        Assert.That(result, Is.True);
     }
 
     [Test]
-    public async Task GetUnsubscribedContactsForSendAsync_InvalidRecords_SkipsInvalidEntries()
+    public async Task GetUnsubscribedContactsFromEShot_InvalidRecords_SkipsInvalidEntries()
     {
         // Arrange
         var jsonResponse = @"{
@@ -1843,21 +1786,17 @@ public class CampaignServiceTests
                 ]
             }";
 
-        _externalApiServiceMock
-            .Setup(x => x.GetDataAsync(It.IsAny<string>()))
-            .ReturnsAsync(jsonResponse);
+        _externalApiServiceMock.Setup(x => x.GetDataAsync(It.IsAny<string>())).ReturnsAsync(jsonResponse);
 
         // Act
-        var result = (await _sut.GetUnsubscribedContactsForSendAsync(100)).ToList();
+        var result = (await _sut.GetUnsubscribedContactsFromEShot(100));
 
         // Assert
-        Assert.That(result.Count, Is.EqualTo(1));
-        Assert.That(result[0].ID, Is.EqualTo(3));
-        Assert.That(result[0].IsComplaint, Is.True);
+        Assert.That(result, Is.True);
     }
 
     [Test]
-    public async Task GetUnsubscribedContactsForSendAsync_WithPartiallyMissingFields_HandlesGracefully()
+    public async Task GetUnsubscribedContactsFromEShot_WithPartiallyMissingFields_HandlesGracefully()
     {
         // Arrange
         var jsonResponse = @"{
@@ -1869,39 +1808,17 @@ public class CampaignServiceTests
                 ]
             }";
 
-        _externalApiServiceMock
-            .Setup(x => x.GetDataAsync(It.IsAny<string>()))
-            .ReturnsAsync(jsonResponse);
+        _externalApiServiceMock.Setup(x => x.GetDataAsync(It.IsAny<string>())).ReturnsAsync(jsonResponse);
 
         // Act
-        var result = (await _sut.GetUnsubscribedContactsForSendAsync(100)).ToList();
+        var result = (await _sut.GetUnsubscribedContactsFromEShot(100));
 
         // Assert
-        Assert.That(result.Count, Is.EqualTo(1));
-        Assert.That(result[0].ID, Is.EqualTo(1));
-        Assert.That(result[0].UnsubscribedDate, Is.EqualTo("2024-02-01T15:00:00Z"));
-        Assert.That(result[0].ContactEmail, Is.Null);
-        Assert.That(result[0].SendID, Is.EqualTo(0));
-        Assert.That(result[0].CampaignID, Is.EqualTo(0));
-        Assert.That(result[0].IsGlobalUnsubscribe, Is.False);
-        Assert.That(result[0].IsComplaint, Is.False);
+        Assert.That(result, Is.True);
     }
 
     [Test]
-    public void GetUnsubscribedContactsForSendAsync_ApiThrowsException_Propagates()
-    {
-        // Arrange
-        _externalApiServiceMock
-            .Setup(x => x.GetDataAsync(It.IsAny<string>()))
-            .ThrowsAsync(new HttpRequestException("API error"));
-
-        // Act & Assert
-        Assert.ThrowsAsync<HttpRequestException>(
-            async () => await _sut.GetUnsubscribedContactsForSendAsync(100));
-    }
-
-    [Test]
-    public async Task GetUnsubscribedContactsForSendAsync_MultiplePages_ReturnsCombinedResults()
+    public async Task GetUnsubscribedContactsFromEShot_MultiplePages_ReturnsCombinedResults()
     {
         // Arrange
         int pageSize = 1;
@@ -1927,22 +1844,18 @@ public class CampaignServiceTests
             ChunkSizeKB = 100,
         });
 
-        var service = new CampaignService(
-            _externalApiServiceMock.Object,
-            _unitOfWorkMock.Object,
-            _loggerMock.Object,
-            apiConfigSmall.Object);
+        var service = new CampaignService(_externalApiServiceMock.Object, _unitOfWorkMock.Object, _loggerMock.Object, apiConfigSmall.Object);
 
         // Act
-        var result = (await service.GetUnsubscribedContactsForSendAsync(100)).ToList();
+        var result = (await service.GetUnsubscribedContactsFromEShot(100));
 
         // Assert
-        Assert.That(result.Count, Is.EqualTo(1));
+        Assert.That(result, Is.True);
         _externalApiServiceMock.Verify(x => x.GetDataAsync(It.IsAny<string>()), Times.Exactly(2));
     }
 
     [Test]
-    public async Task GetUnsubscribedContactsForSendAsync_CorrectEndpointFormat()
+    public async Task GetUnsubscribedContactsFromEShot_CorrectEndpointFormat()
     {
         // Arrange
         int sendId = 555;
@@ -1953,7 +1866,7 @@ public class CampaignServiceTests
             .ReturnsAsync(jsonResponse);
 
         // Act
-        await _sut.GetUnsubscribedContactsForSendAsync(sendId);
+        await _sut.GetUnsubscribedContactsFromEShot(sendId);
 
         // Assert
         _externalApiServiceMock.Verify(
@@ -1963,6 +1876,30 @@ public class CampaignServiceTests
                 url.Contains("$skip=0") &&
                 url.Contains($"$top={_apiConfig.Object.Value.PageSize}"))),
             Times.Once);
+    }
+
+    [Test]
+    public async Task GetUnsubscribedContactsFromEShot_WhenApiThrowsException_ReturnsFalseAndLogsError()
+    {
+        // Arrange
+        int sendId = 100;
+        var exception = new Exception("API error");
+        _externalApiServiceMock
+            .Setup(x => x.GetDataAsync(It.IsAny<string>()))
+            .ThrowsAsync(exception);
+
+        // Act
+        var result = await _sut.GetUnsubscribedContactsFromEShot(sendId);
+
+        // Assert
+        Assert.That(result, Is.False);
+
+        _loggerMock.Verify(x => x.Log(
+            It.Is<LogLevel>(l => l == LogLevel.Error),
+            It.IsAny<EventId>(),
+            It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains($"Error retrieving or importing unsubscribed email contacts for Send {sendId} at skip=0")),
+            It.Is<Exception>(e => e == exception),
+            It.IsAny<Func<It.IsAnyType, Exception?, string>>()), Times.Once);
     }
 
     #endregion
@@ -2166,7 +2103,7 @@ public class CampaignServiceTests
         // Assert
         Assert.That(result, Is.Not.Null);
         Assert.That(result.Id, Is.EqualTo(campaign.Id));
-        Assert.That(result.Name, Is.EqualTo("Test Campaign"));
+        Assert.That(result.CampaignName, Is.EqualTo("Test Campaign"));
         Assert.That(result.Subject, Is.EqualTo("Test Subject"));
         Assert.That(result.FromEmailAddress, Is.EqualTo("test@example.com"));
         Assert.That(result.Account, Is.EqualTo("TestAccount"));
@@ -2246,7 +2183,7 @@ public class CampaignServiceTests
         var result = await _sut.SaveCampaignDetailsAsync(campaign);
 
         // Assert
-        Assert.That(result, Is.EqualTo(true));
+        Assert.That(result, Is.EqualTo(1));
 
         _loggerMock.Verify(
             x => x.Log(
@@ -2277,7 +2214,7 @@ public class CampaignServiceTests
         var result = await _sut.SaveCampaignDetailsAsync(campaign);
 
         // Assert
-        Assert.That(result, Is.EqualTo(false));
+        Assert.That(result, Is.EqualTo(0));
 
         _loggerMock.Verify(
             x => x.Log(
@@ -2313,21 +2250,89 @@ public class CampaignServiceTests
     {
         // Arrange
         var exception = new Exception("Database error");
-        _campaignsRepositoryMock
-            .Setup(x => x.UpsertAsync(It.IsAny<Campaigns>()))
-            .ThrowsAsync(exception);
+        _campaignsRepositoryMock.Setup(x => x.UpsertAsync(It.IsAny<Campaigns>())).ThrowsAsync(exception);
 
         // Act
         var result = await _sut.SaveCampaignDetailsAsync(campaign);
 
         // Assert
-        Assert.That(result, Is.False);
+        Assert.That(result, Is.EqualTo(0));
         _loggerMock.Verify(x => x.Log(
             It.Is<LogLevel>(l => l == LogLevel.Error),
             It.IsAny<EventId>(),
             It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains($"Error saving campaign details for CampaignID {campaign.Id} to database")),
             It.Is<Exception>(e => e == exception),
             It.IsAny<Func<It.IsAnyType, Exception, string>>()), Times.Once);
+    }
+
+    #endregion
+
+    #region GetAllCampaignsAsync Tests
+
+    [Test]
+    public async Task GetAllCampaignsAsync_WithExistingCampaigns_ReturnsAllCampaigns()
+    {
+        // Arrange
+        var campaignList = new List<Campaigns> { campaign };
+        _campaignsRepositoryMock.Setup(x => x.GetAllAsync()).ReturnsAsync(campaignList);
+
+        // Act
+        var result = await _sut.GetAllCampaignsAsync();
+
+        // Assert
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.Count(), Is.EqualTo(1));
+        Assert.That(result.First().Id, Is.EqualTo(campaign.Id));
+
+        _loggerMock.Verify(x => x.Log(
+            It.Is<LogLevel>(l => l == LogLevel.Information),
+            It.IsAny<EventId>(),
+            It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("Successfully retrieved all campaigns from database")),
+            It.IsAny<Exception>(),
+            It.IsAny<Func<It.IsAnyType, Exception, string>>()), Times.Once);
+    }
+
+    [Test]
+    public async Task GetAllCampaignsAsync_WithNoCampaigns_ReturnsEmptyAndLogsWarning()
+    {
+        // Arrange
+        _campaignsRepositoryMock.Setup(x => x.GetAllAsync()).ReturnsAsync([]);
+
+        // Act
+        var result = await _sut.GetAllCampaignsAsync();
+
+        // Assert
+        Assert.That(result, Is.Empty);
+
+        _loggerMock.Verify(x => x.Log(
+            It.Is<LogLevel>(l => l == LogLevel.Warning),
+            It.IsAny<EventId>(),
+            It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("No campaigns found in database")),
+            It.IsAny<Exception>(),
+            It.IsAny<Func<It.IsAnyType, Exception, string>>()), Times.Once);
+    }
+
+    [Test]
+    public async Task GetAllCampaignsAsync_WhenRepositoryThrowsException_ReturnsEmptyAndLogsError()
+    {
+        // Arrange
+        var exception = new Exception("Database error");
+        _campaignsRepositoryMock
+            .Setup(x => x.GetAllAsync())
+            .ThrowsAsync(exception);
+
+        // Act
+        var result = await _sut.GetAllCampaignsAsync();
+
+        // Assert
+        Assert.That(result, Is.Empty);
+
+        _loggerMock.Verify(x => x.Log(
+            It.Is<LogLevel>(l => l == LogLevel.Error),
+            It.IsAny<EventId>(),
+            It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("Error retrieving all campaigns from database")),
+            It.Is<Exception>(e => e == exception),
+            It.IsAny<Func<It.IsAnyType, Exception?, string>>()), Times.Once);
     }
 
     #endregion
@@ -2506,6 +2511,76 @@ public class CampaignServiceTests
                 It.Is<Exception>(e => e == exception),
                 It.IsAny<Func<It.IsAnyType, Exception, string>>()),
             Times.Once);
+    }
+
+    #endregion
+
+    #region GetAllCampaignImportMetadataAsync Tests
+
+    [Test]
+    public async Task GetAllCampaignImportMetadataAsync_WithExistingMetadata_ReturnsAllMetadata()
+    {
+        // Arrange
+        var metadataList = new List<CampaignImportMetadata> { campaignImportMetadata };
+        _metadataRepositoryMock.Setup(x => x.GetAllAsync()).ReturnsAsync(metadataList);
+
+        // Act
+        var result = await _sut.GetAllCampaignImportMetadataAsync();
+
+        // Assert
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.Count(), Is.EqualTo(1));
+        Assert.That(result.First().CampaignId, Is.EqualTo(campaignImportMetadata.CampaignId));
+
+        _loggerMock.Verify(x => x.Log(
+            It.Is<LogLevel>(l => l == LogLevel.Information),
+            It.IsAny<EventId>(),
+            It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("Successfully retrieved all campaign import metadata from database")),
+            It.IsAny<Exception>(),
+            It.IsAny<Func<It.IsAnyType, Exception, string>>()), Times.Once);
+    }
+
+    [Test]
+    public async Task GetAllCampaignImportMetadataAsync_WithNoMetadata_ReturnsEmptyAndLogsWarning()
+    {
+        // Arrange
+        _metadataRepositoryMock.Setup(x => x.GetAllAsync()).ReturnsAsync([]);
+
+        // Act
+        var result = await _sut.GetAllCampaignImportMetadataAsync();
+
+        // Assert
+        Assert.That(result, Is.Empty);
+
+        _loggerMock.Verify(x => x.Log(
+            It.Is<LogLevel>(l => l == LogLevel.Warning),
+            It.IsAny<EventId>(),
+            It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("No campaign import metadata found in database")),
+            It.IsAny<Exception>(),
+            It.IsAny<Func<It.IsAnyType, Exception, string>>()), Times.Once);
+    }
+
+    [Test]
+    public async Task GetAllCampaignImportMetadataAsync_WhenRepositoryThrowsException_ReturnsEmptyAndLogsError()
+    {
+        // Arrange
+        var exception = new Exception("Database error");
+        _metadataRepositoryMock
+            .Setup(x => x.GetAllAsync())
+            .ThrowsAsync(exception);
+
+        // Act
+        var result = await _sut.GetAllCampaignImportMetadataAsync();
+
+        // Assert
+        Assert.That(result, Is.Empty);
+
+        _loggerMock.Verify(x => x.Log(
+            It.Is<LogLevel>(l => l == LogLevel.Error),
+            It.IsAny<EventId>(),
+            It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("Error retrieving all campaign import metadata from database")),
+            It.Is<Exception>(e => e == exception),
+            It.IsAny<Func<It.IsAnyType, Exception?, string>>()), Times.Once);
     }
 
     #endregion

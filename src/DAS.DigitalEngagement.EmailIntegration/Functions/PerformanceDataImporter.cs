@@ -6,48 +6,37 @@ using System.Diagnostics;
 
 namespace DAS.DigitalEngagement.EmailIntegration.Functions;
 
-public class PerformanceDataImporter
+public class PerformanceDataImporter(
+    IImportCampaignPerformanceHandler importCampaignPerformanceHandler,
+    ApplicationConfiguration configuration,
+    ILogger<PerformanceDataImporter> logger)
 {
-    private readonly IImportCampaignPerformanceHandler _importCampaignPerformanceHandler;
-    private readonly ILogger<PerformanceDataImporter> _logger;
-    private readonly ApplicationConfiguration _configuration;
-
-    public PerformanceDataImporter(
-        IImportCampaignPerformanceHandler importCampaignPerformanceHandler,
-        ApplicationConfiguration configuration,
-        ILogger<PerformanceDataImporter> logger)
-    {
-        _importCampaignPerformanceHandler = importCampaignPerformanceHandler;
-        _configuration = configuration;
-        _logger = logger;
-    }
-
     [Function("PerformanceDataImporter")]
     public async Task Run([TimerTrigger("%PerformanceDataImportSchedule%", RunOnStartup = true)] TimerInfo myTimer)
     {
-        _logger.LogInformation("Performance Data Importer started at: {DateTime}", DateTime.Now);
-        _logger.LogInformation(
+        logger.LogInformation("Performance Data Importer started at: {DateTime}", DateTime.Now);
+        logger.LogInformation(
             "Connection string: {ConnectionString}, API Base URL: {ApiBaseUrl}",
-            _configuration.ConnectionString.CampaignsDatabase,
-            _configuration.EmailMarketingApi?.ApiBaseUrl
+            configuration.ConnectionString.CampaignsDatabase,
+            configuration.EmailMarketingApi?.ApiBaseUrl
         );
 
         var stopwatch = Stopwatch.StartNew();
 
         try
         {
-            await _importCampaignPerformanceHandler.Handle();
-            _logger.LogInformation("Performance data import ran successfully.");
+            await importCampaignPerformanceHandler.Handle();
+            logger.LogInformation("Performance data import ran successfully.");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error importing performance data");
+            logger.LogError(ex, "Error importing performance data");
         }
         finally
         {
             stopwatch.Stop();
 
-            _logger.LogInformation(
+            logger.LogInformation(
                 "Performance data import finished in {ElapsedMs} ms ({ElapsedSeconds} seconds).",
                 stopwatch.ElapsedMilliseconds,
                 stopwatch.Elapsed.TotalSeconds);
@@ -55,7 +44,7 @@ public class PerformanceDataImporter
 
         if (myTimer.IsPastDue)
         {
-            _logger.LogWarning("Timer schedule status: overdue");
+            logger.LogWarning("Timer schedule status: overdue");
         }
     }
 }
