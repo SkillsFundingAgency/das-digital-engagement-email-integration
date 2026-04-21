@@ -22,7 +22,7 @@ public class CampaignService(IExternalApiService externalApiService, IUnitOfWork
     {
         logger.LogInformation("Retrieving Sends for sub-account {SubAccountId}", subAccountId);
 
-        var endpoint = $"Sends?$expand={Uri.EscapeDataString("SubAccount($select=Name),Campaign($select=FirstSendDate,LastSendDate)")}";
+        var endpoint = $"Sends?$expand={Uri.EscapeDataString("SubAccount($select=Name),Campaign($select=FirstSendDate,LastSendDate,Name)")}";
 
         if (subAccountId != null)
         {
@@ -281,8 +281,6 @@ public class CampaignService(IExternalApiService externalApiService, IUnitOfWork
         if (!subAccountId.HasValue)
         {
             logger.LogInformation("No sub-account filter applied when determining eligible sends");
-            // If no sub-account ID is provided, we will retrieve sends for all sub-accounts and apply the import window filter based on SendCompletedDate
-            //subAccountId = _importWindowDays;
         }
         else
         {
@@ -834,8 +832,8 @@ public class CampaignService(IExternalApiService externalApiService, IUnitOfWork
             {
                 ID = item?["ID"]?.GetValue<int>() ?? 0,
                 SendName = item?["Name"]?.GetValue<string>(),
-                ExternalCampaignID = item?[nameof(Send.ExternalCampaignID)]?.GetValue<int>() ?? 0,
-                CampaignName = item?["CampaignName"]?.GetValue<string>() ?? string.Empty,
+                ExternalCampaignID = item?["CampaignID"]?.GetValue<int>() ?? 0,
+                CampaignName = item?["Campaign"]?["Name"]?.GetValue<string>() ?? string.Empty,
                 Status = item?["Status"]?.GetValue<string>(),
                 SubStatus = item?["SubStatus"]?.GetValue<string>(),
                 SendDate = item?["SendDate"]?.GetValue<string>(),

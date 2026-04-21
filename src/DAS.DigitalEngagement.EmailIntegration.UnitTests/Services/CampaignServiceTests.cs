@@ -147,13 +147,21 @@ public class CampaignServiceTests
                 ""value"": [
                     {
                         ""ID"": 1,
-                        ""CampaignName"": ""Campaign 1"",
+                        ""Campaign"": {
+                            ""FirstSendDate"": ""2024-01-10T08:00:00Z"",
+                            ""LastSendDate"": ""2024-01-10T09:00:00Z"",
+                            ""Name"": ""Campaign 1""
+                        },
                         ""SendCompletedDate"": ""2024-01-15T10:30:00Z"",
                         ""ContactCount"": 1000
                     },
                     {
                         ""ID"": 2,
-                        ""CampaignName"": ""Campaign 2"",
+                        ""Campaign"": {
+                            ""FirstSendDate"": ""2024-01-10T08:00:00Z"",
+                            ""LastSendDate"": ""2024-01-10T09:00:00Z"",
+                            ""Name"": ""Campaign 2""
+                        },
                         ""SendCompletedDate"": ""2024-01-16T14:20:00Z"",
                         ""ContactCount"": 2000
                     }
@@ -330,7 +338,11 @@ public class CampaignServiceTests
                     },
                     {
                         ""ID"": 2,
-                        ""CampaignName"": ""Campaign 2"",
+                        ""Campaign"": {
+                            ""FirstSendDate"": ""2024-01-10T08:00:00Z"",
+                            ""LastSendDate"": ""2024-01-10T09:00:00Z"",
+                            ""Name"": ""Campaign 2""
+                        },
                         ""SendCompletedDate"": ""2024-01-16T14:20:00Z"",
                         ""ContactCount"": 2000
                     }
@@ -921,8 +933,7 @@ public class CampaignServiceTests
                 ""value"": [
                     {
                         ""ID"": 10,
-                        ""CampaignName"": ""My Campaign"",
-                        ""ExternalCampaignID"": 20,
+                        ""CampaignID"": 20,
                         ""Status"": ""Completed"",
                         ""SubStatus"": ""Delivered"",
                         ""SendDate"": ""2024-01-10T08:00:00Z"",
@@ -933,7 +944,8 @@ public class CampaignServiceTests
                         ""CreatedDate"": ""2024-01-01T00:00:00Z"",
                         ""Campaign"": {
                             ""FirstSendDate"": ""2024-01-10T08:00:00Z"",
-                            ""LastSendDate"": ""2024-01-10T09:00:00Z""
+                            ""LastSendDate"": ""2024-01-10T09:00:00Z"",
+                            ""Name"": ""My Campaign""
                         },
                         ""FromEmail"": ""noreply@test.com"",
                         ""FromName"": ""Test Sender"",
