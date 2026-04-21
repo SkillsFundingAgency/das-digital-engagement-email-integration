@@ -282,7 +282,7 @@ public class CampaignService(IExternalApiService externalApiService, IUnitOfWork
         {
             logger.LogInformation("No sub-account filter applied when determining eligible sends");
             // If no sub-account ID is provided, we will retrieve sends for all sub-accounts and apply the import window filter based on SendCompletedDate
-            subAccountId = _importWindowDays;
+            //subAccountId = _importWindowDays;
         }
         else
         {
