@@ -367,14 +367,22 @@ AccountUsers AS (
         aa.AccountCount,
         aa.ConsolidatedLevyStatus,
         era.HasReservationsText AS ReservedFunding,
-        CASE WHEN ear.HasActiveReservation =1 THEN 'true' Else 'false' END AS HasActiveReservation,
+       CASE
+            WHEN ear.HasActiveReservation = 1 THEN 'true'
+            WHEN ear.HasActiveReservation = 0 THEN 'false'
+            ELSE ''
+        END AS HasActiveReservation,
         eaa.EmployerSize,
         eaa.EmployerSector,
         ela.EmployerOrProviderLed,
         eaa.AccountCreationDate,
          
-        CASE WHEN eaaa.HasActiveApprentices =1 THEN 'true' Else 'false' END AS ActiveApprentices,
-        
+        CASE
+            WHEN eaaa.HasActiveApprentices = 1 THEN 'true'
+            WHEN eaaa.HasActiveApprentices = 0 THEN 'false'
+            ELSE ''
+        END AS ActiveApprentices,
+
         CASE
             WHEN eva.HasVacancies = 1 THEN 'true'
             WHEN eva.HasVacancies = 0 THEN 'false'
