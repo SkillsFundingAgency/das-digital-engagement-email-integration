@@ -375,7 +375,7 @@ AccountUsers AS (
         eaa.EmployerSize,
         eaa.EmployerSector,
         ela.EmployerOrProviderLed,
-        eaa.AccountCreationDate,
+        CONVERT(VARCHAR(10), eaa.AccountCreationDate, 120) AS AccountCreationDate,
          
         CASE
             WHEN eaaa.HasActiveApprentices = 1 THEN 'true'
