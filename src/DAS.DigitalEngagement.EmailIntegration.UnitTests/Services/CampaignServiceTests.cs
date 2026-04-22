@@ -2201,7 +2201,7 @@ public class CampaignServiceTests
             x => x.Log(
                 It.Is<LogLevel>(l => l == LogLevel.Information),
                 It.IsAny<EventId>(),
-                It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains($"Saving campaign details for CampaignID {campaign.Id} to database")),
+                It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains($"Saving campaign details for External CampaignID {campaign.ExternalCampaignId} to database")),
                 It.IsAny<Exception>(),
                 It.IsAny<Func<It.IsAnyType, Exception, string>>()),
             Times.Once);
@@ -2210,7 +2210,7 @@ public class CampaignServiceTests
             x => x.Log(
                 It.Is<LogLevel>(l => l == LogLevel.Information),
                 It.IsAny<EventId>(),
-                It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains($"Successfully saved campaign details for CampaignID {campaign.Id} to database")),
+                It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains($"Successfully saved campaign details for External CampaignID {campaign.ExternalCampaignId} to database")),
                 It.IsAny<Exception>(),
                 It.IsAny<Func<It.IsAnyType, Exception, string>>()),
             Times.Once);
@@ -2232,7 +2232,7 @@ public class CampaignServiceTests
             x => x.Log(
                 It.Is<LogLevel>(l => l == LogLevel.Information),
                 It.IsAny<EventId>(),
-                It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains($"Saving campaign details for CampaignID {campaign.Id} to database")),
+                It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains($"Saving campaign details for External CampaignID {campaign.ExternalCampaignId} to database")),
                 It.IsAny<Exception>(),
                 It.IsAny<Func<It.IsAnyType, Exception, string>>()),
             Times.Once);
@@ -2241,7 +2241,7 @@ public class CampaignServiceTests
             x => x.Log(
                 It.Is<LogLevel>(l => l == LogLevel.Warning),
                 It.IsAny<EventId>(),
-                It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains($"No rows were inserted or updated when saving campaign details for CampaignID {campaign.Id}")),
+                It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains($"No rows were inserted or updated when saving campaign details for External CampaignID {campaign.ExternalCampaignId}")),
                 It.IsAny<Exception>(),
                 It.IsAny<Func<It.IsAnyType, Exception, string>>()),
             Times.Once);
@@ -2272,7 +2272,7 @@ public class CampaignServiceTests
         _loggerMock.Verify(x => x.Log(
             It.Is<LogLevel>(l => l == LogLevel.Error),
             It.IsAny<EventId>(),
-            It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains($"Error saving campaign details for CampaignID {campaign.Id} to database")),
+            It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains($"Error saving campaign details for External CampaignID {campaign.ExternalCampaignId} to database")),
             It.Is<Exception>(e => e == exception),
             It.IsAny<Func<It.IsAnyType, Exception, string>>()), Times.Once);
     }

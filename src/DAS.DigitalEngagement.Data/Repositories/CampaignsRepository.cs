@@ -24,7 +24,7 @@ public class CampaignsRepository(IDbConnectionFactory factory, ILogger<Campaigns
         ArgumentNullException.ThrowIfNull(campaign);
 
         const string storedProcedure = "dbo.Usp_Campaigns_Upsert";
-        logger.LogInformation("Upserting Campaign with CampaignId {CampaignId} using stored procedure {StoredProcedure}", campaign.Id, storedProcedure);
+        logger.LogInformation("Upserting Campaign with External CampaignId {CampaignId} using stored procedure {StoredProcedure}", campaign.ExternalCampaignId, storedProcedure);
 
         using var connection = (SqlConnection)await factory.CreateConnectionAsync();
         await connection.OpenAsync();
@@ -52,7 +52,7 @@ public class CampaignsRepository(IDbConnectionFactory factory, ILogger<Campaigns
         }, commandType: CommandType.StoredProcedure);
 
         await connection.CloseAsync();
-        logger.LogInformation("Upserted Campaign with CampaignId {CampaignId}", campaignId);
+        logger.LogInformation("Upserted Campaign with CampaignId {CampaignId} and ExternalCampaignId {ExternalCampaignId}", campaignId, campaign.ExternalCampaignId);
         return campaignId;
     }
 

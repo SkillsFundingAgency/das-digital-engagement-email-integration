@@ -381,7 +381,7 @@ public class CampaignService(IExternalApiService externalApiService, IUnitOfWork
 
     public async Task<long> SaveCampaignDetailsAsync(Campaigns campaign, CancellationToken cancellationToken = default)
     {
-        logger.LogInformation("Saving campaign details for CampaignID {CampaignId} to database, CancellationToken {CancellationToken}", campaign.Id, cancellationToken);
+        logger.LogInformation("Saving campaign details for External CampaignID {CampaignId} to database", campaign.ExternalCampaignId);
         long campaignId = 0;
 
         try
@@ -391,16 +391,16 @@ public class CampaignService(IExternalApiService externalApiService, IUnitOfWork
 
             if (campaignId == 0)
             {
-                logger.LogWarning("No rows were inserted or updated when saving campaign details for CampaignID {CampaignId}, CancellationToken {CancellationToken}", campaign.Id, cancellationToken);
+                logger.LogWarning("No rows were inserted or updated when saving campaign details for External CampaignID {CampaignId}", campaign.ExternalCampaignId);
                 return campaignId;
             }
 
-            logger.LogInformation("Successfully saved campaign details for CampaignID {CampaignId} to database, CancellationToken {CancellationToken}", campaign.Id, cancellationToken);
+            logger.LogInformation("Successfully saved campaign details for External CampaignID {ExternalCampaignId} to database", campaign.ExternalCampaignId);
             return campaignId;
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error saving campaign details for CampaignID {CampaignId} to database, CancellationToken {CancellationToken}", campaign.Id, cancellationToken);
+            logger.LogError(ex, "Error saving campaign details for External CampaignID {ExternalCampaignId} to database", campaign.ExternalCampaignId);
             return campaignId;
         }
     }
