@@ -231,5 +231,219 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Handlers.Campaigns
             // Second send should never be reached
             _campaignServiceMock.Verify(x => x.GetUserAgentInfoForSendAsync(2, It.IsAny<CancellationToken>()), Times.Never);
         }
+
+        [Test]
+        public async Task Handle_BuildCampaignImportMetadataObject_SetsCorrectCampaignIdAndIsImportCompleteFalse()
+        {
+            // Arrange
+            const long expectedCampaignId = 42L;
+            var capturedMetadataCalls = new List<CampaignImportMetadata>();
+
+            _campaignServiceMock.Setup(x => x.GetEligibleSendsAsync(null, It.IsAny<CancellationToken>())).ReturnsAsync(sends);
+            _campaignServiceMock.Setup(x => x.GetUserAgentInfoForSendAsync(1, It.IsAny<CancellationToken>())).ReturnsAsync([]);
+            _campaignServiceMock
+                .Setup(x => x.SaveCampaignDetailsAsync(It.IsAny<CampaignInterest.Data.Models.Campaigns>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(expectedCampaignId);
+            _campaignServiceMock
+                .Setup(x => x.UpsertCampaignImportMetadataAsync(It.IsAny<CampaignImportMetadata>(), It.IsAny<CancellationToken>()))
+                .Callback<CampaignImportMetadata, CancellationToken>((m, _) => capturedMetadataCalls.Add(new CampaignImportMetadata
+                {
+                    CampaignId = m.CampaignId,
+                    IsImportComplete = m.IsImportComplete,
+                    ImportStartDate = m.ImportStartDate,
+                    ImportEndDate = m.ImportEndDate
+                }))
+                .ReturnsAsync(true);
+
+            // Act
+            await _sut.Handle();
+
+            // Assert - first upsert call sets up the metadata with correct campaignId and IsImportComplete = false
+            Assert.That(capturedMetadataCalls, Has.Count.GreaterThanOrEqualTo(1));
+            var initialMetadata = capturedMetadataCalls[0];
+            Assert.That(initialMetadata.CampaignId, Is.EqualTo(expectedCampaignId));
+            Assert.That(initialMetadata.IsImportComplete, Is.False);
+        }
+
+        [Test]
+        public async Task Handle_BuildCampaignImportMetadataObject_ImportStartDateIsSetToApproximatelyUtcNow()
+        {
+            // Arrange
+            const long expectedCampaignId = 99L;
+            CampaignImportMetadata capturedInitialMetadata = null;
+            var beforeHandle = DateTime.UtcNow;
+
+            _campaignServiceMock.Setup(x => x.GetEligibleSendsAsync(null, It.IsAny<CancellationToken>())).ReturnsAsync(sends);
+            _campaignServiceMock.Setup(x => x.GetUserAgentInfoForSendAsync(1, It.IsAny<CancellationToken>())).ReturnsAsync([]);
+            _campaignServiceMock
+                .Setup(x => x.SaveCampaignDetailsAsync(It.IsAny<CampaignInterest.Data.Models.Campaigns>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(expectedCampaignId);
+
+            var callCount = 0;
+            _campaignServiceMock
+                .Setup(x => x.UpsertCampaignImportMetadataAsync(It.IsAny<CampaignImportMetadata>(), It.IsAny<CancellationToken>()))
+                .Callback<CampaignImportMetadata, CancellationToken>((m, _) =>
+                {
+                    callCount++;
+                    if (callCount == 1)
+                        capturedInitialMetadata = m;
+                })
+                .ReturnsAsync(true);
+
+            // Act
+            await _sut.Handle();
+            var afterHandle = DateTime.UtcNow;
+
+            // Assert
+            Assert.That(capturedInitialMetadata, Is.Not.Null);
+            Assert.That(capturedInitialMetadata.ImportStartDate, Is.GreaterThanOrEqualTo(beforeHandle));
+            Assert.That(capturedInitialMetadata.ImportStartDate, Is.LessThanOrEqualTo(afterHandle));
+        }
+
+        [Test]
+        public async Task Handle_BuildCampaignImportMetadataObject_CompletionUpsertSetsIsImportCompleteTrueAndImportEndDate()
+        {
+            // Arrange
+            const long expectedCampaignId = 7L;
+            CampaignImportMetadata capturedCompletionMetadata = null;
+            var beforeHandle = DateTime.UtcNow;
+
+            _campaignServiceMock.Setup(x => x.GetEligibleSendsAsync(null, It.IsAny<CancellationToken>())).ReturnsAsync(sends);
+            _campaignServiceMock.Setup(x => x.GetUserAgentInfoForSendAsync(1, It.IsAny<CancellationToken>())).ReturnsAsync([]);
+            _campaignServiceMock
+                .Setup(x => x.SaveCampaignDetailsAsync(It.IsAny<CampaignInterest.Data.Models.Campaigns>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(expectedCampaignId);
+
+            var callCount = 0;
+            _campaignServiceMock
+                .Setup(x => x.UpsertCampaignImportMetadataAsync(It.IsAny<CampaignImportMetadata>(), It.IsAny<CancellationToken>()))
+                .Callback<CampaignImportMetadata, CancellationToken>((m, _) =>
+                {
+                    callCount++;
+                    if (callCount == 2)
+                        capturedCompletionMetadata = m;
+                })
+                .ReturnsAsync(true);
+
+            // Act
+            await _sut.Handle();
+            var afterHandle = DateTime.UtcNow;
+
+            // Assert - second upsert call marks import as complete with an end date
+            Assert.That(capturedCompletionMetadata, Is.Not.Null);
+            Assert.That(capturedCompletionMetadata.IsImportComplete, Is.True);
+            Assert.That(capturedCompletionMetadata.ImportEndDate, Is.Not.Null);
+            Assert.That(capturedCompletionMetadata.ImportEndDate, Is.GreaterThanOrEqualTo(beforeHandle));
+            Assert.That(capturedCompletionMetadata.ImportEndDate, Is.LessThanOrEqualTo(afterHandle));
+        }
+
+        [Test]
+        public async Task Handle_UpsertCampaignImportMetadataAsync_CalledTwicePerSendOnSuccess()
+        {
+            // Arrange
+            _campaignServiceMock.Setup(x => x.GetEligibleSendsAsync(null, It.IsAny<CancellationToken>())).ReturnsAsync(sends);
+            _campaignServiceMock.Setup(x => x.SaveCampaignDetailsAsync(It.IsAny<CampaignInterest.Data.Models.Campaigns>(), It.IsAny<CancellationToken>())).ReturnsAsync(1L);
+            _campaignServiceMock.Setup(x => x.GetUserAgentInfoForSendAsync(1, It.IsAny<CancellationToken>())).ReturnsAsync([]);
+
+            // Act
+            await _sut.Handle();
+
+            // Assert - once at start, once at completion
+            _campaignServiceMock.Verify(x => x.UpsertCampaignImportMetadataAsync(It.IsAny<CampaignImportMetadata>(), It.IsAny<CancellationToken>()), Times.Exactly(2));
+        }
+
+        [Test]
+        public async Task Handle_FirstUpsertReturnsFalse_LogsErrorAndSkipsContactProcessing()
+        {
+            // Arrange
+            _campaignServiceMock.Setup(x => x.GetEligibleSendsAsync(null, It.IsAny<CancellationToken>())).ReturnsAsync(sends);
+            _campaignServiceMock.Setup(x => x.SaveCampaignDetailsAsync(It.IsAny<CampaignInterest.Data.Models.Campaigns>(), It.IsAny<CancellationToken>())).ReturnsAsync(1L);
+            _campaignServiceMock.Setup(x => x.UpsertCampaignImportMetadataAsync(It.IsAny<CampaignImportMetadata>(), It.IsAny<CancellationToken>())).ReturnsAsync(false);
+
+            // Act
+            await _sut.Handle();
+
+            // Assert - error logged for initial upsert failure
+            _loggerMock.Verify(
+                x => x.Log(
+                    LogLevel.Error,
+                    It.IsAny<EventId>(),
+                    It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("Failed to upsert campaign import metadata")),
+                    It.IsAny<Exception>(),
+                    It.IsAny<Func<It.IsAnyType, Exception, string>>()),
+                Times.Once);
+
+            // Contact processing should be skipped
+            _campaignServiceMock.Verify(x => x.GetUserAgentInfoForSendAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Never);
+            _campaignServiceMock.Verify(x => x.GetDisplayedContactsFromEShot(It.IsAny<int>(), It.IsAny<IEnumerable<UserAgentInfo>>(), It.IsAny<CancellationToken>()), Times.Never);
+            _campaignServiceMock.Verify(x => x.GetClickedLinkContactsFromEShot(It.IsAny<int>(), It.IsAny<IEnumerable<UserAgentInfo>>(), It.IsAny<CancellationToken>()), Times.Never);
+            _campaignServiceMock.Verify(x => x.GetBouncedEmailContactsFromEShot(It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Never);
+            _campaignServiceMock.Verify(x => x.GetUnsubscribedContactsFromEShot(It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Never);
+        }
+
+        [Test]
+        public async Task Handle_FirstUpsertReturnsFalse_SecondUpsertNeverCalled()
+        {
+            // Arrange
+            _campaignServiceMock.Setup(x => x.GetEligibleSendsAsync(null, It.IsAny<CancellationToken>())).ReturnsAsync(sends);
+            _campaignServiceMock.Setup(x => x.SaveCampaignDetailsAsync(It.IsAny<CampaignInterest.Data.Models.Campaigns>(), It.IsAny<CancellationToken>())).ReturnsAsync(1L);
+            _campaignServiceMock.Setup(x => x.UpsertCampaignImportMetadataAsync(It.IsAny<CampaignImportMetadata>(), It.IsAny<CancellationToken>())).ReturnsAsync(false);
+
+            // Act
+            await _sut.Handle();
+
+            // Assert - only first upsert attempt was made
+            _campaignServiceMock.Verify(x => x.UpsertCampaignImportMetadataAsync(It.IsAny<CampaignImportMetadata>(), It.IsAny<CancellationToken>()), Times.Once);
+        }
+
+        [Test]
+        public async Task Handle_SecondUpsertReturnsFalse_LogsErrorAndDoesNotLogCompletion()
+        {
+            // Arrange
+            var callCount = 0;
+            _campaignServiceMock.Setup(x => x.GetEligibleSendsAsync(null, It.IsAny<CancellationToken>())).ReturnsAsync(sends);
+            _campaignServiceMock.Setup(x => x.SaveCampaignDetailsAsync(It.IsAny<CampaignInterest.Data.Models.Campaigns>(), It.IsAny<CancellationToken>())).ReturnsAsync(1L);
+            _campaignServiceMock.Setup(x => x.GetUserAgentInfoForSendAsync(1, It.IsAny<CancellationToken>())).ReturnsAsync([]);
+            _campaignServiceMock
+                .Setup(x => x.UpsertCampaignImportMetadataAsync(It.IsAny<CampaignImportMetadata>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(() => ++callCount != 2); // first call returns true, second returns false
+
+            // Act
+            await _sut.Handle();
+
+            // Assert - error logged for completion upsert failure
+            _loggerMock.Verify(
+                x => x.Log(
+                    LogLevel.Error,
+                    It.IsAny<EventId>(),
+                    It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("Failed to mark campaign import complete")),
+                    It.IsAny<Exception>(),
+                    It.IsAny<Func<It.IsAnyType, Exception, string>>()),
+                Times.Once);
+
+            // "Processing complete" should not be logged
+            _loggerMock.Verify(
+                x => x.Log(
+                    LogLevel.Information,
+                    It.IsAny<EventId>(),
+                    It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("Processing complete for Send")),
+                    It.IsAny<Exception>(),
+                    It.IsAny<Func<It.IsAnyType, Exception, string>>()),
+                Times.Never);
+        }
+
+        [Test]
+        public async Task Handle_UpsertCampaignImportMetadataAsync_ThrowsException_Propagates()
+        {
+            // Arrange
+            _campaignServiceMock.Setup(x => x.GetEligibleSendsAsync(null, It.IsAny<CancellationToken>())).ReturnsAsync(sends);
+            _campaignServiceMock.Setup(x => x.SaveCampaignDetailsAsync(It.IsAny<CampaignInterest.Data.Models.Campaigns>(), It.IsAny<CancellationToken>())).ReturnsAsync(1L);
+            _campaignServiceMock
+                .Setup(x => x.UpsertCampaignImportMetadataAsync(It.IsAny<CampaignImportMetadata>(), It.IsAny<CancellationToken>()))
+                .ThrowsAsync(new Exception("Upsert failure"));
+
+            // Act & Assert
+            Assert.ThrowsAsync<Exception>(async () => await _sut.Handle());
+        }
     }
 }
