@@ -114,6 +114,26 @@
         {
           "Source": "SectorEstimate",
           "Target": "SectorEstimate"
+        },
+        {
+          "Source": "Registrationtype",
+          "Target": "Registrationtype"
+        },
+        {
+          "Source": "AccountCreationDate",
+          "Target": "AccountCreationDate"
+        },
+        {
+          "Source": "DateOfFirstStart",
+          "Target": "DateOfFirstStart"
+        },
+        {
+          "Source": "DateOfLastStart",
+          "Target": "DateOfLastStart"
+        },
+        {
+          "Source": "DateOfLastCompletion",
+          "Target": "DateOfLastCompletion"
         }
       ]
     }
