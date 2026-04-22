@@ -831,8 +831,8 @@ public class CampaignService(IExternalApiService externalApiService, IUnitOfWork
             var send = new Send
             {
                 ID = item?["ID"]?.GetValue<int>() ?? 0,
-                SendName = item?["Name"]?.GetValue<string>(),
-                ExternalCampaignID = item?["CampaignID"]?.GetValue<int>() ?? 0,
+                Name = item?["Name"]?.GetValue<string>(),
+                CampaignID = item?["CampaignID"]?.GetValue<int>() ?? 0,
                 CampaignName = item?["Campaign"]?["Name"]?.GetValue<string>() ?? string.Empty,
                 Status = item?["Status"]?.GetValue<string>(),
                 SubStatus = item?["SubStatus"]?.GetValue<string>(),

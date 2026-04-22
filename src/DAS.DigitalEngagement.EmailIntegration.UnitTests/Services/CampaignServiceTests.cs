@@ -966,7 +966,7 @@ public class CampaignServiceTests
         var send = result[0];
         Assert.That(send.ID, Is.EqualTo(10));
         Assert.That(send.CampaignName, Is.EqualTo("My Campaign"));
-        Assert.That(send.ExternalCampaignID, Is.EqualTo(20));
+        Assert.That(send.CampaignID, Is.EqualTo(20));
         Assert.That(send.Status, Is.EqualTo("Completed"));
         Assert.That(send.SubStatus, Is.EqualTo("Delivered"));
         Assert.That(send.SendDate, Is.EqualTo("2024-01-10T08:00:00Z"));

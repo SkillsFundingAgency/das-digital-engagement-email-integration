@@ -6,9 +6,9 @@ public class Send
 {
     public required int ID { get; set; }
 
-    public string SendName { get; set; }
+    public string Name { get; set; }
 
-    public long ExternalCampaignID { get; set; }
+    public long CampaignID { get; set; }
 
     public string CampaignName { get; set; }
 

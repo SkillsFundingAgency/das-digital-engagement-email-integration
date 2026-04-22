@@ -117,10 +117,10 @@ public class ImportCampaignPerformanceHandler(ICampaignService campaignService, 
     {
         return new CampaignInterest.Data.Models.Campaigns
         {
-            ExternalCampaignId = send.ExternalCampaignID,
+            ExternalCampaignId = send.CampaignID,
             CampaignName = send.CampaignName,
             ExternalSendId = send.ID,
-            SendName = send.SendName,
+            SendName = send.Name,
             Type = send.CampaignType,
             Account = send.Account,
             FirstSendDate = send.SendDate != null ? DateTime.Parse(send.SendDate, System.Globalization.CultureInfo.InvariantCulture) : default,
