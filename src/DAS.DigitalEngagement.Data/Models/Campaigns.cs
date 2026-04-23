@@ -10,8 +10,10 @@ public class Campaigns
 {
     [Key]
     public long Id { get; set; }
-    public int ExternalId { get; set; }
-    public string Name { get; set; }
+    public long ExternalCampaignId { get; set; }
+    public string CampaignName { get; set; }
+    public int ExternalSendId { get; set; }
+    public string SendName { get; set; }
     public string Type { get; set; }
     public string CreatedBy { get; set; }
     public DateTime CreatedOn { get; set; }

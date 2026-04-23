@@ -394,7 +394,8 @@ AccountUsers AS (
         CONVERT(VARCHAR(10), ecm.ApprenticeshipStartDate, 120) AS ApprenticeshipStartDate,
         CONVERT(VARCHAR(10), ecm.ApprenticeshipEndDate, 120) AS ApprenticeshipEndDate,
         CONVERT(VARCHAR(10), ecm.ApprenticeshipCompletionDate, 120) AS ApprenticeshipCompletionDate,
-
+        
+        eaa.AccountCreationDate,
         rs.Stage1a,
         rs.Stage1b,
         rs.Stage2,
