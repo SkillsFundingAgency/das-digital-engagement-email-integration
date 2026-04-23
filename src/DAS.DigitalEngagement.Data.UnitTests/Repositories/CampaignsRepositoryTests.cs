@@ -34,8 +34,10 @@ public class CampaignsRepositoryTests
         campaign = new Campaigns
         {
             Id = 12345,
-            ExternalId = 100,
-            Name = "Test Campaign",
+            ExternalCampaignId = 100,
+            CampaignName = "Test Campaign",
+            ExternalSendId = 200,
+            SendName = "Test Send",
             Type = "Email",
             CreatedBy = "TestUser",
             CreatedOn = DateTime.UtcNow,
@@ -337,7 +339,7 @@ public class CampaignsRepositoryTests
     public void UpsertAsync_Should_Accept_Campaign_With_Long_String_Values()
     {
         // Arrange
-        campaign.Name = new string('A', 1000);
+        campaign.CampaignName = new string('A', 1000);
         campaign.Subject = new string('B', 1000);
         campaign.FromEmailAddress = "very.long.email.address" + new string('x', 100) + "@example.com";
 
@@ -359,7 +361,7 @@ public class CampaignsRepositoryTests
     public void UpsertAsync_Should_Accept_Campaign_With_Special_Characters_In_Strings()
     {
         // Arrange
-        campaign.Name = "Test's Campaign \"Special\" & <Characters> 🎉";
+        campaign.CampaignName = "Test's Campaign \"Special\" & <Characters> 🎉";
         campaign.Subject = "Re: Test's \"Subject\" with & <HTML> tags";
 
         // Act & Assert
@@ -381,10 +383,10 @@ public class CampaignsRepositoryTests
     {
         // Arrange
         var campaign1 = campaign;
-        campaign1.ExternalId = 0;
+        campaign1.ExternalCampaignId = 0;
 
         var campaign2 = campaign;
-        campaign2.ExternalId = -1;
+        campaign2.ExternalCampaignId = -1;
 
         // Act & Assert
         Assert.DoesNotThrowAsync(async () =>
@@ -432,7 +434,7 @@ public class CampaignsRepositoryTests
     {
         // Arrange
         campaign.Id = long.MaxValue;
-        campaign.ExternalId = int.MaxValue;
+        campaign.ExternalCampaignId = int.MaxValue;
         campaign.CreatedOn = DateTime.MaxValue;
         campaign.ModifiedOn = DateTime.MinValue;
         campaign.FirstSendDate = DateTime.MaxValue;

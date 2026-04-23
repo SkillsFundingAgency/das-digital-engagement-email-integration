@@ -29,10 +29,8 @@ namespace DAS.DigitalEngagement.EmailIntegration.Extensions
             services.AddTransient<IPayLoadMapper, PayLoadMapper>();
 
             services.AddTransient<IImportCampaignPerformanceHandler, ImportCampaignPerformanceHandler>();
-            services.AddTransient<ICampaignService, CampaignService>();
-
             services.AddTransient<IUnitOfWork, UnitOfWork>();
-
+            services.AddTransient<ICampaignService, CampaignService>();
 
             services.AddTransient<IDataMartRepository, DataMartRepository>();
            
@@ -42,7 +40,6 @@ namespace DAS.DigitalEngagement.EmailIntegration.Extensions
                                                         new AzureCliCredential(new AzureCliCredentialOptions { TenantId = tenantId }),
                                                         new VisualStudioCodeCredential(new VisualStudioCodeCredentialOptions { TenantId = tenantId }),
                                                         new VisualStudioCredential(new VisualStudioCredentialOptions { TenantId = tenantId })
-
                                                     ));
             services.AddHttpClient<IExternalApiService,ExternalApiService>();
             services.AddTransient<IChunkingService, ChunkingService>();

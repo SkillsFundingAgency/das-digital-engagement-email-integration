@@ -341,17 +341,17 @@ public class CampaignImportMetadataRepositoryTests
     #region GetByIdAsync Validation Tests
 
     [Test]
-    public void GetByIdAsync_Should_Accept_Positive_CampaignId()
+    public void GetByIdAsync_Should_Accept_Positive_SendId()
     {
         // Arrange
-        long campaignId = 12345;
+        int sendId = 12345;
 
         // Act & Assert
         Assert.DoesNotThrowAsync(async () =>
         {
             try
             {
-                await _repository.GetByIdAsync(campaignId);
+                await _repository.GetByIdAsync(sendId);
             }
             catch (InvalidCastException)
             {
@@ -361,17 +361,17 @@ public class CampaignImportMetadataRepositoryTests
     }
 
     [Test]
-    public void GetByIdAsync_Should_Accept_Zero_CampaignId()
+    public void GetByIdAsync_Should_Accept_Zero_SendId()
     {
         // Arrange
-        long campaignId = 0;
+        int sendId = 0;
 
         // Act & Assert
         Assert.DoesNotThrowAsync(async () =>
         {
             try
             {
-                await _repository.GetByIdAsync(campaignId);
+                await _repository.GetByIdAsync(sendId);
             }
             catch (InvalidCastException)
             {
@@ -381,17 +381,17 @@ public class CampaignImportMetadataRepositoryTests
     }
 
     [Test]
-    public void GetByIdAsync_Should_Accept_Negative_CampaignId()
+    public void GetByIdAsync_Should_Accept_Negative_SendId()
     {
         // Arrange
-        long campaignId = -1;
+        int sendId = -1;
 
         // Act & Assert
         Assert.DoesNotThrowAsync(async () =>
         {
             try
             {
-                await _repository.GetByIdAsync(campaignId);
+                await _repository.GetByIdAsync(sendId);
             }
             catch (InvalidCastException)
             {
@@ -404,14 +404,14 @@ public class CampaignImportMetadataRepositoryTests
     public void GetByIdAsync_Should_Accept_Max_Long_Value()
     {
         // Arrange
-        long campaignId = long.MaxValue;
+        int sendId = int.MaxValue;
 
         // Act & Assert
         Assert.DoesNotThrowAsync(async () =>
         {
             try
             {
-                await _repository.GetByIdAsync(campaignId);
+                await _repository.GetByIdAsync(sendId);
             }
             catch (InvalidCastException)
             {
@@ -428,14 +428,14 @@ public class CampaignImportMetadataRepositoryTests
     public void GetByIdsAsync_Should_Accept_Empty_Collection()
     {
         // Arrange
-        var campaignIds = Enumerable.Empty<long>();
+        var sendIds = Enumerable.Empty<int>();
 
         // Act & Assert
         Assert.DoesNotThrowAsync(async () =>
         {
             try
             {
-                await _repository.GetByIdsAsync(campaignIds);
+                await _repository.GetByIdsAsync(sendIds);
             }
             catch (InvalidCastException)
             {
@@ -448,14 +448,14 @@ public class CampaignImportMetadataRepositoryTests
     public void GetByIdsAsync_Should_Accept_Single_Id()
     {
         // Arrange
-        var campaignIds = new[] { 12345L };
+        var sendIds = new[] { 12345 };
 
         // Act & Assert
         Assert.DoesNotThrowAsync(async () =>
         {
             try
             {
-                await _repository.GetByIdsAsync(campaignIds);
+                await _repository.GetByIdsAsync(sendIds);
             }
             catch (InvalidCastException)
             {
@@ -468,14 +468,14 @@ public class CampaignImportMetadataRepositoryTests
     public void GetByIdsAsync_Should_Accept_Multiple_Ids()
     {
         // Arrange
-        var campaignIds = new[] { 1L, 2L, 3L, 4L, 5L };
+        var sendIds = new[] { 1, 2, 3, 4, 5 };
 
         // Act & Assert
         Assert.DoesNotThrowAsync(async () =>
         {
             try
             {
-                await _repository.GetByIdsAsync(campaignIds);
+                await _repository.GetByIdsAsync(sendIds);
             }
             catch (InvalidCastException)
             {
@@ -488,14 +488,14 @@ public class CampaignImportMetadataRepositoryTests
     public void GetByIdsAsync_Should_Handle_Duplicate_Ids()
     {
         // Arrange
-        var campaignIds = new[] { 1L, 2L, 2L, 3L, 3L, 3L };
+        var sendIds = new[] { 1, 2, 2, 3, 3, 3 };
 
         // Act & Assert
         Assert.DoesNotThrowAsync(async () =>
         {
             try
             {
-                await _repository.GetByIdsAsync(campaignIds);
+                await _repository.GetByIdsAsync(sendIds);
             }
             catch (InvalidCastException)
             {
@@ -508,14 +508,14 @@ public class CampaignImportMetadataRepositoryTests
     public void GetByIdsAsync_Should_Handle_Large_Id_Collection()
     {
         // Arrange
-        var campaignIds = Enumerable.Range(1, 1000).Select(i => (long)i);
+        var sendIds = Enumerable.Range(1, 1000).Select(i => i);
 
         // Act & Assert
         Assert.DoesNotThrowAsync(async () =>
         {
             try
             {
-                await _repository.GetByIdsAsync(campaignIds);
+                await _repository.GetByIdsAsync(sendIds);
             }
             catch (InvalidCastException)
             {
@@ -528,14 +528,14 @@ public class CampaignImportMetadataRepositoryTests
     public void GetByIdsAsync_Should_Handle_Mixed_Positive_And_Negative_Ids()
     {
         // Arrange
-        var campaignIds = new[] { -1L, 0L, 1L, 100L, -100L };
+        var sendIds = new[] { -1, 0, 1, 100, -100 };
 
         // Act & Assert
         Assert.DoesNotThrowAsync(async () =>
         {
             try
             {
-                await _repository.GetByIdsAsync(campaignIds);
+                await _repository.GetByIdsAsync(sendIds);
             }
             catch (InvalidCastException)
             {
@@ -683,14 +683,14 @@ public class CampaignImportMetadataRepositoryTests
     public void GetByIdsAsync_Should_Accept_Collection_With_MinValue()
     {
         // Arrange
-        var campaignIds = new[] { long.MinValue };
+        var sendIds = new[] { int.MinValue };
 
         // Act & Assert
         Assert.DoesNotThrowAsync(async () =>
         {
             try
             {
-                await _repository.GetByIdsAsync(campaignIds);
+                await _repository.GetByIdsAsync(sendIds);
             }
             catch (InvalidCastException)
             {
@@ -703,14 +703,14 @@ public class CampaignImportMetadataRepositoryTests
     public void GetByIdsAsync_Should_Accept_Collection_With_MaxValue()
     {
         // Arrange
-        var campaignIds = new[] { long.MaxValue };
+        var sendIds = new[] { int.MaxValue };
 
         // Act & Assert
         Assert.DoesNotThrowAsync(async () =>
         {
             try
             {
-                await _repository.GetByIdsAsync(campaignIds);
+                await _repository.GetByIdsAsync(sendIds);
             }
             catch (InvalidCastException)
             {
@@ -723,14 +723,14 @@ public class CampaignImportMetadataRepositoryTests
     public void GetByIdsAsync_Should_Accept_Collection_With_Zero()
     {
         // Arrange
-        var campaignIds = new[] { 0L };
+        var sendIds = new[] { 0 };
 
         // Act & Assert
         Assert.DoesNotThrowAsync(async () =>
         {
             try
             {
-                await _repository.GetByIdsAsync(campaignIds);
+                await _repository.GetByIdsAsync(sendIds);
             }
             catch (InvalidCastException)
             {
@@ -743,14 +743,14 @@ public class CampaignImportMetadataRepositoryTests
     public void GetByIdsAsync_Should_Accept_Collection_With_All_Boundary_Values()
     {
         // Arrange
-        var campaignIds = new[] { long.MinValue, 0L, long.MaxValue };
+        var sendIds = new[] { int.MinValue, 0, int.MaxValue };
 
         // Act & Assert
         Assert.DoesNotThrowAsync(async () =>
         {
             try
             {
-                await _repository.GetByIdsAsync(campaignIds);
+                await _repository.GetByIdsAsync(sendIds);
             }
             catch (InvalidCastException)
             {
@@ -763,12 +763,12 @@ public class CampaignImportMetadataRepositoryTests
     public async Task GetByIdsAsync_Should_Call_Factory_CreateConnection()
     {
         // Arrange
-        var campaignIds = new[] { 1L, 2L, 3L };
+        var sendIds = new[] { 1, 2, 3 };
 
         // Act
         try
         {
-            await _repository.GetByIdsAsync(campaignIds);
+            await _repository.GetByIdsAsync(sendIds);
         }
         catch (InvalidCastException)
         {
@@ -783,13 +783,13 @@ public class CampaignImportMetadataRepositoryTests
     public async Task GetByIdsAsync_Should_Log_Information_With_Correct_Parameters()
     {
         // Arrange
-        var campaignIds = new[] { 1L, 2L, 3L };
+        var sendIds = new[] { 1, 2, 3 };
         var expectedStoredProcedure = "dbo.Usp_CampaignImportMetadata_Get";
 
         // Act
         try
         {
-            await _repository.GetByIdsAsync(campaignIds);
+            await _repository.GetByIdsAsync(sendIds);
         }
         catch (InvalidCastException)
         {
@@ -811,12 +811,12 @@ public class CampaignImportMetadataRepositoryTests
     public async Task GetByIdsAsync_Should_Format_Single_Id_Correctly()
     {
         // Arrange
-        var campaignIds = new[] { 12345L };
+        var sendIds = new[] { 12345 };
 
         // Act
         try
         {
-            await _repository.GetByIdsAsync(campaignIds);
+            await _repository.GetByIdsAsync(sendIds);
         }
         catch (InvalidCastException)
         {
@@ -831,12 +831,12 @@ public class CampaignImportMetadataRepositoryTests
     public async Task GetByIdsAsync_Should_Format_Multiple_Ids_Correctly()
     {
         // Arrange
-        var campaignIds = new[] { 1L, 2L, 3L, 4L, 5L };
+        var sendIds = new[] { 1, 2, 3, 4, 5 };
 
         // Act
         try
         {
-            await _repository.GetByIdsAsync(campaignIds);
+            await _repository.GetByIdsAsync(sendIds);
         }
         catch (InvalidCastException)
         {
@@ -848,15 +848,15 @@ public class CampaignImportMetadataRepositoryTests
     }
 
     [Test]
-    public async Task GetByIdAsync_Should_Log_Information_With_CampaignId_And_StoredProcedure()
+    public async Task GetByIdAsync_Should_Log_Information_With_SendId_And_StoredProcedure()
     {
         // Arrange
-        long campaignId = 12345;
+        int sendId = 12345;
 
         // Act
         try
         {
-            await _repository.GetByIdAsync(campaignId);
+            await _repository.GetByIdAsync(sendId);
         }
         catch (InvalidCastException)
         {
@@ -879,14 +879,14 @@ public class CampaignImportMetadataRepositoryTests
     public void GetByIdAsync_Should_Accept_Min_Long_Value()
     {
         // Arrange
-        long campaignId = long.MinValue;
+        int sendId = int.MinValue;
 
         // Act & Assert
         Assert.DoesNotThrowAsync(async () =>
         {
             try
             {
-                await _repository.GetByIdAsync(campaignId);
+                await _repository.GetByIdAsync(sendId);
             }
             catch (InvalidCastException)
             {
@@ -896,16 +896,16 @@ public class CampaignImportMetadataRepositoryTests
     }
 
     [Test]
-    public async Task GetByIdAsync_Should_Convert_MinValue_CampaignId_To_String()
+    public async Task GetByIdAsync_Should_Convert_MinValue_SendId_To_String()
     {
         // Arrange
-        long campaignId = long.MinValue;
-        string expectedStringValue = long.MinValue.ToString();
+        int sendId = int.MinValue;
+        string expectedStringValue = int.MinValue.ToString();
 
         // Act
         try
         {
-            await _repository.GetByIdAsync(campaignId);
+            await _repository.GetByIdAsync(sendId);
         }
         catch (InvalidCastException)
         {
@@ -925,16 +925,16 @@ public class CampaignImportMetadataRepositoryTests
     }
 
     [Test]
-    public async Task GetByIdAsync_Should_Convert_MaxValue_CampaignId_To_String()
+    public async Task GetByIdAsync_Should_Convert_MaxValue_SendId_To_String()
     {
         // Arrange
-        long campaignId = long.MaxValue;
-        string expectedStringValue = long.MaxValue.ToString();
+        int sendId = int.MaxValue;
+        string expectedStringValue = int.MaxValue.ToString();
 
         // Act
         try
         {
-            await _repository.GetByIdAsync(campaignId);
+            await _repository.GetByIdAsync(sendId);
         }
         catch (InvalidCastException)
         {
@@ -957,12 +957,12 @@ public class CampaignImportMetadataRepositoryTests
     public async Task GetByIdAsync_Should_Call_Factory_CreateConnection_Once()
     {
         // Arrange
-        long campaignId = 100;
+        int sendId = 100;
 
         // Act
         try
         {
-            await _repository.GetByIdAsync(campaignId);
+            await _repository.GetByIdAsync(sendId);
         }
         catch (InvalidCastException)
         {
@@ -977,10 +977,10 @@ public class CampaignImportMetadataRepositoryTests
     public void GetByIdAsync_Should_Attempt_Cast_To_SqlConnection()
     {
         // Arrange
-        long campaignId = 1;
+        int sendId = 1;
 
         // Act & Assert
-        var exception = Assert.ThrowsAsync<InvalidCastException>(async () => await _repository.GetByIdAsync(campaignId));
+        var exception = Assert.ThrowsAsync<InvalidCastException>(async () => await _repository.GetByIdAsync(sendId));
 
         exception.Should().NotBeNull("InvalidCastException should be thrown when casting IDbConnection mock to SqlConnection");
     }
@@ -989,13 +989,13 @@ public class CampaignImportMetadataRepositoryTests
     public async Task GetByIdAsync_Should_Use_Correct_StoredProcedure_Name()
     {
         // Arrange
-        long campaignId = 999;
+        int sendId = 999;
         const string expectedStoredProcedure = "dbo.Usp_CampaignImportMetadata_Get";
 
         // Act
         try
         {
-            await _repository.GetByIdAsync(campaignId);
+            await _repository.GetByIdAsync(sendId);
         }
         catch (InvalidCastException)
         {
@@ -1014,38 +1014,38 @@ public class CampaignImportMetadataRepositoryTests
             $"Logger should log the stored procedure name: {expectedStoredProcedure}");
     }
 
-    [TestCase(0L)]
-    [TestCase(1L)]
-    [TestCase(-1L)]
-    [TestCase(9223372036854775807L)] // long.MaxValue
-    [TestCase(-9223372036854775808L)] // long.MinValue
-    public void GetByIdAsync_Should_Accept_Various_CampaignId_Values(long campaignId)
+    [TestCase(0)]
+    [TestCase(1)]
+    [TestCase(-1)]
+    [TestCase(int.MaxValue)]
+    [TestCase(int.MinValue)]
+    public void GetByIdAsync_Should_Accept_Various_SendId_Values(int sendId)
     {
         // Act & Assert
         Assert.DoesNotThrowAsync(async () =>
         {
             try
             {
-                await _repository.GetByIdAsync(campaignId);
+                await _repository.GetByIdAsync(sendId);
             }
             catch (InvalidCastException)
             {
                 // Expected when using mocks
             }
-        }, $"Method should accept campaignId value: {campaignId}");
+        }, $"Method should accept sendId value: {sendId}");
     }
 
-    [TestCase(0L, "0")]
-    [TestCase(123L, "123")]
-    [TestCase(-456L, "-456")]
-    [TestCase(9223372036854775807L, "9223372036854775807")]
-    [TestCase(-9223372036854775808L, "-9223372036854775808")]
-    public async Task GetByIdAsync_Should_Log_CampaignId_As_String(long campaignId, string expectedStringValue)
+    [TestCase(0, "0")]
+    [TestCase(123, "123")]
+    [TestCase(-456, "-456")]
+    [TestCase(int.MaxValue, "2147483647")]
+    [TestCase(int.MinValue, "-2147483648")]
+    public async Task GetByIdAsync_Should_Log_SendId_As_String(int sendId, string expectedStringValue)
     {
         // Act
         try
         {
-            await _repository.GetByIdAsync(campaignId);
+            await _repository.GetByIdAsync(sendId);
         }
         catch (InvalidCastException)
         {
@@ -1061,7 +1061,7 @@ public class CampaignImportMetadataRepositoryTests
                 It.IsAny<Exception>(),
                 It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
             Times.Once,
-            $"Logger should log campaignId {campaignId} as string '{expectedStringValue}'");
+            $"Logger should log sendId {sendId} as string '{expectedStringValue}'");
     }
 
     #endregion
@@ -1072,10 +1072,10 @@ public class CampaignImportMetadataRepositoryTests
     public void GetByIdsAsync_WithEmptyCollection_ShouldNotThrowArgumentException()
     {
         // Arrange
-        var campaignIds = new List<long>();
+        var sendIds = new List<int>();
 
         // Act
-        Func<Task> act = async () => await _repository.GetByIdsAsync(campaignIds);
+        Func<Task> act = async () => await _repository.GetByIdsAsync(sendIds);
 
         // Assert
         act.Should().ThrowAsync<InvalidCastException>();
@@ -1085,10 +1085,10 @@ public class CampaignImportMetadataRepositoryTests
     public void GetByIdsAsync_WithSingleId_ShouldNotThrowArgumentException()
     {
         // Arrange
-        var campaignIds = new List<long> { 123L };
+        var sendIds = new List<int> { 123 };
 
         // Act
-        Func<Task> act = async () => await _repository.GetByIdsAsync(campaignIds);
+        Func<Task> act = async () => await _repository.GetByIdsAsync(sendIds);
 
         // Assert
         act.Should().ThrowAsync<InvalidCastException>();
@@ -1098,10 +1098,10 @@ public class CampaignImportMetadataRepositoryTests
     public void GetByIdsAsync_WithMultipleIds_ShouldNotThrowArgumentException()
     {
         // Arrange
-        var campaignIds = new List<long> { 1L, 2L, 3L, 4L, 5L };
+        var sendIds = new List<int> { 1, 2, 3, 4, 5 };
 
         // Act
-        Func<Task> act = async () => await _repository.GetByIdsAsync(campaignIds);
+        Func<Task> act = async () => await _repository.GetByIdsAsync(sendIds);
 
         // Assert
         act.Should().ThrowAsync<InvalidCastException>();
@@ -1111,10 +1111,10 @@ public class CampaignImportMetadataRepositoryTests
     public void GetByIdsAsync_WithDuplicateIds_ShouldNotThrowArgumentException()
     {
         // Arrange
-        var campaignIds = new List<long> { 100L, 200L, 100L, 300L, 200L };
+        var sendIds = new List<int> { 100, 200, 100, 300, 200 };
 
         // Act
-        Func<Task> act = async () => await _repository.GetByIdsAsync(campaignIds);
+        Func<Task> act = async () => await _repository.GetByIdsAsync(sendIds);
 
         // Assert
         act.Should().ThrowAsync<InvalidCastException>();
@@ -1124,10 +1124,10 @@ public class CampaignImportMetadataRepositoryTests
     public void GetByIdsAsync_WithLargeCollection_ShouldNotThrowArgumentException()
     {
         // Arrange
-        var campaignIds = Enumerable.Range(1, 10000).Select(i => (long)i).ToList();
+        var sendIds = Enumerable.Range(1, 10000).Select(i => i).ToList();
 
         // Act
-        Func<Task> act = async () => await _repository.GetByIdsAsync(campaignIds);
+        Func<Task> act = async () => await _repository.GetByIdsAsync(sendIds);
 
         // Assert
         act.Should().ThrowAsync<InvalidCastException>();
@@ -1137,10 +1137,10 @@ public class CampaignImportMetadataRepositoryTests
     public void GetByIdsAsync_WithMinValue_ShouldNotThrowArgumentException()
     {
         // Arrange
-        var campaignIds = new List<long> { long.MinValue };
+        var sendIds = new List<int> { int.MinValue };
 
         // Act
-        Func<Task> act = async () => await _repository.GetByIdsAsync(campaignIds);
+        Func<Task> act = async () => await _repository.GetByIdsAsync(sendIds);
 
         // Assert
         act.Should().ThrowAsync<InvalidCastException>();
@@ -1150,10 +1150,10 @@ public class CampaignImportMetadataRepositoryTests
     public void GetByIdsAsync_WithMaxValue_ShouldNotThrowArgumentException()
     {
         // Arrange
-        var campaignIds = new List<long> { long.MaxValue };
+        var sendIds = new List<int> { int.MaxValue };
 
         // Act
-        Func<Task> act = async () => await _repository.GetByIdsAsync(campaignIds);
+        Func<Task> act = async () => await _repository.GetByIdsAsync(sendIds);
 
         // Assert
         act.Should().ThrowAsync<InvalidCastException>();
@@ -1163,10 +1163,10 @@ public class CampaignImportMetadataRepositoryTests
     public void GetByIdsAsync_WithZero_ShouldNotThrowArgumentException()
     {
         // Arrange
-        var campaignIds = new List<long> { 0L };
+        var sendIds = new List<int> { 0 };
 
         // Act
-        Func<Task> act = async () => await _repository.GetByIdsAsync(campaignIds);
+        Func<Task> act = async () => await _repository.GetByIdsAsync(sendIds);
 
         // Assert
         act.Should().ThrowAsync<InvalidCastException>();
@@ -1176,10 +1176,10 @@ public class CampaignImportMetadataRepositoryTests
     public void GetByIdsAsync_WithMixedPositiveAndNegativeIds_ShouldNotThrowArgumentException()
     {
         // Arrange
-        var campaignIds = new List<long> { -100L, 50L, -25L, 200L, -1L, 1L };
+        var sendIds = new List<int> { -100, 50, -25, 200, -1, 1 };
 
         // Act
-        Func<Task> act = async () => await _repository.GetByIdsAsync(campaignIds);
+        Func<Task> act = async () => await _repository.GetByIdsAsync(sendIds);
 
         // Assert
         act.Should().ThrowAsync<InvalidCastException>();
@@ -1189,10 +1189,10 @@ public class CampaignImportMetadataRepositoryTests
     public void GetByIdsAsync_WithAllBoundaryValues_ShouldNotThrowArgumentException()
     {
         // Arrange
-        var campaignIds = new List<long> { long.MinValue, 0L, long.MaxValue };
+        var sendIds = new List<int> { int.MinValue, 0, int.MaxValue };
 
         // Act
-        Func<Task> act = async () => await _repository.GetByIdsAsync(campaignIds);
+        Func<Task> act = async () => await _repository.GetByIdsAsync(sendIds);
 
         // Assert
         act.Should().ThrowAsync<InvalidCastException>();
@@ -1202,12 +1202,12 @@ public class CampaignImportMetadataRepositoryTests
     public async Task GetByIdsAsync_ShouldCallFactoryCreateConnection()
     {
         // Arrange
-        var campaignIds = new List<long> { 1L, 2L, 3L };
+        var sendIds = new List<int> { 1, 2, 3 };
 
         // Act
         try
         {
-            await _repository.GetByIdsAsync(campaignIds);
+            await _repository.GetByIdsAsync(sendIds);
         }
         catch (InvalidCastException)
         {
@@ -1222,12 +1222,12 @@ public class CampaignImportMetadataRepositoryTests
     public async Task GetByIdsAsync_ShouldLogInformationWithCorrectParameters()
     {
         // Arrange
-        var campaignIds = new List<long> { 100L, 200L, 300L };
+        var sendIds = new List<int> { 100, 200, 300 };
 
         // Act
         try
         {
-            await _repository.GetByIdsAsync(campaignIds);
+            await _repository.GetByIdsAsync(sendIds);
         }
         catch (InvalidCastException)
         {
@@ -1258,16 +1258,16 @@ public class CampaignImportMetadataRepositoryTests
         actualFormat.Should().Be(expectedFormat);
     }
 
-    [TestCase(new long[] { long.MinValue }, TestName = "GetByIdsAsync_Should_Format_MinValue")]
-    [TestCase(new long[] { long.MaxValue }, TestName = "GetByIdsAsync_Should_Format_MaxValue")]
-    [TestCase(new long[] { 0L }, TestName = "GetByIdsAsync_Should_Format_Zero")]
-    [TestCase(new long[] { -1L, 0L, 1L }, TestName = "GetByIdsAsync_Should_Format_Mixed_Values")]
-    public async Task GetByIdsAsync_Should_Format_Boundary_Values_Correctly(long[] campaignIds)
+    [TestCase(new int[] { int.MinValue }, TestName = "GetByIdsAsync_Should_Format_MinValue")]
+    [TestCase(new int[] { int.MaxValue }, TestName = "GetByIdsAsync_Should_Format_MaxValue")]
+    [TestCase(new int[] { 0 }, TestName = "GetByIdsAsync_Should_Format_Zero")]
+    [TestCase(new int[] { -1, 0, 1 }, TestName = "GetByIdsAsync_Should_Format_Mixed_Values")]
+    public async Task GetByIdsAsync_Should_Format_Boundary_Values_Correctly(int[] sendIds)
     {
         // Arrange & Act
         try
         {
-            await _repository.GetByIdsAsync(campaignIds);
+            await _repository.GetByIdsAsync(sendIds);
         }
         catch (InvalidCastException)
         {
@@ -1282,13 +1282,13 @@ public class CampaignImportMetadataRepositoryTests
     public async Task GetByIdsAsync_Should_Use_Correct_StoredProcedure_Name()
     {
         // Arrange
-        var campaignIds = new[] { 1L };
+        var sendIds = new[] { 1 };
         var expectedStoredProcedure = "dbo.Usp_CampaignImportMetadata_Get";
 
         // Act
         try
         {
-            await _repository.GetByIdsAsync(campaignIds);
+            await _repository.GetByIdsAsync(sendIds);
         }
         catch (InvalidCastException)
         {
@@ -1310,10 +1310,10 @@ public class CampaignImportMetadataRepositoryTests
     public void GetByIdsAsync_WithNullCampaignIds_ShouldThrowArgumentNullException()
     {
         // Arrange
-        IEnumerable<long>? campaignIds = null!;
+        IEnumerable<int>? sendIds = null!;
 
         // Act
-        Func<Task> act = async () => await _repository.GetByIdsAsync(campaignIds!);
+        Func<Task> act = async () => await _repository.GetByIdsAsync(sendIds!);
 
         // Assert
         act.Should().ThrowAsync<ArgumentNullException>();
@@ -1323,10 +1323,10 @@ public class CampaignImportMetadataRepositoryTests
     public void GetByIdsAsync_WithNullCampaignIds_ShouldThrowNullReferenceException()
     {
         // Arrange
-        IEnumerable<long>? campaignIds = null!;
+        IEnumerable<int>? sendIds = null!;
 
         // Act
-        Func<Task> act = async () => await _repository.GetByIdsAsync(campaignIds!);
+        Func<Task> act = async () => await _repository.GetByIdsAsync(sendIds!);
 
         // Assert
         act.Should().ThrowAsync<NullReferenceException>();
@@ -1342,6 +1342,7 @@ public class CampaignImportMetadataRepositoryTests
         // Arrange
         var metadata = new CampaignImportMetadata
         {
+            SendId = 1,
             CampaignId = long.MinValue,
             IsImportComplete = true,
             ImportStartDate = DateTime.UtcNow,
@@ -1369,6 +1370,7 @@ public class CampaignImportMetadataRepositoryTests
         var sameDate = DateTime.UtcNow;
         var metadata = new CampaignImportMetadata
         {
+            SendId = 1,
             CampaignId = 100,
             IsImportComplete = true,
             ImportStartDate = sameDate,
@@ -1395,6 +1397,7 @@ public class CampaignImportMetadataRepositoryTests
         // Arrange
         var metadata = new CampaignImportMetadata
         {
+            SendId = 1,
             CampaignId = 200,
             IsImportComplete = false,
             ImportStartDate = DateTime.UtcNow,
@@ -1423,6 +1426,7 @@ public class CampaignImportMetadataRepositoryTests
         // Arrange
         var metadata = new CampaignImportMetadata
         {
+            SendId = 1,
             CampaignId = campaignId,
             IsImportComplete = false,
             ImportStartDate = DateTime.UtcNow,
@@ -1449,6 +1453,7 @@ public class CampaignImportMetadataRepositoryTests
         // Arrange
         var metadata = new CampaignImportMetadata
         {
+            SendId = 1,
             CampaignId = 12345,
             IsImportComplete = true,
             ImportStartDate = DateTime.UtcNow,
@@ -1471,7 +1476,7 @@ public class CampaignImportMetadataRepositoryTests
                 LogLevel.Information,
                 It.IsAny<EventId>(),
                 It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("Upserting CampaignImportMetadata") &&
-                                              v.ToString()!.Contains("12345") &&
+                                              v.ToString()!.Contains("1") &&
                                               v.ToString()!.Contains("dbo.Usp_CampaignImportMetadata_Upsert")),
                 It.IsAny<Exception>(),
                 It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
@@ -1485,6 +1490,7 @@ public class CampaignImportMetadataRepositoryTests
         const string expectedStoredProcedure = "dbo.Usp_CampaignImportMetadata_Upsert";
         var metadata = new CampaignImportMetadata
         {
+            SendId = 1,
             CampaignId = 999,
             IsImportComplete = false,
             ImportStartDate = DateTime.UtcNow,
@@ -1512,17 +1518,18 @@ public class CampaignImportMetadataRepositoryTests
             Times.AtLeastOnce);
     }
 
-    [TestCase(0L, "0")]
-    [TestCase(123L, "123")]
-    [TestCase(-456L, "-456")]
-    [TestCase(9223372036854775807L, "9223372036854775807")]
-    [TestCase(-9223372036854775808L, "-9223372036854775808")]
-    public async Task UpsertAsync_Should_Log_CampaignId_Value(long campaignId, string expectedIdString)
+    [TestCase(0, "0")]
+    [TestCase(123, "123")]
+    [TestCase(-456, "-456")]
+    [TestCase(2147483647, "2147483647")]
+    [TestCase(-2147483648, "-2147483648")]
+    public async Task UpsertAsync_Should_Log_CampaignId_Value(int sendId, string expectedIdString)
     {
         // Arrange
         var metadata = new CampaignImportMetadata
         {
-            CampaignId = campaignId,
+            SendId = sendId,
+            CampaignId = 12345,
             IsImportComplete = true,
             ImportStartDate = DateTime.UtcNow,
             ImportEndDate = DateTime.UtcNow
@@ -1555,6 +1562,7 @@ public class CampaignImportMetadataRepositoryTests
         // Arrange
         var metadata = new CampaignImportMetadata
         {
+            SendId = 1,
             CampaignId = 777,
             IsImportComplete = true,
             ImportStartDate = DateTime.UtcNow,
@@ -1581,6 +1589,7 @@ public class CampaignImportMetadataRepositoryTests
         // Arrange
         var metadata = new CampaignImportMetadata
         {
+            SendId = 1,
             CampaignId = 888,
             IsImportComplete = false,
             ImportStartDate = DateTime.UtcNow,
@@ -1600,6 +1609,7 @@ public class CampaignImportMetadataRepositoryTests
         // Arrange
         var metadata = new CampaignImportMetadata
         {
+            SendId = 1,
             CampaignId = 500,
             IsImportComplete = false,
             ImportStartDate = DateTime.MinValue,
@@ -1626,6 +1636,7 @@ public class CampaignImportMetadataRepositoryTests
         // Arrange
         var metadata = new CampaignImportMetadata
         {
+            SendId = 1,
             CampaignId = 600,
             IsImportComplete = false,
             ImportStartDate = DateTime.MaxValue,
@@ -1653,12 +1664,12 @@ public class CampaignImportMetadataRepositoryTests
     public async Task GetByIdsAsync_Should_Log_Correct_Count(int count)
     {
         // Arrange
-        var campaignIds = Enumerable.Range(1, count).Select(i => (long)i).ToArray();
+        var sendIds = Enumerable.Range(1, count).Select(i => i).ToArray();
 
         // Act
         try
         {
-            await _repository.GetByIdsAsync(campaignIds);
+            await _repository.GetByIdsAsync(sendIds);
         }
         catch (InvalidCastException)
         {
@@ -1680,12 +1691,12 @@ public class CampaignImportMetadataRepositoryTests
     public async Task GetByIdsAsync_Should_Format_Empty_Collection_Correctly()
     {
         // Arrange
-        var campaignIds = Enumerable.Empty<long>();
+        var sendIds = Enumerable.Empty<int>();
 
         // Act
         try
         {
-            await _repository.GetByIdsAsync(campaignIds);
+            await _repository.GetByIdsAsync(sendIds);
         }
         catch (InvalidCastException)
         {
@@ -1706,6 +1717,7 @@ public class CampaignImportMetadataRepositoryTests
         // Arrange
         var metadata = new CampaignImportMetadata
         {
+            SendId = 1,
             CampaignId = campaignId,
             IsImportComplete = true,
             ImportStartDate = DateTime.UtcNow,
@@ -1726,6 +1738,7 @@ public class CampaignImportMetadataRepositoryTests
         // Arrange
         var metadata = new CampaignImportMetadata
         {
+            SendId = 1,
             CampaignId = 1L,
             IsImportComplete = true,
             ImportStartDate = DateTime.MinValue,
@@ -1746,6 +1759,7 @@ public class CampaignImportMetadataRepositoryTests
         // Arrange
         var metadata = new CampaignImportMetadata
         {
+            SendId = 1,
             CampaignId = 1L,
             IsImportComplete = true,
             ImportStartDate = DateTime.MaxValue,
@@ -1766,6 +1780,7 @@ public class CampaignImportMetadataRepositoryTests
         // Arrange
         var metadata = new CampaignImportMetadata
         {
+            SendId = 1,
             CampaignId = 1L,
             IsImportComplete = false,
             ImportStartDate = DateTime.UtcNow,
@@ -1786,6 +1801,7 @@ public class CampaignImportMetadataRepositoryTests
         // Arrange
         var metadata = new CampaignImportMetadata
         {
+            SendId = 1,
             CampaignId = 1L,
             IsImportComplete = true,
             ImportStartDate = DateTime.UtcNow,
@@ -1813,6 +1829,7 @@ public class CampaignImportMetadataRepositoryTests
 
         var metadata = new CampaignImportMetadata
         {
+            SendId = 1,
             CampaignId = 100L,
             IsImportComplete = isImportComplete,
             ImportStartDate = DateTime.UtcNow,
@@ -1833,6 +1850,7 @@ public class CampaignImportMetadataRepositoryTests
         // Arrange
         var metadata = new CampaignImportMetadata
         {
+            SendId = 1,
             CampaignId = 123L,
             IsImportComplete = true,
             ImportStartDate = DateTime.UtcNow,
@@ -1853,17 +1871,18 @@ public class CampaignImportMetadataRepositoryTests
         _mockConnectionFactory.Verify(x => x.CreateConnectionAsync(), Times.Once);
     }
 
-    [TestCase(0L, "0")]
-    [TestCase(123L, "123")]
-    [TestCase(-456L, "-456")]
-    [TestCase(9223372036854775807L, "9223372036854775807")]
-    [TestCase(-9223372036854775808L, "-9223372036854775808")]
-    public async Task UpsertAsync_ValidMetadata_LogsCampaignIdCorrectly(long campaignId, string expectedIdString)
+    [TestCase(0, "0")]
+    [TestCase(123, "123")]
+    [TestCase(-456, "-456")]
+    [TestCase(int.MaxValue, "2147483647")]
+    [TestCase(int.MinValue, "-2147483648")]
+    public async Task UpsertAsync_ValidMetadata_LogsCampaignIdCorrectly(int sendId, string expectedIdString)
     {
         // Arrange
         var metadata = new CampaignImportMetadata
         {
-            CampaignId = campaignId,
+            SendId = sendId,
+            CampaignId = 1234L,
             IsImportComplete = true,
             ImportStartDate = DateTime.UtcNow,
             ImportEndDate = DateTime.UtcNow
@@ -1896,6 +1915,7 @@ public class CampaignImportMetadataRepositoryTests
         // Arrange
         var metadata = new CampaignImportMetadata
         {
+            SendId = 1,
             CampaignId = 999L,
             IsImportComplete = false,
             ImportStartDate = DateTime.UtcNow,
@@ -1929,6 +1949,7 @@ public class CampaignImportMetadataRepositoryTests
         // Arrange
         var metadata = new CampaignImportMetadata
         {
+            SendId = 1,
             CampaignId = 1L,
             IsImportComplete = true,
             ImportStartDate = DateTime.UtcNow,
@@ -1951,6 +1972,7 @@ public class CampaignImportMetadataRepositoryTests
         // Arrange
         var metadata = new CampaignImportMetadata
         {
+            SendId = 1,
             CampaignId = campaignId,
             IsImportComplete = isImportComplete,
             ImportStartDate = DateTime.MinValue,
