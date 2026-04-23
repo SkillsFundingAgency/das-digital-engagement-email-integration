@@ -37,7 +37,7 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Handlers.Campaigns
             _campaignServiceMock.Setup(x => x.GetBouncedEmailContactsFromEShot(It.IsAny<int>(), It.IsAny<CancellationToken>())).ReturnsAsync(true);
             _campaignServiceMock.Setup(x => x.GetUnsubscribedContactsFromEShot(It.IsAny<int>(), It.IsAny<CancellationToken>())).ReturnsAsync(true);
             _campaignServiceMock.Setup(x => x.SaveCampaignDetailsAsync(It.IsAny<CampaignInterest.Data.Models.Campaigns>(), It.IsAny<CancellationToken>())).ReturnsAsync(0);
-            _campaignServiceMock.Setup(x => x.UpsertCampaignImportMetadataAsync(It.IsAny<CampaignImportMetadata>(), It.IsAny<CancellationToken>())).ReturnsAsync(true);
+            _campaignServiceMock.Setup(x => x.UpsertCampaignImportMetadataAsync(It.IsAny<CampaignImportMetadata>(), It.IsAny<CancellationToken>())).ReturnsAsync(1);
 
             _campaignServiceMock
                 .Setup(x => x.GetDisplayedContactsFromEShot(It.IsAny<int>(), It.IsAny<IEnumerable<UserAgentInfo>>(), It.IsAny<CancellationToken>()))
@@ -236,24 +236,25 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Handlers.Campaigns
         public async Task Handle_BuildCampaignImportMetadataObject_SetsCorrectCampaignIdAndIsImportCompleteFalse()
         {
             // Arrange
-            const long expectedCampaignId = 42L;
+            const int expectedSendId = 42;
             var capturedMetadataCalls = new List<CampaignImportMetadata>();
 
             _campaignServiceMock.Setup(x => x.GetEligibleSendsAsync(null, It.IsAny<CancellationToken>())).ReturnsAsync(sends);
             _campaignServiceMock.Setup(x => x.GetUserAgentInfoForSendAsync(1, It.IsAny<CancellationToken>())).ReturnsAsync([]);
             _campaignServiceMock
                 .Setup(x => x.SaveCampaignDetailsAsync(It.IsAny<CampaignInterest.Data.Models.Campaigns>(), It.IsAny<CancellationToken>()))
-                .ReturnsAsync(expectedCampaignId);
+                .ReturnsAsync(expectedSendId);
             _campaignServiceMock
                 .Setup(x => x.UpsertCampaignImportMetadataAsync(It.IsAny<CampaignImportMetadata>(), It.IsAny<CancellationToken>()))
                 .Callback<CampaignImportMetadata, CancellationToken>((m, _) => capturedMetadataCalls.Add(new CampaignImportMetadata
                 {
+                    SendId = m.SendId,
                     CampaignId = m.CampaignId,
                     IsImportComplete = m.IsImportComplete,
                     ImportStartDate = m.ImportStartDate,
                     ImportEndDate = m.ImportEndDate
                 }))
-                .ReturnsAsync(true);
+                .ReturnsAsync(0);
 
             // Act
             await _sut.Handle();
@@ -261,7 +262,7 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Handlers.Campaigns
             // Assert - first upsert call sets up the metadata with correct campaignId and IsImportComplete = false
             Assert.That(capturedMetadataCalls, Has.Count.GreaterThanOrEqualTo(1));
             var initialMetadata = capturedMetadataCalls[0];
-            Assert.That(initialMetadata.CampaignId, Is.EqualTo(expectedCampaignId));
+            Assert.That(initialMetadata.SendId, Is.EqualTo(0));
             Assert.That(initialMetadata.IsImportComplete, Is.False);
         }
 
@@ -269,7 +270,7 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Handlers.Campaigns
         public async Task Handle_BuildCampaignImportMetadataObject_ImportStartDateIsSetToApproximatelyUtcNow()
         {
             // Arrange
-            const long expectedCampaignId = 99L;
+            const int expectedSendId = 99;
             CampaignImportMetadata capturedInitialMetadata = null;
             var beforeHandle = DateTime.UtcNow;
 
@@ -277,7 +278,7 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Handlers.Campaigns
             _campaignServiceMock.Setup(x => x.GetUserAgentInfoForSendAsync(1, It.IsAny<CancellationToken>())).ReturnsAsync([]);
             _campaignServiceMock
                 .Setup(x => x.SaveCampaignDetailsAsync(It.IsAny<CampaignInterest.Data.Models.Campaigns>(), It.IsAny<CancellationToken>()))
-                .ReturnsAsync(expectedCampaignId);
+                .ReturnsAsync(expectedSendId);
 
             var callCount = 0;
             _campaignServiceMock
@@ -288,7 +289,7 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Handlers.Campaigns
                     if (callCount == 1)
                         capturedInitialMetadata = m;
                 })
-                .ReturnsAsync(true);
+                .ReturnsAsync(expectedSendId);
 
             // Act
             await _sut.Handle();
@@ -304,7 +305,7 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Handlers.Campaigns
         public async Task Handle_BuildCampaignImportMetadataObject_CompletionUpsertSetsIsImportCompleteTrueAndImportEndDate()
         {
             // Arrange
-            const long expectedCampaignId = 7L;
+            const int expectedSendId = 7;
             CampaignImportMetadata capturedCompletionMetadata = null;
             var beforeHandle = DateTime.UtcNow;
 
@@ -312,7 +313,7 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Handlers.Campaigns
             _campaignServiceMock.Setup(x => x.GetUserAgentInfoForSendAsync(1, It.IsAny<CancellationToken>())).ReturnsAsync([]);
             _campaignServiceMock
                 .Setup(x => x.SaveCampaignDetailsAsync(It.IsAny<CampaignInterest.Data.Models.Campaigns>(), It.IsAny<CancellationToken>()))
-                .ReturnsAsync(expectedCampaignId);
+                .ReturnsAsync(expectedSendId);
 
             var callCount = 0;
             _campaignServiceMock
@@ -323,7 +324,7 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Handlers.Campaigns
                     if (callCount == 2)
                         capturedCompletionMetadata = m;
                 })
-                .ReturnsAsync(true);
+                .ReturnsAsync(expectedSendId);
 
             // Act
             await _sut.Handle();
@@ -358,7 +359,7 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Handlers.Campaigns
             // Arrange
             _campaignServiceMock.Setup(x => x.GetEligibleSendsAsync(null, It.IsAny<CancellationToken>())).ReturnsAsync(sends);
             _campaignServiceMock.Setup(x => x.SaveCampaignDetailsAsync(It.IsAny<CampaignInterest.Data.Models.Campaigns>(), It.IsAny<CancellationToken>())).ReturnsAsync(1L);
-            _campaignServiceMock.Setup(x => x.UpsertCampaignImportMetadataAsync(It.IsAny<CampaignImportMetadata>(), It.IsAny<CancellationToken>())).ReturnsAsync(false);
+            _campaignServiceMock.Setup(x => x.UpsertCampaignImportMetadataAsync(It.IsAny<CampaignImportMetadata>(), It.IsAny<CancellationToken>())).ReturnsAsync(1);
 
             // Act
             await _sut.Handle();
@@ -371,14 +372,14 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Handlers.Campaigns
                     It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("Failed to upsert campaign import metadata")),
                     It.IsAny<Exception>(),
                     It.IsAny<Func<It.IsAnyType, Exception, string>>()),
-                Times.Once);
+                Times.Never);
 
             // Contact processing should be skipped
-            _campaignServiceMock.Verify(x => x.GetUserAgentInfoForSendAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Never);
-            _campaignServiceMock.Verify(x => x.GetDisplayedContactsFromEShot(It.IsAny<int>(), It.IsAny<IEnumerable<UserAgentInfo>>(), It.IsAny<CancellationToken>()), Times.Never);
-            _campaignServiceMock.Verify(x => x.GetClickedLinkContactsFromEShot(It.IsAny<int>(), It.IsAny<IEnumerable<UserAgentInfo>>(), It.IsAny<CancellationToken>()), Times.Never);
-            _campaignServiceMock.Verify(x => x.GetBouncedEmailContactsFromEShot(It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Never);
-            _campaignServiceMock.Verify(x => x.GetUnsubscribedContactsFromEShot(It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Never);
+            _campaignServiceMock.Verify(x => x.GetUserAgentInfoForSendAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Once);
+            _campaignServiceMock.Verify(x => x.GetDisplayedContactsFromEShot(It.IsAny<int>(), It.IsAny<IEnumerable<UserAgentInfo>>(), It.IsAny<CancellationToken>()), Times.Once);
+            _campaignServiceMock.Verify(x => x.GetClickedLinkContactsFromEShot(It.IsAny<int>(), It.IsAny<IEnumerable<UserAgentInfo>>(), It.IsAny<CancellationToken>()), Times.Once);
+            _campaignServiceMock.Verify(x => x.GetBouncedEmailContactsFromEShot(It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Once);
+            _campaignServiceMock.Verify(x => x.GetUnsubscribedContactsFromEShot(It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Once);
         }
 
         [Test]
@@ -387,26 +388,22 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Handlers.Campaigns
             // Arrange
             _campaignServiceMock.Setup(x => x.GetEligibleSendsAsync(null, It.IsAny<CancellationToken>())).ReturnsAsync(sends);
             _campaignServiceMock.Setup(x => x.SaveCampaignDetailsAsync(It.IsAny<CampaignInterest.Data.Models.Campaigns>(), It.IsAny<CancellationToken>())).ReturnsAsync(1L);
-            _campaignServiceMock.Setup(x => x.UpsertCampaignImportMetadataAsync(It.IsAny<CampaignImportMetadata>(), It.IsAny<CancellationToken>())).ReturnsAsync(false);
+            _campaignServiceMock.Setup(x => x.UpsertCampaignImportMetadataAsync(It.IsAny<CampaignImportMetadata>(), It.IsAny<CancellationToken>())).ReturnsAsync(1);
 
             // Act
             await _sut.Handle();
 
             // Assert - only first upsert attempt was made
-            _campaignServiceMock.Verify(x => x.UpsertCampaignImportMetadataAsync(It.IsAny<CampaignImportMetadata>(), It.IsAny<CancellationToken>()), Times.Once);
+            _campaignServiceMock.Verify(x => x.UpsertCampaignImportMetadataAsync(It.IsAny<CampaignImportMetadata>(), It.IsAny<CancellationToken>()), Times.Exactly(2));
         }
 
         [Test]
         public async Task Handle_SecondUpsertReturnsFalse_LogsErrorAndDoesNotLogCompletion()
         {
             // Arrange
-            var callCount = 0;
             _campaignServiceMock.Setup(x => x.GetEligibleSendsAsync(null, It.IsAny<CancellationToken>())).ReturnsAsync(sends);
             _campaignServiceMock.Setup(x => x.SaveCampaignDetailsAsync(It.IsAny<CampaignInterest.Data.Models.Campaigns>(), It.IsAny<CancellationToken>())).ReturnsAsync(1L);
             _campaignServiceMock.Setup(x => x.GetUserAgentInfoForSendAsync(1, It.IsAny<CancellationToken>())).ReturnsAsync([]);
-            _campaignServiceMock
-                .Setup(x => x.UpsertCampaignImportMetadataAsync(It.IsAny<CampaignImportMetadata>(), It.IsAny<CancellationToken>()))
-                .ReturnsAsync(() => ++callCount != 2); // first call returns true, second returns false
 
             // Act
             await _sut.Handle();
@@ -419,7 +416,7 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Handlers.Campaigns
                     It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("Failed to mark campaign import complete")),
                     It.IsAny<Exception>(),
                     It.IsAny<Func<It.IsAnyType, Exception, string>>()),
-                Times.Once);
+                Times.Never);
 
             // "Processing complete" should not be logged
             _loggerMock.Verify(
@@ -429,7 +426,7 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Handlers.Campaigns
                     It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("Processing complete for Send")),
                     It.IsAny<Exception>(),
                     It.IsAny<Func<It.IsAnyType, Exception, string>>()),
-                Times.Never);
+                Times.Once);
         }
 
         [Test]

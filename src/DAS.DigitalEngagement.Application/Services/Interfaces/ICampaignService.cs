@@ -93,7 +93,7 @@ public interface ICampaignService
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>A task that represents the asynchronous operation. The task result contains the campaign import metadata if
     /// found; otherwise, null.</returns>
-    Task<CampaignImportMetadata?> GetCampaignImportMetadataAsync(long campaignId, CancellationToken cancellationToken = default);
+    Task<CampaignImportMetadata?> GetCampaignImportMetadataAsync(int sendId, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Asynchronously retrieves metadata for all campaign imports.
@@ -108,9 +108,8 @@ public interface ICampaignService
     /// </summary>
     /// <param name="metadata">The campaign import metadata to insert or update. Cannot be null.</param>
     /// <param name="cancellationToken">Cancellation token</param>
-    /// <returns>A task that represents the asynchronous operation. The task result is true if the metadata was inserted or
-    /// updated successfully; otherwise, false.</returns>
-    Task<bool> UpsertCampaignImportMetadataAsync(CampaignImportMetadata metadata, CancellationToken cancellationToken = default);
+    /// <returns>A task that represents the asynchronous operation. The task result is the unique identifier of the inserted or updated metadata record.</returns>
+    Task<int> UpsertCampaignImportMetadataAsync(CampaignImportMetadata metadata, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Asynchronously inserts a collection of bounced email contacts into the data store in bulk.

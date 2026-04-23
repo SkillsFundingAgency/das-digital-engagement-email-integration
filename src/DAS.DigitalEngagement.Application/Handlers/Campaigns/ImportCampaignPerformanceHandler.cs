@@ -33,7 +33,8 @@ public class ImportCampaignPerformanceHandler(ICampaignService campaignService, 
 
             // write import meta data to db to track import status, start time etc.
             var metadata = BuildCampaignImportMetadataObject(campaignId);
-            if (!await campaignService.UpsertCampaignImportMetadataAsync(metadata, cancellationToken))
+            int sendId = await campaignService.UpsertCampaignImportMetadataAsync(metadata, cancellationToken);
+            if (sendId == 0)
             {
                 logger.LogError("Failed to upsert campaign import metadata for Send {SendId}, sub-account {Account}", send.ID, send.Account);
                 continue;
@@ -48,7 +49,8 @@ public class ImportCampaignPerformanceHandler(ICampaignService campaignService, 
             // write import meta data to db to track import status, end time, etc.
             metadata.IsImportComplete = true;
             metadata.ImportEndDate = DateTime.UtcNow;
-            if (!await campaignService.UpsertCampaignImportMetadataAsync(metadata, cancellationToken))
+            sendId = await campaignService.UpsertCampaignImportMetadataAsync(metadata, cancellationToken);
+            if (sendId == 0)
             {
                 logger.LogError("Failed to mark campaign import complete for Send {SendId}, sub-account {Account}", send.ID, send.Account);
                 continue;

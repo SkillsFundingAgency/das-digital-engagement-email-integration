@@ -296,7 +296,7 @@ public class CampaignService(IExternalApiService externalApiService, IUnitOfWork
         }
 
         var importedMetadata = await GetAllCampaignImportMetadataAsync(cancellationToken);
-        var completedSendIds = new HashSet<long>(importedMetadata.Where(m => m.IsImportComplete).Select(m => m.CampaignId));
+        var completedSendIds = new HashSet<int>(importedMetadata.Where(m => m.IsImportComplete).Select(m => m.SendId));
 
         var cutoffDate = DateTime.UtcNow.AddDays(-_importWindowDays);
 
@@ -406,32 +406,32 @@ public class CampaignService(IExternalApiService externalApiService, IUnitOfWork
     }
 
     // CampaignImportMetadata
-    public async Task<CampaignImportMetadata?> GetCampaignImportMetadataAsync(long campaignId, CancellationToken cancellationToken = default)
+    public async Task<CampaignImportMetadata?> GetCampaignImportMetadataAsync(int sendId, CancellationToken cancellationToken = default)
     {
-        logger.LogInformation("Retrieving campaign import metadata for CampaignID {CampaignId} from database", campaignId);
+        logger.LogInformation("Retrieving campaign import metadata for SendID {SendId} from database", sendId);
 
-        if (campaignId <= 0)
+        if (sendId <= 0)
         {
-            logger.LogWarning("Invalid CampaignID {CampaignId} provided for retrieval", campaignId);
+            logger.LogWarning("Invalid SendID {SendId} provided for retrieval", sendId);
             return null;
         }
 
         try
         {
             await unitOfWork.BeginAsync();
-            var metadata = await unitOfWork.CampaignImportMetadata.GetByIdAsync(campaignId);
+            var metadata = await unitOfWork.CampaignImportMetadata.GetByIdAsync(sendId);
             if (metadata == null)
             {
-                logger.LogWarning("No campaign import metadata found in database for CampaignID {CampaignId}", campaignId);
+                logger.LogWarning("No campaign import metadata found in database for SendID {SendId}", sendId);
                 return null;
             }
 
-            logger.LogInformation("Successfully retrieved campaign import metadata for CampaignID {CampaignId}", campaignId);
+            logger.LogInformation("Successfully retrieved campaign import metadata for SendID {SendId}", sendId);
             return metadata;
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving campaign import metadata for CampaignID {CampaignId} from database", campaignId);
+            logger.LogError(ex, "Error retrieving campaign import metadata for SendID {SendId} from database", sendId);
             return null;
         }
     }
@@ -460,27 +460,28 @@ public class CampaignService(IExternalApiService externalApiService, IUnitOfWork
         }
     }
 
-    public async Task<bool> UpsertCampaignImportMetadataAsync(CampaignImportMetadata metadata, CancellationToken cancellationToken = default)
+    public async Task<int> UpsertCampaignImportMetadataAsync(CampaignImportMetadata metadata, CancellationToken cancellationToken = default)
     {
+        int sendId = 0;
         logger.LogInformation("Upserting campaign import metadata for CampaignID {CampaignId} to database", metadata.CampaignId);
         try
         {
             await unitOfWork.BeginAsync();
-            int rowsAffected = await unitOfWork.CampaignImportMetadata.UpsertAsync(metadata);
+            sendId = await unitOfWork.CampaignImportMetadata.UpsertAsync(metadata);
 
-            if (rowsAffected == 0)
+            if (sendId == 0)
             {
-                logger.LogWarning("No rows were inserted or updated when upserting campaign import metadata for CampaignID {CampaignId}", metadata.CampaignId);
-                return false;
+                logger.LogWarning("No rows were inserted or updated when upserting campaign import metadata for SendID {SendId}", metadata.SendId);
+                return sendId;
             }
 
-            logger.LogInformation("Successfully upserted campaign import metadata for CampaignID {CampaignId} to database", metadata.CampaignId);
-            return true;
+            logger.LogInformation("Successfully upserted campaign import metadata for SendID {SendId} to database", metadata.SendId);
+            return sendId;
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error upserting campaign import metadata for CampaignID {CampaignId} to database", metadata.CampaignId);
-            return false;
+            logger.LogError(ex, "Error upserting campaign import metadata for SendID {SendId} to database", metadata.SendId);
+            return sendId;
         }
     }
 
@@ -985,5 +986,5 @@ public class CampaignService(IExternalApiService externalApiService, IUnitOfWork
         });
     }
 
-    #endregion 
+    #endregion
 }

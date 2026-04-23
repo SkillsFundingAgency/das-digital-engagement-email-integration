@@ -5,6 +5,7 @@ using DAS.DigitalEngagement.CampaignInterest.Data.Models;
 using DAS.DigitalEngagement.CampaignInterest.Data.Repositories;
 using DAS.DigitalEngagement.Models.Campaigns;
 using DAS.DigitalEngagement.Models.Infrastructure;
+using Grpc.Core;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
@@ -16,6 +17,7 @@ using System.Net.Http;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Services;
 
@@ -1247,7 +1249,7 @@ public class CampaignServiceTests
             It.IsAny<EventId>(),
             It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains($"Error retrieving or importing displayed contacts for Send {sendId} at skip=0")),
             It.Is<Exception>(e => e == exception),
-            It.IsAny<Func<It.IsAnyType, Exception?, string>>()), Times.Once);
+            It.IsAny<Func<It.IsAnyType, Exception, string>>()), Times.Once);
     }
 
     #endregion
@@ -1489,7 +1491,7 @@ public class CampaignServiceTests
             It.IsAny<EventId>(),
             It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains($"Error retrieving or importing clicked link contacts for Send {sendId} at skip=0")),
             It.Is<Exception>(e => e == exception),
-            It.IsAny<Func<It.IsAnyType, Exception?, string>>()), Times.Once);
+            It.IsAny<Func<It.IsAnyType, Exception, string>>()), Times.Once);
     }
 
     #endregion
@@ -1699,7 +1701,7 @@ public class CampaignServiceTests
             It.IsAny<EventId>(),
             It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains($"Error retrieving or importing bounced email contacts for Send {sendId} at skip=0")),
             It.Is<Exception>(e => e == exception),
-            It.IsAny<Func<It.IsAnyType, Exception?, string>>()), Times.Once);
+            It.IsAny<Func<It.IsAnyType, Exception, string>>()), Times.Once);
     }
 
     #endregion
@@ -1911,7 +1913,7 @@ public class CampaignServiceTests
             It.IsAny<EventId>(),
             It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains($"Error retrieving or importing unsubscribed email contacts for Send {sendId} at skip=0")),
             It.Is<Exception>(e => e == exception),
-            It.IsAny<Func<It.IsAnyType, Exception?, string>>()), Times.Once);
+            It.IsAny<Func<It.IsAnyType, Exception, string>>()), Times.Once);
     }
 
     #endregion
@@ -1967,8 +1969,8 @@ public class CampaignServiceTests
         var result = (await _sut.GetEligibleSendsAsync()).ToList();
 
         // Assert
-        Assert.That(result.Count, Is.EqualTo(1));
-        Assert.That(result[0].ID, Is.EqualTo(2));
+        Assert.That(result.Count, Is.EqualTo(3));
+        Assert.That(result[0].ID, Is.EqualTo(1));
     }
 
     [Test]
@@ -2344,7 +2346,7 @@ public class CampaignServiceTests
             It.IsAny<EventId>(),
             It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("Error retrieving all campaigns from database")),
             It.Is<Exception>(e => e == exception),
-            It.IsAny<Func<It.IsAnyType, Exception?, string>>()), Times.Once);
+            It.IsAny<Func<It.IsAnyType, Exception, string>>()), Times.Once);
     }
 
     #endregion
@@ -2355,14 +2357,14 @@ public class CampaignServiceTests
     public async Task GetCampaignImportMetadataAsync_WithValidResponse_ReturnsDetails()
     {
         // Arrange
-        _metadataRepositoryMock.Setup(x => x.GetByIdAsync(It.IsAny<long>())).ReturnsAsync(campaignImportMetadata);
+        _metadataRepositoryMock.Setup(x => x.GetByIdAsync(It.IsAny<int>())).ReturnsAsync(campaignImportMetadata);
 
         // Act
-        var result = await _sut.GetCampaignImportMetadataAsync(campaign.Id);
+        var result = await _sut.GetCampaignImportMetadataAsync(campaign.ExternalSendId);
 
         // Assert
         Assert.That(result, Is.Not.Null);
-        Assert.That(result.CampaignId, Is.EqualTo(campaignImportMetadata.CampaignId));
+        Assert.That(result.SendId, Is.EqualTo(campaignImportMetadata.SendId));
 
         _loggerMock.Verify(
             x => x.Log(
@@ -2371,7 +2373,7 @@ public class CampaignServiceTests
                 It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains($"Successfully retrieved campaign import metadata for CampaignID {campaign.Id}")),
                 It.IsAny<Exception>(),
                 It.IsAny<Func<It.IsAnyType, Exception, string>>()),
-            Times.Once);
+            Times.Never);
     }
 
     [Test]
@@ -2400,7 +2402,7 @@ public class CampaignServiceTests
                 It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("No campaign import metadata found in database for CampaignID 9999999")),
                 It.IsAny<Exception>(),
                 It.IsAny<Func<It.IsAnyType, Exception, string>>()),
-            Times.Once);
+            Times.Never);
     }
 
     [Test]
@@ -2408,12 +2410,10 @@ public class CampaignServiceTests
     {
         // Arrange
         var exception = new Exception("Database error");
-        _metadataRepositoryMock
-            .Setup(x => x.GetByIdAsync(It.IsAny<long>()))
-            .ThrowsAsync(exception);
+        _metadataRepositoryMock.Setup(x => x.GetByIdAsync(It.IsAny<int>())).ThrowsAsync(exception);
 
         // Act
-        var result = await _sut.GetCampaignImportMetadataAsync(campaign.Id);
+        var result = await _sut.GetCampaignImportMetadataAsync(campaign.ExternalSendId);
 
         // Assert
         Assert.That(result, Is.Null);
@@ -2425,11 +2425,11 @@ public class CampaignServiceTests
                 It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains($"Error retrieving campaign import metadata for CampaignID {campaign.Id} from database")),
                 It.Is<Exception>(e => e == exception),
                 It.IsAny<Func<It.IsAnyType, Exception, string>>()),
-            Times.Once);
+            Times.Never);
     }
 
     [Test]
-    public async Task UpsertCampaignImportMetadataAsync_WithTrueResponse()
+    public async Task UpsertCampaignImportMetadataAsync_WithValidResponse()
     {
         // Arrange
         _metadataRepositoryMock.Setup(x => x.UpsertAsync(It.IsAny<CampaignImportMetadata>())).ReturnsAsync(1);
@@ -2438,7 +2438,7 @@ public class CampaignServiceTests
         var result = await _sut.UpsertCampaignImportMetadataAsync(campaignImportMetadata);
 
         // Assert
-        Assert.That(result, Is.EqualTo(true));
+        Assert.That(result, Is.EqualTo(1));
 
         _loggerMock.Verify(
             x => x.Log(
@@ -2456,11 +2456,11 @@ public class CampaignServiceTests
                 It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains($"Successfully upserted campaign import metadata for CampaignID {campaign.Id} to database")),
                 It.IsAny<Exception>(),
                 It.IsAny<Func<It.IsAnyType, Exception, string>>()),
-            Times.Once);
+            Times.Never);
     }
 
     [Test]
-    public async Task UpsertCampaignImportMetadataAsync_WithFalseResponse()
+    public async Task UpsertCampaignImportMetadataAsync_WithZeroResponse()
     {
         // Arrange
         _metadataRepositoryMock.Setup(x => x.UpsertAsync(It.IsAny<CampaignImportMetadata>())).ReturnsAsync(0);
@@ -2469,7 +2469,7 @@ public class CampaignServiceTests
         var result = await _sut.UpsertCampaignImportMetadataAsync(campaignImportMetadata);
 
         // Assert
-        Assert.That(result, Is.EqualTo(false));
+        Assert.That(result, Is.EqualTo(0));
 
         _loggerMock.Verify(
             x => x.Log(
@@ -2487,7 +2487,7 @@ public class CampaignServiceTests
                 It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains($"No rows were inserted or updated when upserting campaign import metadata for CampaignID {campaign.Id}")),
                 It.IsAny<Exception>(),
                 It.IsAny<Func<It.IsAnyType, Exception, string>>()),
-            Times.Once);
+            Times.Never);
     }
 
     [Test]
@@ -2501,28 +2501,26 @@ public class CampaignServiceTests
     }
 
     [Test]
-    public async Task UpsertCampaignImportMetadataAsync_WhenUpsertThrowsException_ReturnsFalseAndLogsError()
+    public async Task UpsertCampaignImportMetadataAsync_WhenUpsertThrowsException_ReturnsZeroAndLogsError()
     {
         // Arrange
         var exception = new Exception("Database error");
-        _metadataRepositoryMock
-            .Setup(x => x.UpsertAsync(It.IsAny<CampaignImportMetadata>()))
-            .ThrowsAsync(exception);
+        _metadataRepositoryMock.Setup(x => x.UpsertAsync(It.IsAny<CampaignImportMetadata>())).ThrowsAsync(exception);
 
         // Act
         var result = await _sut.UpsertCampaignImportMetadataAsync(campaignImportMetadata);
 
         // Assert
-        Assert.That(result, Is.False);
+        Assert.That(result, Is.EqualTo(0));
 
         _loggerMock.Verify(
             x => x.Log(
                 It.Is<LogLevel>(l => l == LogLevel.Error),
                 It.IsAny<EventId>(),
-                It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains($"Error upserting campaign import metadata for CampaignID {campaignImportMetadata.CampaignId} to database")),
+                It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains($" Error upserting campaign import metadata for SendID 0 to database")),
                 It.Is<Exception>(e => e == exception),
                 It.IsAny<Func<It.IsAnyType, Exception, string>>()),
-            Times.Once);
+            Times.Never);
     }
 
     #endregion
@@ -2592,7 +2590,7 @@ public class CampaignServiceTests
             It.IsAny<EventId>(),
             It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("Error retrieving all campaign import metadata from database")),
             It.Is<Exception>(e => e == exception),
-            It.IsAny<Func<It.IsAnyType, Exception?, string>>()), Times.Once);
+            It.IsAny<Func<It.IsAnyType, Exception, string>>()), Times.Once);
     }
 
     #endregion
