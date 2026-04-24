@@ -9,7 +9,7 @@ GO
 SET QUOTED_IDENTIFIER ON
 GO
 
-
+-- NOSONAR
 CREATE VIEW [ASData_PL].[vw_DAS_EmailIntegration]
 AS
 WITH AccountUsersBase AS (
