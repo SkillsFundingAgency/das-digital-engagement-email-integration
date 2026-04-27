@@ -1,8 +1,7 @@
-/****** Object:  View [ASData_PL].[vw_DAS_EmailIntegration]    Script Date: 20/04/2026 10:03:13 ******/
+
 DROP VIEW [ASData_PL].[vw_DAS_EmailIntegration]
 GO
 
-/****** Object:  View [ASData_PL].[vw_DAS_EmailIntegration]    Script Date: 20/04/2026 10:03:13 ******/
 SET ANSI_NULLS ON
 GO
 
@@ -339,15 +338,15 @@ EmployerAccountRoleAggregate AS (
     SELECT
         aub.EmployerEmail,
         CASE
-            -- No linked accounts → blank
+            -- No linked accounts blank
             WHEN COUNT(aub.EmployerAccountID) = 0
                 THEN ''
 
-            -- All accounts have the same role → return it
+            -- All accounts have the same role return it
             WHEN COUNT(DISTINCT ear.AccountRole) = 1
                 THEN MAX(ear.AccountRole)
 
-            -- Mixed roles → blank
+            -- Mixed roles blank
             ELSE ''
         END AS EmployerRole
     FROM AccountUsersBase aub
