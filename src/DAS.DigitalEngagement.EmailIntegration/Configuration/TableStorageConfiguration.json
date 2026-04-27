@@ -134,6 +134,18 @@
         {
           "Source": "DateOfLastCompletion",
           "Target": "DateOfLastCompletion"
+        },
+        {
+          "Source": "ActiveApprentices",
+          "Target": "ActiveApprentices"
+        },
+        {
+          "Source": "ActiveVacancies",
+          "Target": "ActiveVacancies"
+        },
+        {
+          "Source": "AccountUserRole",
+          "Target": "AccountUserRole"
         }
       ]
     }
