@@ -10,29 +10,30 @@ namespace DAS.DigitalEngagement.CampaignInterest.Data.Repositories;
 
 public interface ICampaignImportMetadataRepository
 {
-    Task<CampaignImportMetadata?> GetByIdAsync(long campaignId);
+    Task<CampaignImportMetadata?> GetByIdAsync(int sendId);
     Task<IEnumerable<CampaignImportMetadata>> GetAllAsync();
-    Task<IEnumerable<CampaignImportMetadata>> GetByIdsAsync(IEnumerable<long> campaignIds);
+    Task<IEnumerable<CampaignImportMetadata>> GetByIdsAsync(IEnumerable<int> sendIds);
     Task<int> UpsertAsync(CampaignImportMetadata campaignImportMetadata);
 }
 
 [ExcludeFromCodeCoverage]
 public class CampaignImportMetadataRepository(IDbConnectionFactory factory, ILogger<CampaignImportMetadataRepository> logger) : ICampaignImportMetadataRepository
 {
-    public async Task<CampaignImportMetadata?> GetByIdAsync(long campaignId)
+    /// <summary>
+    /// Fetches the CampaignImportMetadata for a specific sendId using the stored procedure dbo.Usp_CampaignImportMetadata_Get.
+    /// </summary>
+    /// <param name="sendId">The ID of the send for which to fetch the metadata.</param>
+    /// <returns>The CampaignImportMetadata for the specified sendId, or null if not found.</returns>
+    public async Task<CampaignImportMetadata?> GetByIdAsync(int sendId)
     {
         const string storedProcedure = "dbo.Usp_CampaignImportMetadata_Get";
 
-        logger.LogInformation("Fetching CampaignImportMetadata by CampaignId {CampaignId} using stored procedure {StoredProcedure}", 
-            campaignId, storedProcedure);
+        logger.LogInformation("Fetching CampaignImportMetadata by SendId {SendId} using stored procedure {StoredProcedure}", sendId, storedProcedure);
 
         using var connection = (SqlConnection)await factory.CreateConnectionAsync();
         await connection.OpenAsync();
 
-        var result = await connection.QuerySingleOrDefaultAsync<CampaignImportMetadata>(
-            storedProcedure, 
-            new { Id = campaignId.ToString() }, 
-            commandType: CommandType.StoredProcedure);
+        var result = await connection.QuerySingleOrDefaultAsync<CampaignImportMetadata>(storedProcedure, new { SendIds = sendId.ToString() }, commandType: CommandType.StoredProcedure);
 
         await connection.CloseAsync();
         return result;
@@ -55,21 +56,17 @@ public class CampaignImportMetadataRepository(IDbConnectionFactory factory, ILog
         return result;
     }
 
-    public async Task<IEnumerable<CampaignImportMetadata>> GetByIdsAsync(IEnumerable<long> campaignIds)
+    public async Task<IEnumerable<CampaignImportMetadata>> GetByIdsAsync(IEnumerable<int> sendIds)
     {
         const string storedProcedure = "dbo.Usp_CampaignImportMetadata_Get";
-        string idList = string.Join(",", campaignIds);
+        string idList = string.Join(",", sendIds);
 
-        logger.LogInformation("Fetching {Count} CampaignImportMetadata by campaignIds using stored procedure {StoredProcedure}", 
-            campaignIds.Count(), storedProcedure);
+        logger.LogInformation("Fetching {Count} CampaignImportMetadata by sendIds using stored procedure {StoredProcedure}", sendIds.Count(), storedProcedure);
 
         using var connection = (SqlConnection)await factory.CreateConnectionAsync();
         await connection.OpenAsync();
 
-        var result = await connection.QueryAsync<CampaignImportMetadata>(
-            storedProcedure, 
-            new { Ids = idList }, 
-            commandType: CommandType.StoredProcedure);
+        var result = await connection.QueryAsync<CampaignImportMetadata>(storedProcedure, new { SendIds = idList }, commandType: CommandType.StoredProcedure);
 
         await connection.CloseAsync();
         return result;
@@ -81,14 +78,14 @@ public class CampaignImportMetadataRepository(IDbConnectionFactory factory, ILog
 
         const string storedProcedure = "dbo.Usp_CampaignImportMetadata_Upsert";
 
-        logger.LogInformation("Upserting CampaignImportMetadata for CampaignId {CampaignId} using stored procedure {StoredProcedure}",
-            campaignImportMetadata.CampaignId, storedProcedure);
+        logger.LogInformation("Upserting CampaignImportMetadata for SendId {SendId} using stored procedure {StoredProcedure}", campaignImportMetadata.SendId, storedProcedure);
 
         using var connection = (SqlConnection)await factory.CreateConnectionAsync();
         await connection.OpenAsync();
 
-        var rowsAffected = await connection.ExecuteAsync(storedProcedure, new
+        var rowId = await connection.ExecuteAsync(storedProcedure, new
         {
+            campaignImportMetadata.SendId,
             campaignImportMetadata.CampaignId,
             campaignImportMetadata.IsImportComplete,
             campaignImportMetadata.ImportStartDate,
@@ -97,9 +94,8 @@ public class CampaignImportMetadataRepository(IDbConnectionFactory factory, ILog
 
         await connection.CloseAsync();
 
-        logger.LogInformation("Upserted CampaignImportMetadata for CampaignId {CampaignId}, rows affected: {RowsAffected}",
-            campaignImportMetadata.CampaignId, rowsAffected);
+        logger.LogInformation("Upserted CampaignImportMetadata for SendId {SendId}, Campaign Import Metadata Id: {RowsId}", campaignImportMetadata.SendId, rowId);
 
-        return rowsAffected;
+        return rowId;
     }
 }

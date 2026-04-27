@@ -11,7 +11,7 @@ public interface ICampaignService
     /// <param name="subAccountId">The e-shot sub-account identifier (optional)</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Collection of Send objects containing campaign performance data</returns>
-    Task<IEnumerable<Send>> GetAllSendsAsync(int? subAccountId = null, CancellationToken cancellationToken = default);
+    Task<IEnumerable<Send>> GetAllSendsFromEShot(int? subAccountId = null, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Get displayed email interactions for a Send
@@ -19,32 +19,32 @@ public interface ICampaignService
     /// <param name="sendId">The Send identifier</param>
     /// <param name="userAgentInfo">Collection of UserAgentInfo objects containing device and client information</param>
     /// <param name="cancellationToken">Cancellation token</param>
-    /// <returns>Collection of DisplayedContact objects containing display interactions</returns>
-    Task<IEnumerable<DisplayedContact>> GetDisplayedContactsForSendAsync(int sendId, IEnumerable<UserAgentInfo> userAgentInfo, CancellationToken cancellationToken = default);
+    /// <returns>True if displayed contacts were successfully imported, otherwise false</returns>
+    Task<bool> GetDisplayedContactsFromEShot(int sendId, IEnumerable<UserAgentInfo> userAgentInfo, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Get clicked link interactions for a Send
     /// </summary>
     /// <param name="sendId">The Send identifier</param>
     /// <param name="cancellationToken">Cancellation token</param>
-    /// <returns>Collection of ClickedLinkContact objects containing link click interactions</returns>
-    Task<IEnumerable<ClickedLinkContact>> GetClickedLinkContactsForSendAsync(int sendId, IEnumerable<UserAgentInfo> userAgentInfo, CancellationToken cancellationToken = default);
+    /// <returns>True if clicked link contacts were successfully imported, otherwise false</returns>
+    Task<bool> GetClickedLinkContactsFromEShot(int sendId, IEnumerable<UserAgentInfo> userAgentInfo, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Get bounced email interactions for a Send
     /// </summary>
     /// <param name="sendId">The Send identifier</param>
     /// <param name="cancellationToken">Cancellation token</param>
-    /// <returns>Collection of BouncedContact objects containing bounce information</returns>
-    Task<IEnumerable<BouncedContact>> GetBouncedEmailContactsForSendAsync(int sendId, CancellationToken cancellationToken = default);
+    /// <returns>True if bounced email contacts were successfully imported, otherwise false</returns>
+    Task<bool> GetBouncedEmailContactsFromEShot(int sendId, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Get unsubscribed email interactions for a Send
     /// </summary>
     /// <param name="sendId">The Send identifier</param>
     /// <param name="cancellationToken">Cancellation token</param>
-    /// <returns>Collection of UnsubscribedContact objects containing unsubscribe information</returns>
-    Task<IEnumerable<UnsubscribedContact>> GetUnsubscribedContactsForSendAsync(int sendId, CancellationToken cancellationToken = default);
+    /// <returns>True if unsubscribed contacts were successfully imported, otherwise false</returns>
+    Task<bool> GetUnsubscribedContactsFromEShot(int sendId, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Get unique user agent information for a Send to determine device types and email clients
@@ -72,12 +72,19 @@ public interface ICampaignService
     Task<Campaigns?> GetCampaignDetailsAsync(long campaignId, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Asynchronously retrieves all available campaigns.
+    /// </summary>
+    /// <param name="cancellationToken">A cancellation token that can be used to cancel the asynchronous operation.</param>
+    /// <returns>A task that represents the asynchronous operation. The task result contains a collection of all campaigns.</returns>
+    Task<IEnumerable<Campaigns>> GetAllCampaignsAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Saves the details of the given campaign.
     /// </summary>
     /// <param name="campaign">The Campaigns object containing the campaign details to be saved</param>
     /// <param name="cancellationToken">Cancellation token</param>
-    /// <returns>True if the campaign details were successfully saved, otherwise false</returns>
-    Task<bool> SaveCampaignDetailsAsync(Campaigns campaign, CancellationToken cancellationToken = default);
+    /// <returns>The unique identifier of the saved campaign. Returns 0 if the save operation failed.</returns>
+    Task<long> SaveCampaignDetailsAsync(Campaigns campaign, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Asynchronously retrieves the import metadata for the specified campaign.
@@ -86,16 +93,23 @@ public interface ICampaignService
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>A task that represents the asynchronous operation. The task result contains the campaign import metadata if
     /// found; otherwise, null.</returns>
-    Task<CampaignImportMetadata?> GetCampaignImportMetadataAsync(long campaignId, CancellationToken cancellationToken = default);
+    Task<CampaignImportMetadata?> GetCampaignImportMetadataAsync(int sendId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Asynchronously retrieves metadata for all campaign imports.
+    /// </summary>
+    /// <param name="cancellationToken">A cancellation token that can be used to cancel the asynchronous operation.</param>
+    /// <returns>A task that represents the asynchronous operation. The task result contains a collection of metadata for all
+    /// campaign imports.</returns>
+    Task<IEnumerable<CampaignImportMetadata>> GetAllCampaignImportMetadataAsync(CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Creates a new or updates an existing campaign import metadata record asynchronously.
     /// </summary>
     /// <param name="metadata">The campaign import metadata to insert or update. Cannot be null.</param>
     /// <param name="cancellationToken">Cancellation token</param>
-    /// <returns>A task that represents the asynchronous operation. The task result is true if the metadata was inserted or
-    /// updated successfully; otherwise, false.</returns>
-    Task<bool> UpsertCampaignImportMetadataAsync(CampaignImportMetadata metadata, CancellationToken cancellationToken = default);
+    /// <returns>A task that represents the asynchronous operation. The task result is the unique identifier of the inserted or updated metadata record.</returns>
+    Task<int> UpsertCampaignImportMetadataAsync(CampaignImportMetadata metadata, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Asynchronously inserts a collection of bounced email contacts into the data store in bulk.
