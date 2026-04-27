@@ -1,8 +1,7 @@
-/****** Object:  View [ASData_PL].[vw_DAS_EmailIntegration]    Script Date: 20/04/2026 10:03:13 ******/
+
 DROP VIEW [ASData_PL].[vw_DAS_EmailIntegration]
 GO
 
-/****** Object:  View [ASData_PL].[vw_DAS_EmailIntegration]    Script Date: 20/04/2026 10:03:13 ******/
 SET ANSI_NULLS ON
 GO
 
@@ -339,15 +338,15 @@ EmployerAccountRoleAggregate AS (
     SELECT
         aub.EmployerEmail,
         CASE
-            -- No linked accounts → blank
+            -- No linked accounts blank
             WHEN COUNT(aub.EmployerAccountID) = 0
                 THEN ''
 
-            -- All accounts have the same role → return it
+            -- All accounts have the same role return it
             WHEN COUNT(DISTINCT ear.AccountRole) = 1
                 THEN MAX(ear.AccountRole)
 
-            -- Mixed roles → blank
+            -- Mixed roles blank
             ELSE ''
         END AS EmployerRole
     FROM AccountUsersBase aub
@@ -395,7 +394,6 @@ AccountUsers AS (
         CONVERT(VARCHAR(10), ecm.ApprenticeshipEndDate, 120) AS ApprenticeshipEndDate,
         CONVERT(VARCHAR(10), ecm.ApprenticeshipCompletionDate, 120) AS ApprenticeshipCompletionDate,
         
-        eaa.AccountCreationDate,
         rs.Stage1a,
         rs.Stage1b,
         rs.Stage2,
@@ -592,8 +590,17 @@ SELECT
     AppsgovSignUpDate,
     PersonOrigin,
     IncludeInUR,
-    RecordSource
-FROM Merged;
-GO
+    RecordSource,
+    '' AS Ukprn
+FROM Merged
 
+UNION ALL
+
+SELECT * FROM ASData_PL.vw_DAS_EmailIntegration_Provider p
+WHERE p.Email IS NOT NULL
+  AND NOT EXISTS (
+      SELECT 1
+      FROM Merged m
+      WHERE m.Email = p.Email);
+GO
 

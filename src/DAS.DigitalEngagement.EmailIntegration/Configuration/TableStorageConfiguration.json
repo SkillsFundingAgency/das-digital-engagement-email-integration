@@ -72,6 +72,10 @@
           "Target": "Reservedfunding"
         },
         {
+          "Source": "HasActiveReservation",
+          "Target": "Reservedactivefunding"
+        },
+        {
           "Source": "EmployerSize",
           "Target": "EmployerSize"
         },
@@ -146,6 +150,10 @@
         {
           "Source": "AccountUserRole",
           "Target": "AccountUserRole"
+        },
+        {
+          "Source": "Ukprn",
+          "Target": "Ukprn"
         }
       ]
     }
