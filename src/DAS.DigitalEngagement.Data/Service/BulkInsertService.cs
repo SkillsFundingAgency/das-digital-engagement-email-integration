@@ -37,7 +37,8 @@ public class BulkInsertService(IDbConnectionFactory factory, ILogger<BulkInsertS
             using var bulkCopy = new SqlBulkCopy(connection, options, (SqlTransaction)transaction)
             {
                 DestinationTableName = tableName,
-                BatchSize = 5000
+                BatchSize = 5000,
+                BulkCopyTimeout = 180
             };
 
             // Map columns
