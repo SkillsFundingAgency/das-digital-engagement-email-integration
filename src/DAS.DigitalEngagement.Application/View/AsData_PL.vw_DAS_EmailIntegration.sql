@@ -591,7 +591,10 @@ SELECT
     PersonOrigin,
     IncludeInUR,
     RecordSource,
-    '' AS Ukprn
+    '' AS Ukprn,
+    '' AS ProviderType,
+    '' AS IsEmployer,
+    '' AS IsProvider
 FROM Merged
 
 UNION ALL
