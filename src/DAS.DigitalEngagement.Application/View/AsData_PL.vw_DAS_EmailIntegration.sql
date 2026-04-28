@@ -593,7 +593,7 @@ SELECT
     RecordSource,
     '' AS Ukprn,
     '' AS ProviderType,
-    '' AS IsEmployer,
+    '' AS Employerprovider,
     '' AS IsProvider
 FROM Merged
 

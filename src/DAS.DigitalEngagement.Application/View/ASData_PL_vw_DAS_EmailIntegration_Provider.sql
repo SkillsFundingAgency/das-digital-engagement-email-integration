@@ -44,7 +44,7 @@ WITH ProviderUsers AS (
             WHEN MAX(CASE WHEN p.ProviderTypeId = 2 AND p.StatusId != 0 THEN 1 ELSE 0 END) = 1
                 THEN 'true'
             ELSE 'false'
-        END AS IsEmployer,
+        END AS Employerprovider,
 
         -- IsProvider: true if email has matching provider registration, false otherwise
         CASE
@@ -105,7 +105,7 @@ SELECT
         WHEN pu.ProviderTypeId = 3 THEN 'Supporting Provider'
         ELSE ''
     END AS ProviderType,
-    pu.IsEmployer,
+    pu.Employerprovider,
     pu.IsProvider
 FROM ProviderUsers pu
 WHERE pu.IsProvider = 'true'
