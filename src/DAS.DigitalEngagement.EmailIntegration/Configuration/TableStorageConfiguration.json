@@ -154,6 +154,18 @@
         {
           "Source": "Ukprn",
           "Target": "Ukprn"
+        },
+        {
+          "Source": "ProviderType",
+          "Target": "ProviderType"
+        },
+        {
+          "Source": "Employerprovider",
+          "Target": "Employerprovider"
+        },
+        {
+          "Source": "IsProvider",
+          "Target": "IsProvider"
         }
       ]
     }
