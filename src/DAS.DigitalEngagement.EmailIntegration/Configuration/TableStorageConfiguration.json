@@ -72,6 +72,10 @@
           "Target": "Reservedfunding"
         },
         {
+          "Source": "HasActiveReservation",
+          "Target": "Reservedactivefunding"
+        },
+        {
           "Source": "EmployerSize",
           "Target": "EmployerSize"
         },
@@ -134,6 +138,22 @@
         {
           "Source": "DateOfLastCompletion",
           "Target": "DateOfLastCompletion"
+        },
+        {
+          "Source": "ActiveApprentices",
+          "Target": "ActiveApprentices"
+        },
+        {
+          "Source": "ActiveVacancies",
+          "Target": "ActiveVacancies"
+        },
+        {
+          "Source": "AccountUserRole",
+          "Target": "AccountUserRole"
+        },
+        {
+          "Source": "Ukprn",
+          "Target": "Ukprn"
         }
       ]
     }

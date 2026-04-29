@@ -1,12 +1,14 @@
 
-DROP VIEW IF EXISTS [ASData_PL].[vw_DAS_EmailIntegration];
+DROP VIEW [ASData_PL].[vw_DAS_EmailIntegration]
 GO
 
-SET ANSI_NULLS ON;
-GO
-SET QUOTED_IDENTIFIER ON;
+SET ANSI_NULLS ON
 GO
 
+SET QUOTED_IDENTIFIER ON
+GO
+
+-- NOSONAR
 CREATE VIEW [ASData_PL].[vw_DAS_EmailIntegration]
 AS
 WITH AccountUsersBase AS (
@@ -25,24 +27,75 @@ WITH AccountUsersBase AS (
 ),
 ReservationsSummary AS (
     SELECT
-        AccountId,
-        CASE WHEN COUNT(DISTINCT Id) > 0 THEN 'true' ELSE 'false' END AS HasReservationsText
-    FROM ASData_PL.Resv_Reservation
-    WHERE IsLevyAccount = 0
-    GROUP BY AccountId
+        r.AccountId,
+
+        -- Has EVER had any reservation (past or present)
+        CAST(
+            CASE
+                WHEN COUNT(*) > 0 THEN 1
+                ELSE 0
+            END
+        AS BIT) AS HasReservations,
+
+        -- Has CURRENTLY ACTIVE reservation
+        CAST(
+            CASE
+                WHEN MAX(
+                    CASE
+                        WHEN r.ExpiryDate > GETDATE()
+                             OR r.ExpiryDate IS NULL
+                        THEN 1
+                        ELSE 0
+                    END
+                ) = 1
+                THEN 1
+                ELSE 0
+            END
+        AS BIT) AS HasActiveReservation
+
+    FROM ASData_PL.Resv_Reservation r
+    WHERE r.IsLevyAccount = 0
+    GROUP BY r.AccountId
+),
+EmailActiveReservationAggregate AS (
+    SELECT
+        aub.EmployerEmail,
+        CAST(
+            CASE
+                -- No linked accounts  FALSE
+                WHEN COUNT(aub.EmployerAccountID) = 0
+                    THEN 0
+
+                -- Any active OR missing value  TRUE
+                WHEN MAX(COALESCE(rs.HasActiveReservation, 1)) = 1
+                    THEN 1
+
+                -- All explicitly inactive
+                ELSE 0
+            END
+        AS BIT) AS HasActiveReservation
+    FROM AccountUsersBase aub
+    LEFT JOIN ReservationsSummary rs
+        ON rs.AccountId = aub.EmployerAccountID
+    GROUP BY aub.EmployerEmail
 ),
 EmailReservationsAggregate AS (
     SELECT
         aub.EmployerEmail,
         CASE
-            WHEN COUNT(DISTINCT rs.HasReservationsText) = 1
-                THEN MAX(rs.HasReservationsText)
-            ELSE ''
+            WHEN COUNT(DISTINCT rs.HasReservations) = 1
+                THEN CASE
+                        WHEN MAX(CAST(rs.HasReservations AS INT)) = 1
+                            THEN 'true'
+                        ELSE 'false'
+                     END
+            ELSE 'false'
         END AS HasReservationsText
     FROM AccountUsersBase aub
     LEFT JOIN ReservationsSummary rs
         ON rs.AccountId = aub.EmployerAccountID
-    GROUP BY aub.EmployerEmail
+    GROUP BY
+        aub.EmployerEmail
 ),
 EmailNameAggregate AS (
     SELECT
@@ -160,11 +213,27 @@ EmployerCommitmentAccountCTE AS (
             WHEN COUNT(DISTINCT a.CompletionDate) = 1
                 THEN MAX(a.CompletionDate)
             ELSE NULL
-        END AS CompletionDate
+        END AS CompletionDate,
+
+        
+        -- Active Apprentices flag (account-level)
+        CAST(
+            CASE
+                WHEN MAX(
+                    CASE
+                        WHEN l.CompletionStatus = 1 THEN 1
+                        ELSE 0
+                    END
+                ) = 1
+                THEN 1
+                ELSE 0
+            END
+        AS BIT) AS HasActiveApprentices
 
      FROM [ASData_PL].[Acc_Account] e
-        LEFT JOIN  ASData_PL.Comt_Commitment  c ON e.Id = c.EmployerAccountId
-        LEFT JOIN ASData_PL.Comt_Apprenticeship a ON c.Id = a.CommitmentId
+        LEFT JOIN ASData_PL.Comt_Commitment  c ON e.Id = c.EmployerAccountId
+        LEFT JOIN ASData_PL.Comt_Apprenticeship a ON c.Id = a.CommitmentId       
+        LEFT JOIN [ASData_PL].[Assessor_Learner] l ON a.Id = l.ApprenticeshipId
     GROUP BY
         e.Id
 ),
@@ -199,7 +268,92 @@ EmployerCommitmentAggregate AS (
     GROUP BY
         aub.EmployerEmail
 ),
+EmailActiveApprenticesAggregate AS (
+    SELECT
+        aub.EmployerEmail,
+        CAST(
+            CASE
+                -- No accounts
+                WHEN COUNT(aub.EmployerAccountID) = 0
+                    THEN 0
+                -- Any TRUE or missing account data
+                WHEN MAX(COALESCE(eca.HasActiveApprentices, 1)) = 1
+                    THEN 1
+                -- All explicitly FALSE
+                ELSE 0
+            END
+        AS BIT) AS HasActiveApprentices
+    FROM AccountUsersBase aub
+    LEFT JOIN EmployerCommitmentAccountCTE eca
+        ON eca.EmployerAccountID = aub.EmployerAccountID
+    GROUP BY aub.EmployerEmail
+ ),
+ EmployerVacancyAccountCTE AS (
+    SELECT
+        a.Id AS EmployerAccountID,
+        CAST(
+            CASE
+                WHEN COUNT(v.EmployerId) > 0 THEN 1
+                ELSE 0
+            END
+        AS BIT) AS HasVacancies
+    FROM ASData_PL.Acc_Account a
+    LEFT JOIN ASData_PL.Va_Employer e
+        ON a.HashedId = e.DasAccountId_v2
+        AND e.DasAccountId_v2 IS NOT NULL
+        AND e.DasAccountId_v2 <> 'N/A'
+    LEFT JOIN ASData_PL.Va_Vacancy v
+        ON v.EmployerId = e.EmployerId
+    GROUP BY
+        a.Id
+),
+EmployerVacancyAggregate AS (
+    SELECT
+        aub.EmployerEmail,
+        CASE
+            WHEN COUNT(DISTINCT eva.HasVacancies) = 1
+                THEN MAX(CAST(eva.HasVacancies AS INT))
+            ELSE NULL
+        END AS HasVacancies
+    FROM AccountUsersBase aub
+    LEFT JOIN EmployerVacancyAccountCTE eva
+        ON eva.EmployerAccountID = aub.EmployerAccountID
+    GROUP BY
+        aub.EmployerEmail
+),
+EmployerAccountRoleCTE AS (
+    SELECT
+        e.Id AS EmployerAccountID,
+        CASE
+            WHEN aur.Role = 1 THEN 'Owner'
+            WHEN aur.Role = 2 THEN 'Transactor'
+            WHEN aur.Role = 3 THEN 'TBC'
+            ELSE ''      -- NULL or unexpected values
+        END AS AccountRole
+    FROM ASData_PL.Acc_Account e
+    LEFT JOIN ASData_PL.Acc_AccountUserRole aur
+        ON aur.AccountId = e.Id
+),
+EmployerAccountRoleAggregate AS (
+    SELECT
+        aub.EmployerEmail,
+        CASE
+            -- No linked accounts blank
+            WHEN COUNT(aub.EmployerAccountID) = 0
+                THEN ''
 
+            -- All accounts have the same role return it
+            WHEN COUNT(DISTINCT ear.AccountRole) = 1
+                THEN MAX(ear.AccountRole)
+
+            -- Mixed roles blank
+            ELSE ''
+        END AS EmployerRole
+    FROM AccountUsersBase aub
+    LEFT JOIN EmployerAccountRoleCTE ear
+        ON ear.EmployerAccountID = aub.EmployerAccountID
+    GROUP BY aub.EmployerEmail
+),
 AccountUsers AS (
     SELECT
         aa.EmployerEmail,
@@ -212,15 +366,34 @@ AccountUsers AS (
         aa.AccountCount,
         aa.ConsolidatedLevyStatus,
         era.HasReservationsText AS ReservedFunding,
+       CASE
+            WHEN ear.HasActiveReservation = 1 THEN 'true'
+            WHEN ear.HasActiveReservation = 0 THEN 'false'
+            ELSE ''
+        END AS HasActiveReservation,
         eaa.EmployerSize,
         eaa.EmployerSector,
         ela.EmployerOrProviderLed,
-        eaa.AccountCreationDate,
-        
-        ecm.ApprenticeshipStartDate,
-        ecm.ApprenticeshipEndDate,
-        ecm.ApprenticeshipCompletionDate,
+        CONVERT(VARCHAR(10), eaa.AccountCreationDate, 120) AS AccountCreationDate,
+         
+        CASE
+            WHEN eaaa.HasActiveApprentices = 1 THEN 'true'
+            WHEN eaaa.HasActiveApprentices = 0 THEN 'false'
+            ELSE ''
+        END AS ActiveApprentices,
 
+        CASE
+            WHEN eva.HasVacancies = 1 THEN 'true'
+            WHEN eva.HasVacancies = 0 THEN 'false'
+            ELSE ''
+        END AS ActiveVacancies,
+
+        er.EmployerRole AS AccountUserRole,
+
+        CONVERT(VARCHAR(10), ecm.ApprenticeshipStartDate, 120) AS ApprenticeshipStartDate,
+        CONVERT(VARCHAR(10), ecm.ApprenticeshipEndDate, 120) AS ApprenticeshipEndDate,
+        CONVERT(VARCHAR(10), ecm.ApprenticeshipCompletionDate, 120) AS ApprenticeshipCompletionDate,
+        
         rs.Stage1a,
         rs.Stage1b,
         rs.Stage2,
@@ -258,13 +431,21 @@ AccountUsers AS (
     LEFT JOIN EmailNameAggregate ena
         ON ena.EmployerEmail = aa.EmployerEmail
     LEFT JOIN EmailReservationsAggregate era
-        ON era.EmployerEmail = aa.EmployerEmail
+        ON era.EmployerEmail = aa.EmployerEmail    
+    LEFT JOIN EmailActiveReservationAggregate ear
+        ON ear.EmployerEmail = aa.EmployerEmail
     LEFT JOIN EmployerAttributesAggregate eaa
         ON eaa.EmployerEmail = aa.EmployerEmail          
     LEFT JOIN EmployerLedAggregate ela
         ON ela.EmployerEmail = aa.EmployerEmail       
     LEFT JOIN EmployerCommitmentAggregate ecm
         ON ecm.EmployerEmail = aa.EmployerEmail
+    LEFT JOIN EmailActiveApprenticesAggregate eaaa
+        on ecm.EmployerEmail =eaaa.EmployerEmail        
+    LEFT JOIN EmployerVacancyAggregate eva
+        ON eva.EmployerEmail = aa.EmployerEmail
+    LEFT JOIN EmployerAccountRoleAggregate er
+        ON er.EmployerEmail = aa.EmployerEmail
     LEFT JOIN [ASData_PL].[vw_DAS_RegistrationStages] rs
         ON rs.UserEmail = aa.EmployerEmail
         AND aa.EmployerAccountID IS NOT NULL
@@ -325,6 +506,7 @@ Merged AS (
         au.LastLogin,
         au.DateOfLastAPIAutoSync,
         au.ReservedFunding,
+        au.HasActiveReservation,
         au.EmployerSize,
         au.EmployerSector AS SectorEstimate,
         au.EmployerOrProviderLed,
@@ -333,6 +515,11 @@ Merged AS (
         au.ApprenticeshipStartDate,
         au.ApprenticeshipEndDate,
         au.ApprenticeshipCompletionDate,
+
+        au.ActiveApprentices,
+        au.ActiveVacancies,
+
+        au.AccountUserRole,
 
         -- Registration
         au.Stage1a,
@@ -373,6 +560,7 @@ SELECT
     LastLogin,
     DateOfLastAPIAutoSync,
     ReservedFunding,
+    HasActiveReservation,
     EmployerSize,
     SectorEstimate,
     AccountCreationDate,
@@ -382,6 +570,9 @@ SELECT
     ApprenticeshipEndDate AS DateOfLastStart,
     ApprenticeshipCompletionDate AS DateOfLastCompletion,
 
+    ActiveApprentices,
+    ActiveVacancies,
+    AccountUserRole,
     Stage1a,
     Stage1b,
     Stage2,
@@ -399,6 +590,17 @@ SELECT
     AppsgovSignUpDate,
     PersonOrigin,
     IncludeInUR,
-    RecordSource
-FROM Merged;
+    RecordSource,
+    '' AS Ukprn
+FROM Merged
+
+UNION ALL
+
+SELECT * FROM ASData_PL.vw_DAS_EmailIntegration_Provider p
+WHERE p.Email IS NOT NULL
+  AND NOT EXISTS (
+      SELECT 1
+      FROM Merged m
+      WHERE m.Email = p.Email);
 GO
+

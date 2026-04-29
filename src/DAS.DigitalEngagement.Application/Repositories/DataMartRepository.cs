@@ -54,6 +54,7 @@ namespace DAS.DigitalEngagement.Application.Repositories
                 using (var cmd = conn.CreateCommand())
                 {
                     cmd.CommandText = $"SELECT * FROM [ASData_PL].[vw_DAS_EmailIntegration] ORDER BY EMAIL";
+                    cmd.CommandTimeout = 120;
 
                     using (var reader = await cmd.ExecuteReaderAsync(CancellationToken.None))
                     {
