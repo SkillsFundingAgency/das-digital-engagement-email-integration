@@ -166,6 +166,18 @@
         {
           "Source": "IsProvider",
           "Target": "IsProvider"
+        },
+        {
+          "Source": "IsEmployer",
+          "Target": "IsEmployer"
+        },
+        {
+          "Source": "ProviderActiveApprentices",
+          "Target": "Providersactivelinkedapps"
+        },
+        {
+          "Source": "ProviderActiveVacancies",
+          "Target": "Providersactivelinkedvacancies"
         }
       ]
     }
