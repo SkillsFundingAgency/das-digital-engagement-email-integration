@@ -189,6 +189,56 @@ EmployerLedAggregate AS (
         ON ela.EmployerAccountID = aub.EmployerAccountID
     GROUP BY aub.EmployerEmail
 ),
+FoundationApprenticeshipAccountCTE AS (
+    SELECT
+        e.Id AS EmployerAccountID,
+        CAST(
+            CASE
+                WHEN MAX(
+                    CASE
+                        -- Foundation apprenticeship started within last 24 months
+                        WHEN ss.ApprenticeshipType = 'FoundationApprenticeship'
+                             AND a.StartDate >= DATEADD(MONTH, -24, GETDATE())
+                        THEN 1
+                        ELSE 0
+                    END
+                ) = 1
+                THEN 1
+                ELSE 0
+            END
+        AS BIT) AS HasFoundationAppLast24Months
+    FROM ASData_PL.Acc_Account e
+    LEFT JOIN ASData_PL.Comt_Commitment c
+        ON e.Id = c.EmployerAccountId
+    LEFT JOIN ASData_PL.Comt_Apprenticeship a
+        ON c.Id = a.CommitmentId
+        AND a.IsApproved = 1
+        AND a.HasHadDataLockSuccess = 1
+        AND a.TrainingType = 0
+    LEFT JOIN ASData_PL.FAT2_StandardSector ss
+        ON a.TrainingCode = ss.Larscode
+    GROUP BY e.Id
+),
+FoundationApprenticeshipAggregate AS (
+    SELECT
+        aub.EmployerEmail,
+        CAST(
+            CASE
+                -- No accounts → FALSE
+                WHEN COUNT(aub.EmployerAccountID) = 0
+                    THEN 0
+                -- Any TRUE or missing account data → TRUE
+                WHEN MAX(COALESCE(faa.HasFoundationAppLast24Months, 0)) = 1
+                    THEN 1
+                -- All explicitly FALSE
+                ELSE 0
+            END
+        AS BIT) AS HasFoundationAppLast24Months
+    FROM AccountUsersBase aub
+    LEFT JOIN FoundationApprenticeshipAccountCTE faa
+        ON faa.EmployerAccountID = aub.EmployerAccountID
+    GROUP BY aub.EmployerEmail
+),
 EmployerCommitmentAccountCTE AS (
     SELECT
         e.Id AS EmployerAccountID,
@@ -393,6 +443,12 @@ AccountUsers AS (
         CONVERT(VARCHAR(10), ecm.ApprenticeshipEndDate, 120) AS ApprenticeshipEndDate,
         CONVERT(VARCHAR(10), ecm.ApprenticeshipCompletionDate, 120) AS ApprenticeshipCompletionDate,
         
+        CASE
+            WHEN faa.HasFoundationAppLast24Months = 1 THEN 'true'
+            WHEN faa.HasFoundationAppLast24Months = 0 THEN 'false'
+            ELSE ''
+        END AS HasFoundationAppLast24Months,
+
         rs.Stage1a,
         rs.Stage1b,
         rs.Stage2,
@@ -445,6 +501,8 @@ AccountUsers AS (
         ON eva.EmployerEmail = aa.EmployerEmail
     LEFT JOIN EmployerAccountRoleAggregate er
         ON er.EmployerEmail = aa.EmployerEmail
+    LEFT JOIN FoundationApprenticeshipAggregate faa
+        ON faa.EmployerEmail = aa.EmployerEmail
     LEFT JOIN [ASData_PL].[vw_DAS_RegistrationStages] rs
         ON rs.UserEmail = aa.EmployerEmail
         AND aa.EmployerAccountID IS NOT NULL
@@ -520,6 +578,8 @@ Merged AS (
 
         au.AccountUserRole,
 
+        au.HasFoundationAppLast24Months,
+
         -- Registration
         au.Stage1a,
         au.Stage1b,
@@ -572,6 +632,7 @@ CombinedData AS (
         ActiveApprentices,
         ActiveVacancies,
         AccountUserRole,
+        HasFoundationAppLast24Months AS Foundationappinlast24months,
         Stage1a,
         Stage1b,
         Stage2,
@@ -634,7 +695,7 @@ SELECT
         WHEN LevyStatus = 'Non Levy' THEN 'Non Levy'
         
         ELSE 'Unknown'
-    END AS PrimaryUserType
+    END AS Primaryusertype
 FROM CombinedData
 GO
 

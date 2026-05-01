@@ -103,6 +103,7 @@ SELECT
     '' AS ActiveApprentices,
     '' AS ActiveVacancies,
     '' AS AccountUserRole,
+    '' AS Foundationappinlast24months,
     '' AS Stage1a,
     '' AS Stage1b,
     '' AS Stage2,

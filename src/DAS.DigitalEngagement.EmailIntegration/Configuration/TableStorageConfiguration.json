@@ -178,6 +178,14 @@
         {
           "Source": "ProviderActiveVacancies",
           "Target": "Providersactivelinkedvacancies"
+        },
+        {
+          "Source": "Primaryusertype",
+          "Target": "Primaryusertype"
+        },
+        {
+          "Source": "Foundationappinlast24months",
+          "Target": "Foundationappinlast24months"
         }
       ]
     }
