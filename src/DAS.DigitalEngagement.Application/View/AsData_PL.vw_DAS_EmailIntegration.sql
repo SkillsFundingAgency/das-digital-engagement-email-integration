@@ -1,4 +1,3 @@
-
 DROP VIEW [ASData_PL].[vw_DAS_EmailIntegration]
 GO
 
@@ -328,7 +327,7 @@ EmployerAccountRoleCTE AS (
             WHEN aur.Role = 1 THEN 'Owner'
             WHEN aur.Role = 2 THEN 'Transactor'
             WHEN aur.Role = 3 THEN 'TBC'
-            ELSE ''      -- NULL or unexpected values
+            ELSE ''
         END AS AccountRole
     FROM ASData_PL.Acc_Account e
     LEFT JOIN ASData_PL.Acc_AccountUserRole aur
@@ -594,7 +593,13 @@ SELECT
     '' AS Ukprn,
     '' AS ProviderType,
     '' AS Employerprovider,
-    '' AS IsProvider
+    '' AS IsProvider,
+    '' AS Providersactivelinkedapps,
+    '' AS Providersactivelinkedvacancies,
+    CASE
+        WHEN RecordSource IN ('Both', 'Account') THEN 'true'
+        ELSE 'false'
+    END AS IsEmployer
 FROM Merged
 
 UNION ALL

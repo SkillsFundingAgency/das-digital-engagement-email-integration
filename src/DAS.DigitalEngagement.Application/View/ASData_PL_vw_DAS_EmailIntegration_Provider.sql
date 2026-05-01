@@ -51,11 +51,33 @@ WITH ProviderUsers AS (
             WHEN MAX(CASE WHEN p.Ukprn IS NOT NULL THEN 1 ELSE 0 END) = 1
                 THEN 'true'
             ELSE 'false'
-        END AS IsProvider
+        END AS IsProvider,
+
+        -- Active Apprentices: true if any active apprentices exist (CompletionStatus = 1)
+        CASE
+            WHEN SUM(CASE WHEN l.CompletionStatus = 1 THEN 1 ELSE 0 END) > 0
+                THEN 'true'
+            ELSE 'false'
+        END AS ProviderActiveApprentices,
+
+        -- Active Vacancies: true if any vacancies exist for the provider
+        CASE
+            WHEN COUNT(v.VacancyId) > 0
+                THEN 'true'
+            ELSE 'false'
+        END AS ProviderActiveVacancies
 
     FROM ASData_PL.PAS_User u
     LEFT JOIN ASData_PL.FAT_ROATPV2_ProviderRegistrationDetail p
         ON u.Ukprn = p.Ukprn
+    LEFT JOIN ASData_PL.Comt_Commitment c
+        ON p.Ukprn = c.ProviderId
+    LEFT JOIN ASData_PL.Comt_Apprenticeship a
+        ON c.Id = a.CommitmentId
+    LEFT JOIN ASData_PL.Assessor_Learner l
+        ON a.Id = l.ApprenticeshipId AND l.CompletionStatus = 1
+    LEFT JOIN ASData_PL.Va_Vacancy v
+        ON p.Ukprn = v.ProviderId
     WHERE u.Email IS NOT NULL
     GROUP BY u.Email
 )
@@ -98,7 +120,7 @@ SELECT
     '' AS PersonOrigin,
     '' AS IncludeInUR,
     'Provider' AS RecordSource,
-    pu.Ukprn,
+    CAST(pu.Ukprn AS VARCHAR(100)) AS Ukprn,
     CASE
         WHEN pu.ProviderTypeId = 1 THEN 'Main Provider'
         WHEN pu.ProviderTypeId = 2 THEN 'Employer Provider'
@@ -106,7 +128,10 @@ SELECT
         ELSE ''
     END AS ProviderType,
     pu.Employerprovider,
-    pu.IsProvider
+    pu.IsProvider,
+    pu.ProviderActiveApprentices AS Providersactivelinkedapps,
+    pu.ProviderActiveVacancies AS Providersactivelinkedvacancies,
+    '' AS IsEmployer
 FROM ProviderUsers pu
 WHERE pu.IsProvider = 'true'
 GO
