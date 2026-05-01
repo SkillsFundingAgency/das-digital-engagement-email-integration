@@ -32,7 +32,7 @@ public class ImportCampaignPerformanceHandler(ICampaignService campaignService, 
             }
 
             // write import meta data to db to track import status, start time etc.
-            var metadata = BuildCampaignImportMetadataObject(campaignId);
+            var metadata = BuildCampaignImportMetadataObject(campaignId, send.ID);
             int sendId = await campaignService.UpsertCampaignImportMetadataAsync(metadata, cancellationToken);
             if (sendId == 0)
             {
@@ -138,10 +138,11 @@ public class ImportCampaignPerformanceHandler(ICampaignService campaignService, 
         };
     }
 
-    private static CampaignImportMetadata BuildCampaignImportMetadataObject(long campaignId)
+    private static CampaignImportMetadata BuildCampaignImportMetadataObject(long campaignId, int sendId)
     {
         return new CampaignImportMetadata
         {
+            SendId = sendId,
             CampaignId = campaignId,
             IsImportComplete = false,
             ImportStartDate = DateTime.UtcNow

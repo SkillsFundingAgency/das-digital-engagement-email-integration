@@ -262,7 +262,7 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Handlers.Campaigns
             // Assert - first upsert call sets up the metadata with correct campaignId and IsImportComplete = false
             Assert.That(capturedMetadataCalls, Has.Count.GreaterThanOrEqualTo(1));
             var initialMetadata = capturedMetadataCalls[0];
-            Assert.That(initialMetadata.SendId, Is.EqualTo(0));
+            Assert.That(initialMetadata.SendId, Is.EqualTo(1));
             Assert.That(initialMetadata.IsImportComplete, Is.False);
         }
 
