@@ -1,4 +1,4 @@
-DROP VIEW [ASData_PL].[vw_DAS_EmailIntegration]
+DROP VIEW IF EXISTS [ASData_PL].[vw_DAS_EmailIntegration]
 GO
 
 SET ANSI_NULLS ON
@@ -548,67 +548,93 @@ Merged AS (
     FROM AccountUsers au
     FULL OUTER JOIN CampaignUsers cu
         ON au.EmployerEmail = cu.Email
+),
+-- Combine Employer/Campaign data with Provider data before final output
+CombinedData AS (
+    SELECT
+        Email,
+        FirstName,
+        LastName,
+        EmployerAccountID,
+        AccountCount,
+        ConsolidatedLevyStatus AS LevyStatus,
+        LastLogin,
+        DateOfLastAPIAutoSync,
+        ReservedFunding,
+        HasActiveReservation,
+        EmployerSize,
+        SectorEstimate,
+        AccountCreationDate,
+        EmployerOrProviderLed AS Registrationtype,
+        ApprenticeshipStartDate AS DateOfFirstStart,
+        ApprenticeshipEndDate AS DateOfLastStart,
+        ApprenticeshipCompletionDate AS DateOfLastCompletion,
+        ActiveApprentices,
+        ActiveVacancies,
+        AccountUserRole,
+        Stage1a,
+        Stage1b,
+        Stage2,
+        Stage3,
+        Stage4a,
+        Stage4b,
+        Stage5a,
+        Stage5b,
+        RegistrationProgressScore,
+        CurrentRegistrationStage,
+        UkEmployerSize,
+        PrimaryIndustry,
+        PrimaryLocation,
+        AppsgovSignUpDate,
+        PersonOrigin,
+        IncludeInUR,
+        RecordSource,
+        '' AS Ukprn,
+        '' AS ProviderType,
+        '' AS Employerprovider,
+        '' AS IsProvider,
+        '' AS Providersactivelinkedapps,
+        '' AS Providersactivelinkedvacancies,
+        CASE
+            WHEN RecordSource IN ('Both', 'Account') THEN 'true'
+            ELSE 'false'
+        END AS IsEmployer
+    FROM Merged
+
+    UNION ALL
+
+    SELECT 
+        p.*
+    FROM ASData_PL.vw_DAS_EmailIntegration_Provider p
+    WHERE p.Email IS NOT NULL
+      AND NOT EXISTS (
+          SELECT 1
+          FROM Merged m
+          WHERE m.Email = p.Email)
 )
+-- Final output with Primary User Type determined from combined data
 SELECT
-    Email,
-    FirstName,
-    LastName,
-    EmployerAccountID,
-    AccountCount,
-    ConsolidatedLevyStatus AS LevyStatus,
-    LastLogin,
-    DateOfLastAPIAutoSync,
-    ReservedFunding,
-    HasActiveReservation,
-    EmployerSize,
-    SectorEstimate,
-    AccountCreationDate,
-    EmployerOrProviderLed AS Registrationtype,
-
-    ApprenticeshipStartDate AS DateOfFirstStart,
-    ApprenticeshipEndDate AS DateOfLastStart,
-    ApprenticeshipCompletionDate AS DateOfLastCompletion,
-
-    ActiveApprentices,
-    ActiveVacancies,
-    AccountUserRole,
-    Stage1a,
-    Stage1b,
-    Stage2,
-    Stage3,
-    Stage4a,
-    Stage4b,
-    Stage5a,
-    Stage5b,
-    RegistrationProgressScore,
-    CurrentRegistrationStage,
-
-    UkEmployerSize,
-    PrimaryIndustry,
-    PrimaryLocation,
-    AppsgovSignUpDate,
-    PersonOrigin,
-    IncludeInUR,
-    RecordSource,
-    '' AS Ukprn,
-    '' AS ProviderType,
-    '' AS Employerprovider,
-    '' AS IsProvider,
-    '' AS Providersactivelinkedapps,
-    '' AS Providersactivelinkedvacancies,
+    *,
+    -- Primary User Type: Single decision based on ALL combined data
     CASE
-        WHEN RecordSource IN ('Both', 'Account') THEN 'true'
-        ELSE 'false'
-    END AS IsEmployer
-FROM Merged
 
-UNION ALL
+        -- Rule 1: If email is in provider table (not employer provider) = provider always
+        WHEN IsProvider = 'true' THEN 'Provider'
 
-SELECT * FROM ASData_PL.vw_DAS_EmailIntegration_Provider p
-WHERE p.Email IS NOT NULL
-  AND NOT EXISTS (
-      SELECT 1
-      FROM Merged m
-      WHERE m.Email = p.Email);
+        -- Rule 2: If email is employer-provider (ProviderTypeId = 2) = always employer provider
+        WHEN Employerprovider = 'true' THEN 'Employer Provider'
+        
+        -- Rule 3: If email is in both levy and non levy, but not provider = always levy
+        WHEN LevyStatus = 'Both' THEN 'Levy'
+        
+        -- Rule 4: If email is levy (not provider)
+        WHEN LevyStatus = 'Levy' THEN 'Levy'
+        
+        -- Rule 5: If email is non levy only (not provider, not employer provider, not in multiple levy types)
+        WHEN LevyStatus = 'Non Levy' THEN 'Non Levy'
+        
+        ELSE 'Unknown'
+    END AS PrimaryUserType
+FROM CombinedData
 GO
 
