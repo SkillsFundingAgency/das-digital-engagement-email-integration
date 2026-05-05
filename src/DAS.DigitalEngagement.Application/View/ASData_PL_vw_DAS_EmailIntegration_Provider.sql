@@ -1,4 +1,4 @@
-DROP VIEW [ASData_PL].[vw_DAS_EmailIntegration_Provider]
+DROP VIEW IF EXISTS [ASData_PL].[vw_DAS_EmailIntegration_Provider]
 GO
 
 SET ANSI_NULLS ON
@@ -8,7 +8,7 @@ SET QUOTED_IDENTIFIER ON
 GO
 
 
-CREATE   VIEW [ASData_PL].[vw_DAS_EmailIntegration_Provider]
+CREATE VIEW [ASData_PL].[vw_DAS_EmailIntegration_Provider]
 AS
 
 
@@ -103,6 +103,7 @@ SELECT
     '' AS ActiveApprentices,
     '' AS ActiveVacancies,
     '' AS AccountUserRole,
+    '' AS Foundationappinlast24months,
     '' AS Stage1a,
     '' AS Stage1b,
     '' AS Stage2,

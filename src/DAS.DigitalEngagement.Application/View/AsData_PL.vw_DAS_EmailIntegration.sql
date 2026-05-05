@@ -1,4 +1,4 @@
-DROP VIEW [ASData_PL].[vw_DAS_EmailIntegration]
+DROP VIEW IF EXISTS [ASData_PL].[vw_DAS_EmailIntegration]
 GO
 
 SET ANSI_NULLS ON
@@ -187,6 +187,56 @@ EmployerLedAggregate AS (
     FROM AccountUsersBase aub
     LEFT JOIN EmployerLedAccountCTE ela
         ON ela.EmployerAccountID = aub.EmployerAccountID
+    GROUP BY aub.EmployerEmail
+),
+FoundationApprenticeshipAccountCTE AS (
+    SELECT
+        e.Id AS EmployerAccountID,
+        CAST(
+            CASE
+                WHEN MAX(
+                    CASE
+                        -- Foundation apprenticeship started within last 24 months
+                        WHEN ss.ApprenticeshipType = 'FoundationApprenticeship'
+                             AND a.StartDate >= DATEADD(MONTH, -24, GETDATE())
+                        THEN 1
+                        ELSE 0
+                    END
+                ) = 1
+                THEN 1
+                ELSE 0
+            END
+        AS BIT) AS HasFoundationAppLast24Months
+    FROM ASData_PL.Acc_Account e
+    LEFT JOIN ASData_PL.Comt_Commitment c
+        ON e.Id = c.EmployerAccountId
+    LEFT JOIN ASData_PL.Comt_Apprenticeship a
+        ON c.Id = a.CommitmentId
+        AND a.IsApproved = 1
+        AND a.HasHadDataLockSuccess = 1
+        AND a.TrainingType = 0
+    LEFT JOIN ASData_PL.FAT2_StandardSector ss
+        ON a.TrainingCode = ss.Larscode
+    GROUP BY e.Id
+),
+FoundationApprenticeshipAggregate AS (
+    SELECT
+        aub.EmployerEmail,
+        CAST(
+            CASE
+                -- No accounts → FALSE
+                WHEN COUNT(aub.EmployerAccountID) = 0
+                    THEN 0
+                -- Any TRUE or missing account data → TRUE
+                WHEN MAX(COALESCE(faa.HasFoundationAppLast24Months, 0)) = 1
+                    THEN 1
+                -- All explicitly FALSE
+                ELSE 0
+            END
+        AS BIT) AS HasFoundationAppLast24Months
+    FROM AccountUsersBase aub
+    LEFT JOIN FoundationApprenticeshipAccountCTE faa
+        ON faa.EmployerAccountID = aub.EmployerAccountID
     GROUP BY aub.EmployerEmail
 ),
 EmployerCommitmentAccountCTE AS (
@@ -393,6 +443,12 @@ AccountUsers AS (
         CONVERT(VARCHAR(10), ecm.ApprenticeshipEndDate, 120) AS ApprenticeshipEndDate,
         CONVERT(VARCHAR(10), ecm.ApprenticeshipCompletionDate, 120) AS ApprenticeshipCompletionDate,
         
+        CASE
+            WHEN faa.HasFoundationAppLast24Months = 1 THEN 'true'
+            WHEN faa.HasFoundationAppLast24Months = 0 THEN 'false'
+            ELSE ''
+        END AS HasFoundationAppLast24Months,
+
         rs.Stage1a,
         rs.Stage1b,
         rs.Stage2,
@@ -445,6 +501,8 @@ AccountUsers AS (
         ON eva.EmployerEmail = aa.EmployerEmail
     LEFT JOIN EmployerAccountRoleAggregate er
         ON er.EmployerEmail = aa.EmployerEmail
+    LEFT JOIN FoundationApprenticeshipAggregate faa
+        ON faa.EmployerEmail = aa.EmployerEmail
     LEFT JOIN [ASData_PL].[vw_DAS_RegistrationStages] rs
         ON rs.UserEmail = aa.EmployerEmail
         AND aa.EmployerAccountID IS NOT NULL
@@ -520,6 +578,8 @@ Merged AS (
 
         au.AccountUserRole,
 
+        au.HasFoundationAppLast24Months,
+
         -- Registration
         au.Stage1a,
         au.Stage1b,
@@ -548,67 +608,94 @@ Merged AS (
     FROM AccountUsers au
     FULL OUTER JOIN CampaignUsers cu
         ON au.EmployerEmail = cu.Email
+),
+-- Combine Employer/Campaign data with Provider data before final output
+CombinedData AS (
+    SELECT
+        Email,
+        FirstName,
+        LastName,
+        EmployerAccountID,
+        AccountCount,
+        ConsolidatedLevyStatus AS LevyStatus,
+        LastLogin,
+        DateOfLastAPIAutoSync,
+        ReservedFunding,
+        HasActiveReservation,
+        EmployerSize,
+        SectorEstimate,
+        AccountCreationDate,
+        EmployerOrProviderLed AS Registrationtype,
+        ApprenticeshipStartDate AS DateOfFirstStart,
+        ApprenticeshipEndDate AS DateOfLastStart,
+        ApprenticeshipCompletionDate AS DateOfLastCompletion,
+        ActiveApprentices,
+        ActiveVacancies,
+        AccountUserRole,
+        HasFoundationAppLast24Months AS Foundationappinlast24months,
+        Stage1a,
+        Stage1b,
+        Stage2,
+        Stage3,
+        Stage4a,
+        Stage4b,
+        Stage5a,
+        Stage5b,
+        RegistrationProgressScore,
+        CurrentRegistrationStage,
+        UkEmployerSize,
+        PrimaryIndustry,
+        PrimaryLocation,
+        AppsgovSignUpDate,
+        PersonOrigin,
+        IncludeInUR,
+        RecordSource,
+        '' AS Ukprn,
+        '' AS ProviderType,
+        '' AS Employerprovider,
+        '' AS IsProvider,
+        '' AS Providersactivelinkedapps,
+        '' AS Providersactivelinkedvacancies,
+        CASE
+            WHEN RecordSource IN ('Both', 'Account') THEN 'true'
+            ELSE 'false'
+        END AS IsEmployer
+    FROM Merged
+
+    UNION ALL
+
+    SELECT 
+        p.*
+    FROM ASData_PL.vw_DAS_EmailIntegration_Provider p
+    WHERE p.Email IS NOT NULL
+      AND NOT EXISTS (
+          SELECT 1
+          FROM Merged m
+          WHERE m.Email = p.Email)
 )
+-- Final output with Primary User Type determined from combined data
 SELECT
-    Email,
-    FirstName,
-    LastName,
-    EmployerAccountID,
-    AccountCount,
-    ConsolidatedLevyStatus AS LevyStatus,
-    LastLogin,
-    DateOfLastAPIAutoSync,
-    ReservedFunding,
-    HasActiveReservation,
-    EmployerSize,
-    SectorEstimate,
-    AccountCreationDate,
-    EmployerOrProviderLed AS Registrationtype,
-
-    ApprenticeshipStartDate AS DateOfFirstStart,
-    ApprenticeshipEndDate AS DateOfLastStart,
-    ApprenticeshipCompletionDate AS DateOfLastCompletion,
-
-    ActiveApprentices,
-    ActiveVacancies,
-    AccountUserRole,
-    Stage1a,
-    Stage1b,
-    Stage2,
-    Stage3,
-    Stage4a,
-    Stage4b,
-    Stage5a,
-    Stage5b,
-    RegistrationProgressScore,
-    CurrentRegistrationStage,
-
-    UkEmployerSize,
-    PrimaryIndustry,
-    PrimaryLocation,
-    AppsgovSignUpDate,
-    PersonOrigin,
-    IncludeInUR,
-    RecordSource,
-    '' AS Ukprn,
-    '' AS ProviderType,
-    '' AS Employerprovider,
-    '' AS IsProvider,
-    '' AS Providersactivelinkedapps,
-    '' AS Providersactivelinkedvacancies,
+    *,
+    -- Primary User Type: Single decision based on ALL combined data
     CASE
-        WHEN RecordSource IN ('Both', 'Account') THEN 'true'
-        ELSE 'false'
-    END AS IsEmployer
-FROM Merged
 
-UNION ALL
+        -- Rule 1: If email is in provider table (not employer provider) = provider always
+        WHEN IsProvider = 'true' THEN 'Provider'
 
-SELECT * FROM ASData_PL.vw_DAS_EmailIntegration_Provider p
-WHERE p.Email IS NOT NULL
-  AND NOT EXISTS (
-      SELECT 1
-      FROM Merged m
-      WHERE m.Email = p.Email);
+        -- Rule 2: If email is employer-provider (ProviderTypeId = 2) = always employer provider
+        WHEN Employerprovider = 'true' THEN 'Employer Provider'
+        
+        -- Rule 3: If email is in both levy and non levy, but not provider = always levy
+        WHEN LevyStatus = 'Both' THEN 'Levy'
+        
+        -- Rule 4: If email is levy (not provider)
+        WHEN LevyStatus = 'Levy' THEN 'Levy'
+        
+        -- Rule 5: If email is non levy only (not provider, not employer provider, not in multiple levy types)
+        WHEN LevyStatus = 'Non Levy' THEN 'Non Levy'
+        
+        ELSE 'Unknown'
+    END AS Primaryusertype
+FROM CombinedData
 GO
 
