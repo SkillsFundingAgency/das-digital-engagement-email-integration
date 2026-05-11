@@ -35,12 +35,22 @@ namespace DAS.DigitalEngagement.Application.Services
         public async Task<bool> IsContactImportTemplatesExist()
         {
             DataMartSettings empRegistrationSettings = GetDataMartConfig("Lead");
-            var filter = WebUtility.UrlEncode( $"ID eq {empRegistrationSettings.TemplatedUploadId}");
-            var importResult = await _externalApiService.GetDataAsync($"ContactImportTemplates/?$filter={filter}");
-            int count = JsonNode.Parse(importResult)?["value"]?.AsArray()?.Count ?? 0;
+            
+            // Check if all template IDs exist
+            foreach (var templateId in empRegistrationSettings.TemplatedUploadId)
+            {
+                var filter = WebUtility.UrlEncode($"ID eq {templateId}");
+                var importResult = await _externalApiService.GetDataAsync($"ContactImportTemplates/?$filter={filter}");
+                int count = JsonNode.Parse(importResult)?["value"]?.AsArray()?.Count ?? 0;
+                
+                if (count < 1)
+                {
+                    _logger.LogWarning($"Template ID {templateId} not found");
+                    return false;
+                }
+            }
 
-            return count >= 1;
-
+            return true;
         }
 
         public async Task<ImportSummaryResult> ImportEmployeeRegistration<T>(IList<T> leads)
@@ -61,25 +71,29 @@ namespace DAS.DigitalEngagement.Application.Services
                 var safeLeads = leads ?? new List<T>();
                 var byteCount = _csvService.GetByteCount(safeLeads);
                 var contactsChunks = _chunkingService.GetChunks(byteCount, safeLeads).ToList();
-                int index = 0;
-                foreach (var contactsList in contactsChunks)
-                {   
-                    index++;
-                    var payLoad = _payLoadMapper.MapToPayload(contactsList, empRegistrationSettings.ObjectName);
-                    var csvString = _csvService.ToCsv(payLoad.ToList());
+                int batchIndex = 0;
+                
+                // Process each template ID
+                foreach (var templateId in empRegistrationSettings.TemplatedUploadId)
+                {
+                    foreach (var contactsList in contactsChunks)
+                    {   
+                        batchIndex++;
+                        var payLoad = _payLoadMapper.MapToPayload(contactsList, empRegistrationSettings.ObjectName);
+                        var csvString = _csvService.ToCsv(payLoad.ToList());
 
-                    var importResult = await _externalApiService.PostDataAsync(
-                        $"ContactImports/TemplatedUpload({empRegistrationSettings.TemplatedUploadId})", csvString);
+                        var importResult = await _externalApiService.PostDataAsync(
+                            $"ContactImports/TemplatedUpload({templateId})", csvString);
 
-                    importResult.BatchId = $"Batch : {index}";
+                        importResult.BatchId = $"Template {templateId} - Batch: {batchIndex}";
 
-                    await VerifyContactImport(importResult);
+                        await VerifyContactImport(importResult);
 
-                    summary.BatchResults.Add(importResult);
+                        summary.BatchResults.Add(importResult);
 
-                    _logger.LogInformation("Called External API to import employee registrations.");
+                        _logger.LogInformation($"Called External API to import employee registrations for Template ID {templateId}.");
+                    }
                 }
-              
             }
             catch (Exception ex)
             {
@@ -92,7 +106,7 @@ namespace DAS.DigitalEngagement.Application.Services
                 summary.EndTime = DateTime.UtcNow;
                 if (summary.Status != "Failed")
                 {
-                summary.Status = summary.BatchResults.All(b => b.Status == "Completed") ? "Completed" : "Partial";
+                    summary.Status = summary.BatchResults.All(b => b.Status == "Completed") ? "Completed" : "Partial";
                 }
                 summary.Messages.Add("Import completed.");
             }

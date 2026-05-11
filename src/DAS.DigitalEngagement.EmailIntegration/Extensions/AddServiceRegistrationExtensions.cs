@@ -11,8 +11,11 @@ using DAS.DigitalEngagement.Application.Services.Interfaces;
 using DAS.DigitalEngagement.CampaignInterest.Data.Helpers;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using DAS.DigitalEngagement.Models.Infrastructure;
 using System.Configuration;
 using System.Diagnostics.CodeAnalysis;
+using Microsoft.Extensions.Options;
+
 
 namespace DAS.DigitalEngagement.EmailIntegration.Extensions
 {
@@ -47,6 +50,13 @@ namespace DAS.DigitalEngagement.EmailIntegration.Extensions
             services.AddTransient<IReportService, ReportService>();
             services.AddSingleton(provider => new BlobServiceClient(azureBlobStorage));
 
+            // Add GovNotify configuration
+            services.AddSingleton<GovNotifyConfiguration>(sp => 
+                sp.GetRequiredService<IOptions<GovNotifyConfiguration>>().Value);
+            
+            // Register email notification service
+            services.AddTransient<IEmailNotificationService, EmailNotificationService>();
+            
             return services;
         }
     }

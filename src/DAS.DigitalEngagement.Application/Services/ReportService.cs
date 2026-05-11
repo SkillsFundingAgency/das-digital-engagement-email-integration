@@ -1,9 +1,9 @@
-﻿using Azure.Storage.Blobs;
-using DAS.DigitalEngagement.Application.Services.Interfaces;
+﻿using DAS.DigitalEngagement.Application.Services.Interfaces;
 using DAS.DigitalEngagement.Models.Import;
 using Microsoft.Extensions.Logging;
 using System.Text;
 using System.Text.Json;
+using Azure.Storage.Blobs;
 
 namespace DAS.DigitalEngagement.Application.Services
 {
@@ -12,11 +12,13 @@ namespace DAS.DigitalEngagement.Application.Services
         private readonly string _container = "email-integration-to-marketing-tool";
         private readonly BlobServiceClient _blobServiceClient;
         protected readonly ILogger<ReportService> _logger;
+        private readonly IEmailNotificationService _emailNotificationService;
 
-        public ReportService(BlobServiceClient blobServiceClient, ILogger<ReportService> logger)
+        public ReportService(BlobServiceClient blobServiceClient, ILogger<ReportService> logger, IEmailNotificationService emailNotificationService)
         {
             _blobServiceClient = blobServiceClient;
             _logger = logger;
+            _emailNotificationService = emailNotificationService;
         }
 
         public string CreateImportSummaryReport(ImportSummaryResult summary)
@@ -132,14 +134,45 @@ namespace DAS.DigitalEngagement.Application.Services
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Failed to save report file.");
+                throw;
+            }
+        }
+
+        public async Task SaveReportToBlobAndNotifyAsync(string reportContent, string fileName, string integrationName)
+        {
+            try
+            {
+                // Save report to blob storage
+                var containerClient = _blobServiceClient.GetBlobContainerClient(_container);
+                await containerClient.CreateIfNotExistsAsync();
+
+                var reportBlobClient = containerClient.GetBlobClient($"Report/{fileName}.report.txt");
+
+                using var stream = new MemoryStream(Encoding.UTF8.GetBytes(reportContent));
+                await reportBlobClient.UploadAsync(stream, overwrite: true);
+
+                _logger.LogInformation("Report file saved: {FileName}.report.txt", fileName);
+
+                // Get blob URL
+                var blobUrl = reportBlobClient.Uri.ToString();
+
+                // Send email notification with both content and blob URL
+                await _emailNotificationService.SendMonitoringReportAsync(integrationName, reportContent, blobUrl);
+
+                _logger.LogInformation("Monitoring report email sent for integration: {IntegrationName}, Blob: {BlobUrl}", integrationName, blobUrl);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to save report file or send email notification.");
+                throw;
             }
         }
 
         // Helper class for deserialization
         sealed class FieldMappingItem
         {
-            public string? Source { get; } = "";
-            public string? Target { get; } = "";
+            public string? Source { get; set; }
+            public string? Target { get; set; }
         }
     }
 }

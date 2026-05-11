@@ -63,6 +63,12 @@ namespace DAS.DigitalEngagement.EmailIntegration.Extensions
                 return appConfig.DataMart ?? new List<DataMartSettings>();
             });
 
+            services.AddSingleton(sp =>
+            {
+                var appConfig = sp.GetRequiredService<IOptions<ApplicationConfiguration>>().Value;
+                return Options.Create(appConfig.GovNotifyConfiguration);
+            });
+
             return services;
 
         }
