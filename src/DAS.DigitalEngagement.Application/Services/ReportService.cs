@@ -81,19 +81,42 @@ namespace DAS.DigitalEngagement.Application.Services
             if (batchResults != null && batchResults.Count > 0)
             {
                 sb.AppendLine($"Batch Results ({batchResults.Count}):");
+                
+                // Calculate totals
+                int totalReceived = batchResults.Sum(b => b.RecordsReceived);
+                int totalProcessed = batchResults.Sum(b => b.RecordsProcessed);
+                int totalFailed = batchResults.Sum(b => b.RecordsFailed);
+                int partialImportsCount = batchResults.Count(b => b.IsPartiallyImported);
+                
+                sb.AppendLine($"  Summary:");
+                sb.AppendLine($"    Total Records Received: {totalReceived}");
+                sb.AppendLine($"    Total Records Processed: {totalProcessed}");
+                sb.AppendLine($"    Total Records Failed: {totalFailed}");
+                sb.AppendLine($"    Batches with Partial Imports: {partialImportsCount}");
+                sb.AppendLine();
+                
                 for (int i = 0; i < batchResults.Count; i++)
                 {
                     var batch = batchResults[i];
                     sb.AppendLine($"  Batch {i + 1}:");
                     sb.AppendLine($"    BatchId: {batch.BatchId}");
                     sb.AppendLine($"    Status: {batch.Status}");
-                    sb.AppendLine($"    RecordsProcessed: {batch.RecordsProcessed}");
+                    sb.AppendLine($"    Records Received: {batch.RecordsReceived}");
+                    sb.AppendLine($"    Records Processed: {batch.RecordsProcessed}");
+                    sb.AppendLine($"    Records Failed: {batch.RecordsFailed}");
+                    sb.AppendLine($"    Is Partially Imported: {batch.IsPartiallyImported}");
+                    
                     if (!string.IsNullOrEmpty(batch.TokenFromEshot))
-                        sb.AppendLine($"    TokenFromEshot: {batch.TokenFromEshot}");
+                        sb.AppendLine($"    Token: {batch.TokenFromEshot}");
+                    
+                    if (!string.IsNullOrEmpty(batch.AdditionalInfo))
+                        sb.AppendLine($"    Additional Info: {batch.AdditionalInfo}");
+                    
                     if (!string.IsNullOrEmpty(batch.Error))
                         sb.AppendLine($"    Error: {batch.Error}");
+                    
+                    sb.AppendLine();
                 }
-                sb.AppendLine();
             }
             else
             {
