@@ -257,14 +257,16 @@ EmployerCommitmentAccountCTE AS (
             ELSE NULL
         END AS EndDate,
 
-        -- CompletionDate (same rule applied for consistency)
+        MAX(
         CASE
-            WHEN COUNT(DISTINCT a.CompletionDate) = 1
-                THEN MAX(a.CompletionDate)
-            ELSE NULL
-        END AS CompletionDate,
+            WHEN a.StopDate IS NOT NULL
+                AND a.EndDate  IS NOT NULL
+            THEN IIF(a.StopDate > a.EndDate, a.StopDate, a.EndDate)
 
-        
+            ELSE COALESCE(a.StopDate, a.EndDate)
+        END
+        ) AS CompletionDate,
+
         -- Active Apprentices flag (account-level)
         CAST(
             CASE
@@ -376,7 +378,7 @@ EmployerAccountRoleCTE AS (
         CASE
             WHEN aur.Role = 1 THEN 'Owner'
             WHEN aur.Role = 2 THEN 'Transactor'
-            WHEN aur.Role = 3 THEN 'TBC'
+            WHEN aur.Role = 3 THEN 'Viewer'
             ELSE ''
         END AS AccountRole
     FROM ASData_PL.Acc_Account e
@@ -506,7 +508,7 @@ AccountUsers AS (
     LEFT JOIN [ASData_PL].[vw_DAS_RegistrationStages] rs
         ON rs.UserEmail = aa.EmployerEmail
         AND aa.EmployerAccountID IS NOT NULL
-        AND rs.EmployerAccountId = aa.EmployerAccountID
+        AND ISNULL(NULLIF(rs.EmployerAccountId, ''), '') = ISNULL(NULLIF(aa.EmployerAccountID, ''), '')
 ),
 CampaignUsersRanked AS (
     SELECT
@@ -694,7 +696,7 @@ SELECT
         -- Rule 5: If email is non levy only (not provider, not employer provider, not in multiple levy types)
         WHEN LevyStatus = 'Non Levy' THEN 'Non Levy'
         
-        ELSE 'Unknown'
+        ELSE ''
     END AS Primaryusertype
 FROM CombinedData
 GO

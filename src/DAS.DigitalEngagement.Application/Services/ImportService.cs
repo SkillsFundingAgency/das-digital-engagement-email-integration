@@ -64,6 +64,7 @@ namespace DAS.DigitalEngagement.Application.Services
             {
                 StartTime = DateTime.UtcNow,
                 Messages = new List<string>(),
+                BatchResults = new List<BatchResultDetail>(),
                 TotalRecordsFromDb = leads?.Count ?? 0,
                 Status = "Partial",
                 FieldMapping = empRegistrationSettings.FieldMapping

@@ -38,9 +38,15 @@ public class PerformanceDataImporterTests
                         ViewName = "TestView",
                         ObjectName = "TestObject",
                         FieldMapping = "TestFieldMapping",
-                        TemplatedUploadId = 1
+                        TemplatedUploadId = new[] { 1 }
                     }
-                }
+                },
+            GovNotifyConfiguration = new GovNotifyConfiguration
+            {
+                ApiKey = "TestApiKey",
+                MonitoringReportTemplateId = "TestTemplateId",
+                RecipientEmailAddresses = new List<string> { "test@example.com" }
+            }
         };
     }
 

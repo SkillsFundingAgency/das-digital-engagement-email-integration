@@ -26,8 +26,8 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Services
         private IList<DataMartSettings> _dataMartSettings;
         private ImportService _service;
 
-            [SetUp]
-            public void SetUp()
+        [SetUp]
+        public void SetUp()
         {
             _externalApiServiceMock = new Mock<IExternalApiService>();
             _loggerMock = new Mock<ILogger<ImportService>>();
@@ -39,11 +39,12 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Services
                 new DataMartSettings
                 {
                     ObjectName = "Lead",
-                    TemplatedUploadId = 123,
+                    TemplatedUploadId = new[] { 123 },
                     ViewName = "LeadView",
                     FieldMapping = "DefaultFieldMapping"
                 }
             };
+
 
             _service = new ImportService(
                 _externalApiServiceMock.Object,
@@ -51,7 +52,8 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Services
                 _payLoadMapperMock.Object,
                 _chunkingServiceMock.Object,
                 _csvServiceMock.Object,
-                _dataMartSettings
+                _dataMartSettings,
+                new EmailMarketingApi { ApiBaseUrl = "test", ApiKey = "key", ApiRetryCount = 3, ChunkSizeKB = 1024 }
             );
         }
 
@@ -237,7 +239,7 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Services
             var chunkedLeads = new List<List<string>>();
             var payload = new List<ExpandoObject> { new ExpandoObject() };
             var csvString = "csv";
-          
+
             _csvServiceMock.Setup(x => x.GetByteCount(It.IsAny<IList<string>>())).Returns(0);
             _chunkingServiceMock.Setup(x => x.GetChunks(It.IsAny<int>(), It.IsAny<IList<string>>()))
                 .Returns(chunkedLeads);

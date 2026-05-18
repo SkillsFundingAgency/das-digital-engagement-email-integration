@@ -57,13 +57,14 @@ cte_Stages AS (
              AND a.AddTrainingProviderAcknowledged = 0
             THEN 'true' ELSE 'false'
         END AS Stage5b
+
     FROM ASData_PL.Acc_User u
     LEFT JOIN ASData_PL.Acc_AccountUserRole aur ON u.Id = aur.UserId
     LEFT JOIN ASData_PL.Acc_Account a ON aur.AccountId = a.Id
     LEFT JOIN cte_Paye paye ON a.Id = paye.AccountId
     LEFT JOIN cte_Providers prov ON a.Id = prov.AccountId
     LEFT JOIN cte_Agreement ag ON a.Id = ag.AccountId
-    WHERE a.Name <> 'MY ACCOUNT'
+    WHERE a.Name <> 'MY ACCOUNT' Or a.Name IS NULL
 )
 -- sonar-ignore-end
 

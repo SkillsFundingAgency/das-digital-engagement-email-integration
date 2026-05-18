@@ -10,21 +10,19 @@
     "ChunkSizeMB": 5
   },
 
-  "GovNotify": {
-    "ApiKey": "your-govuk-notify-api-key",
-    "MonitoringReportTemplateId": "template-id-from-govuk-notify-dashboard",
+  "GovNotifyConfiguration": {
+    "ApiKey": "KEY",
+    "MonitoringReportTemplateId": "ID",
     "RecipientEmailAddresses": [
-      "monitoring1@example.com",
-      "monitoring2@example.com",
-      "team-lead@example.com"
+      "vijay.hirudayasamy@education.gov.uk"
     ]
-  }
+  },
 
   "DataMart": [
     {
       "ObjectName": "Lead",
       "ViewName": "AsData_PL.vw_DAS_EmailIntegration",
-      "TemplatedUploadId": [1, 2, 3],
+      "TemplatedUploadId": [ 1, 2, 3 ],
       "FieldMapping": [
         {
           "Source": "Email",

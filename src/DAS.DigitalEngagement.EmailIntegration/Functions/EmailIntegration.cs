@@ -41,7 +41,7 @@ public class EmailIntegration
 
         try
         {
-            var importSummary = await _importDataMartHandler.Handle(_configuration.DataMart);
+             var importSummary = await _importDataMartHandler.Handle(_configuration.DataMart);
 
             report = _reportService.CreateImportSummaryReport(importSummary);
             _logger.LogInformation("Import Summary: {ImportSummary}", importSummary.ToString());

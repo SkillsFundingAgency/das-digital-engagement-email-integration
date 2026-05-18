@@ -39,7 +39,7 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Handlers.Import
                     ObjectName = "NotLead",
                     ViewName = "SomeView",
                     FieldMapping = "SomeFieldMapping",
-                    TemplatedUploadId = 1
+                    TemplatedUploadId = new[] { 1 }
                 }
             };
 
@@ -64,7 +64,7 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Handlers.Import
                     ObjectName = "Lead",
                     ViewName = "SomeView",
                     FieldMapping = "SomeFieldMapping",
-                    TemplatedUploadId = 1
+                    TemplatedUploadId = new[] { 1 }
                 }
             };
             _importServiceMock.Setup(x => x.IsContactImportTemplatesExist()).ReturnsAsync(false);
@@ -90,7 +90,7 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Handlers.Import
                     ObjectName = "Lead",
                     ViewName = "SomeView",
                     FieldMapping = "SomeFieldMapping",
-                    TemplatedUploadId = 1
+                    TemplatedUploadId = new[] { 1 }
                 }
             };
             _importServiceMock.Setup(x => x.IsContactImportTemplatesExist()).ReturnsAsync(true);
@@ -118,7 +118,7 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Handlers.Import
                     ObjectName = "Lead",
                     ViewName = "SomeView",
                     FieldMapping = "SomeFieldMapping",
-                    TemplatedUploadId = 1
+                    TemplatedUploadId = new[] { 1 }
                 }
             };
             _importServiceMock.Setup(x => x.IsContactImportTemplatesExist()).ReturnsAsync(true);

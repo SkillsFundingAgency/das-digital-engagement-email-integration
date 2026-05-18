@@ -26,7 +26,7 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Services
                     ObjectName = "Lead",
                     FieldMapping = fieldMapping,
                     ViewName = "LeadView",
-                    TemplatedUploadId = 0
+                    TemplatedUploadId = new[] { 0 }
                 }
             };
             var mapper = new PayLoadMapper(dataMartSettings);
