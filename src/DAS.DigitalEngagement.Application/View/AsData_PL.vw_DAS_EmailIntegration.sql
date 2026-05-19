@@ -134,7 +134,7 @@ EmployerSizeCTE AS (
             WHEN de.EmployeeSize1 LIKE '%(Medium)%' THEN 'Medium'
             WHEN de.EmployeeSize1 LIKE '%(Large)%'  THEN 'Large'
             WHEN de.EmployeeSize1 LIKE '%(Macro)%'  THEN 'Macro'
-            ELSE 'Others'
+            ELSE ''
         END AS NormalizedEmployerSize,
         de.EmployerSectorEstimate
     FROM ASData_PL.DimEmployer de
