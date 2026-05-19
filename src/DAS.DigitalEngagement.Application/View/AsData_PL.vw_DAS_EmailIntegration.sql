@@ -513,6 +513,8 @@ AccountUsers AS (
 CampaignUsersRanked AS (
     SELECT
         cud.Email,
+        cud.FirstName,
+        cud.LastName,
         cud.UkEmployerSize,
         cud.PrimaryIndustry,
         cud.PrimaryLocation,
@@ -525,18 +527,10 @@ CampaignUsersRanked AS (
         ) AS rn
     FROM ASData_PL.CPG_UserData cud
 ),
-CampaignNameAggregate AS (
-    SELECT
-        Email,
-        CASE WHEN COUNT(DISTINCT FirstName) = 1 THEN MAX(FirstName) ELSE '' END AS CampaignFirstName,
-        CASE WHEN COUNT(DISTINCT LastName)  = 1 THEN MAX(LastName)  ELSE '' END AS CampaignLastName
-    FROM ASData_PL.CPG_UserData
-    GROUP BY Email
-),
 CampaignUsers AS (
     SELECT
-        cna.CampaignFirstName,
-        CASE WHEN cna.CampaignFirstName = '' THEN '' ELSE cna.CampaignLastName END AS CampaignLastName,
+        cur.FirstName AS CampaignFirstName,
+        CASE WHEN cur.FirstName = '' THEN '' ELSE cur.LastName END AS CampaignLastName,
         cur.Email,
         cur.UkEmployerSize,
         cur.PrimaryIndustry,
@@ -545,8 +539,6 @@ CampaignUsers AS (
         cur.PersonOrigin,
         cur.IncludeInUR
     FROM CampaignUsersRanked cur
-    LEFT JOIN CampaignNameAggregate cna
-        ON cna.Email = cur.Email
     WHERE cur.rn = 1
 ),
 Merged AS (
@@ -654,8 +646,8 @@ CombinedData AS (
         RecordSource,
         '' AS Ukprn,
         '' AS ProviderType,
-        '' AS Employerprovider,
-        '' AS IsProvider,
+        'false' AS Employerprovider,
+        'false' AS IsProvider,
         '' AS Providersactivelinkedapps,
         '' AS Providersactivelinkedvacancies,
         CASE

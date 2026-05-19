@@ -203,7 +203,7 @@ SELECT
         WHEN pea.HasActiveVacancies = 1 THEN 'true'
         ELSE 'false'
     END AS Providersactivelinkedvacancies,
-    '' AS IsEmployer
+    'false' AS IsEmployer
 FROM ProviderEmailAggregate pea
 WHERE pea.Ukprn IS NOT NULL  -- Only include emails with valid UKPRN
 GO
