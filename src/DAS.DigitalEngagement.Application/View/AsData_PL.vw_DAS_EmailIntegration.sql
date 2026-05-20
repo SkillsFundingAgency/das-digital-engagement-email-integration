@@ -457,8 +457,7 @@ AccountUsers AS (
         rs.Stage3,
         rs.Stage4a,
         rs.Stage4b,
-        rs.Stage5a,
-        rs.Stage5b,
+        rs.Stage5,
 
         -- Registration progress score (0–8)
         (
@@ -468,14 +467,12 @@ AccountUsers AS (
             CASE WHEN rs.Stage3  = 'Y' THEN 1 ELSE 0 END +
             CASE WHEN rs.Stage4a = 'Y' THEN 1 ELSE 0 END +
             CASE WHEN rs.Stage4b = 'Y' THEN 1 ELSE 0 END +
-            CASE WHEN rs.Stage5a = 'Y' THEN 1 ELSE 0 END +
-            CASE WHEN rs.Stage5b = 'Y' THEN 1 ELSE 0 END
+            CASE WHEN rs.Stage5 = 'Y' THEN 1 ELSE 0 END 
         ) AS RegistrationProgressScore,
 
         -- Highest completed stage label
         CASE
-            WHEN rs.Stage5a = 'Y' THEN 'Stage 5 - Provider added'
-            WHEN rs.Stage5b = 'Y' THEN 'Stage 5 - Provider pending'
+            WHEN rs.Stage5 = 'Y' THEN 'Stage 5 - Provider added'
             WHEN rs.Stage4a = 'Y' THEN 'Stage 4 - Agreement signed'
             WHEN rs.Stage4b = 'Y' THEN 'Stage 4 - Agreement acknowledged'
             WHEN rs.Stage3  = 'Y' THEN 'Stage 3 - Account confirmed'
@@ -581,8 +578,7 @@ Merged AS (
         au.Stage3,
         au.Stage4a,
         au.Stage4b,
-        au.Stage5a,
-        au.Stage5b,
+        au.Stage5,
         au.RegistrationProgressScore,
         au.CurrentRegistrationStage,
 
@@ -633,8 +629,7 @@ CombinedData AS (
         Stage3,
         Stage4a,
         Stage4b,
-        Stage5a,
-        Stage5b,
+        Stage5,
         RegistrationProgressScore,
         CurrentRegistrationStage,
         UkEmployerSize,

@@ -90,7 +90,7 @@ ProviderEmailAggregate AS (
             WHEN COUNT(DISTINCT pub.DisplayName) = 1
                 THEN MAX(pub.DisplayName)
             ELSE ''
-        END AS FirstName,
+        END AS DisplayName,
 
         -- UKPRN consistency rule
         CASE
@@ -146,8 +146,17 @@ ProviderEmailAggregate AS (
 -- Step 6: Final output with all fields
 SELECT
     pea.Email,
-    pea.FirstName,
-    '' AS LastName,
+    CASE 
+        WHEN CHARINDEX(' ', pea.DisplayName) > 0 
+        THEN LEFT(pea.DisplayName, LEN(pea.DisplayName) - CHARINDEX(' ', REVERSE(pea.DisplayName)))
+        ELSE pea.DisplayName      
+    END AS FirstName,
+
+    CASE 
+        WHEN CHARINDEX(' ', pea.DisplayName) > 0 
+        THEN RIGHT(pea.DisplayName, CHARINDEX(' ', REVERSE(pea.DisplayName)) - 1)
+        ELSE ''
+    END AS LastName,
     '' AS EmployerAccountID,
     0 AS AccountCount,
     'Unknown' AS LevyStatus,
@@ -172,8 +181,7 @@ SELECT
     '' AS Stage3,
     '' AS Stage4a,
     '' AS Stage4b,
-    '' AS Stage5a,
-    '' AS Stage5b,
+    '' AS Stage5,
     0 AS RegistrationProgressScore,
     '' AS CurrentRegistrationStage,
     '' AS UkEmployerSize,

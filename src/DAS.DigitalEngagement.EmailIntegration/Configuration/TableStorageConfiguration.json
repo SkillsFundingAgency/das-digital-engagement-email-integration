@@ -117,12 +117,8 @@
           "Target": "Stage4b"
         },
         {
-          "Source": "Stage5a",
-          "Target": "Stage5a"
-        },
-        {
-          "Source": "Stage5b",
-          "Target": "Stage5b"
+          "Source": "Stage5",
+          "Target": "Stage5"
         },
         {
           "Source": "SectorEstimate",
