@@ -152,11 +152,8 @@ EmployerAttributesAggregate AS (
                 THEN MAX(es.EmployerSectorEstimate)
             ELSE ''
         END AS EmployerSector,
-        CASE
-            WHEN COUNT(DISTINCT aub.CreatedDate) = 1
-                THEN MAX(aub.CreatedDate)
-            ELSE NULL
-        END AS AccountCreationDate
+
+        MIN(aub.CreatedDate) AS AccountCreationDate
 
     FROM AccountUsersBase aub
     LEFT JOIN EmployerSizeCTE es
