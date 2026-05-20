@@ -66,7 +66,7 @@ EmailActiveReservationAggregate AS (
                     THEN 0
 
                 -- Any active OR missing value  TRUE
-                WHEN MAX(COALESCE(rs.HasActiveReservation, 1)) = 1
+                WHEN MAX(COALESCE(rs.HasActiveReservation, 0)) = 1
                     THEN 1
 
                 -- All explicitly inactive
