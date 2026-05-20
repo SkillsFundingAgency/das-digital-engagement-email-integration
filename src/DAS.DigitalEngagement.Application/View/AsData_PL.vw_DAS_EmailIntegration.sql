@@ -257,15 +257,7 @@ EmployerCommitmentAccountCTE AS (
             ELSE NULL
         END AS EndDate,
 
-        MAX(
-        CASE
-            WHEN a.StopDate IS NOT NULL
-                AND a.EndDate  IS NOT NULL
-            THEN IIF(a.StopDate > a.EndDate, a.StopDate, a.EndDate)
-
-            ELSE COALESCE(a.StopDate, a.EndDate)
-        END
-        ) AS CompletionDate,
+      MAX(a.EndDate) AS CompletionDate,
 
         -- Active Apprentices flag (account-level)
         CAST(
@@ -283,7 +275,9 @@ EmployerCommitmentAccountCTE AS (
 
      FROM [ASData_PL].[Acc_Account] e
         LEFT JOIN ASData_PL.Comt_Commitment  c ON e.Id = c.EmployerAccountId
-        LEFT JOIN ASData_PL.Comt_Apprenticeship a ON c.Id = a.CommitmentId       
+        LEFT JOIN ASData_PL.Comt_Apprenticeship a ON c.Id = a.CommitmentId  
+                            AND a.StopDate IS NULL
+                            AND a.PauseDate IS NULL
         LEFT JOIN [ASData_PL].[Assessor_Learner] l ON a.Id = l.ApprenticeshipId
     GROUP BY
         e.Id
