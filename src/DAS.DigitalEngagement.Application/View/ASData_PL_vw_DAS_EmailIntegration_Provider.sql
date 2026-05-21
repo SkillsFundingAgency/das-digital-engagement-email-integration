@@ -198,6 +198,7 @@ SELECT
         WHEN pea.ProviderTypeId = 3 THEN 'Supporting Provider'
         ELSE ''
     END AS ProviderType,
+    ProviderTypeId,
     CASE
         WHEN pea.IsEmployerProvider = 1 THEN 'true'
         ELSE 'false'

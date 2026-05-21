@@ -632,6 +632,7 @@ CombinedData AS (
         RecordSource,
         '' AS Ukprn,
         '' AS ProviderType,
+        '' AS ProvierTypeId,
         'false' AS Employerprovider,
         'false' AS IsProvider,
         '' AS Providersactivelinkedapps,
@@ -660,21 +661,22 @@ SELECT
     CASE
 
         -- Rule 1: If email is in provider table (not employer provider) = provider always
-        WHEN IsProvider = 'true' THEN 'Provider'
+        WHEN IsProvider = 'true' AND ProvierTypeId in (1,3) THEN 'Provider'
 
         -- Rule 2: If email is employer-provider (ProviderTypeId = 2) = always employer provider
-        WHEN Employerprovider = 'true' THEN 'Employer Provider'
+        WHEN IsProvider = 'true' AND Employerprovider = 'true' THEN 'Employer Provider'
         
-        -- Rule 3: If email is in both levy and non levy, but not provider = always levy
-        WHEN LevyStatus = 'Both' THEN 'Levy'
+        -- Rule 3: If email is in apps.gov sign up table AND employer table = Employer
+        WHEN AppsgovSignUpDate IS NOT NULL AND IsEmployer = 'true' THEN 'Employer'
         
-        -- Rule 4: If email is levy (not provider)
-        WHEN LevyStatus = 'Levy' THEN 'Levy'
+        -- Rule 4: If email is ONLY in employer table = Employer
+        WHEN IsEmployer = 'true' AND (IsProvider = 'false' OR IsProvider IS NULL) AND AppsgovSignUpDate IS NULL THEN 'Employer'
         
-        -- Rule 5: If email is non levy only (not provider, not employer provider, not in multiple levy types)
-        WHEN LevyStatus = 'Non Levy' THEN 'Non Levy'
+        -- Rule 5: If email is in apps.gov sign up table ONLY = Apps.gov sign up
+        WHEN AppsgovSignUpDate IS NOT NULL AND (IsEmployer = 'false' OR IsEmployer IS NULL) THEN 'Apps.gov sign up'
         
         ELSE ''
+
     END AS Primaryusertype
 FROM CombinedData
 GO
