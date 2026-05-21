@@ -80,7 +80,7 @@ public class SqlConnectionFactoryTests
 
         // Assert
         Assert.That(connection, Is.Not.Null);
-        Assert.That(connection!.ConnectionString, Is.EqualTo(new SqlConnectionStringBuilder(ValidConnectionString) { ConnectTimeout = 300 }.ConnectionString));
+        Assert.That(connection!.ConnectionString, Is.EqualTo(ValidConnectionString));
     }
 
     [Test]
@@ -142,7 +142,7 @@ public class SqlConnectionFactoryTests
             Assert.Multiple(() =>
             {
                 Assert.That(connection, Is.InstanceOf<SqlConnection>());
-                Assert.That(((SqlConnection)connection).ConnectionString, Is.EqualTo(new SqlConnectionStringBuilder(ValidConnectionString) { ConnectTimeout = 300 }.ConnectionString));
+                Assert.That(((SqlConnection)connection).ConnectionString, Is.EqualTo(ValidConnectionString));
             });
         }
 
@@ -184,7 +184,7 @@ public class SqlConnectionFactoryTests
 
         // Assert
         Assert.That(connection, Is.Not.Null);
-        Assert.That(connection!.ConnectionString, Is.EqualTo(new SqlConnectionStringBuilder(connectionString) { ConnectTimeout = 300 }.ConnectionString));
+        Assert.That(connection!.ConnectionString, Is.EqualTo(connectionString));
     }
 
     [Test]
@@ -282,8 +282,8 @@ public class SqlConnectionFactoryTests
         });
         Assert.Multiple(() =>
         {
-            Assert.That(connection1!.ConnectionString, Is.EqualTo(new SqlConnectionStringBuilder(connectionString1) { ConnectTimeout = 300 }.ConnectionString));
-            Assert.That(connection2!.ConnectionString, Is.EqualTo(new SqlConnectionStringBuilder(connectionString2) { ConnectTimeout = 300 }.ConnectionString));
+            Assert.That(connection1!.ConnectionString, Is.EqualTo(connectionString1));
+            Assert.That(connection2!.ConnectionString, Is.EqualTo(connectionString2));
             Assert.That(connection1, Is.Not.SameAs(connection2));
         });
     }
