@@ -33,7 +33,6 @@ public class BulkInsertService(IDbConnectionFactory factory, ILogger<BulkInsertS
             // Apply SqlBulkCopyOptions for better performance
             var options = SqlBulkCopyOptions.TableLock | SqlBulkCopyOptions.KeepNulls;
 
-
             using var bulkCopy = new SqlBulkCopy(connection, options, (SqlTransaction)transaction)
             {
                 DestinationTableName = tableName,

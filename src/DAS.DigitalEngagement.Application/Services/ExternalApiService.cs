@@ -47,18 +47,11 @@ namespace DAS.DigitalEngagement.Application.Services
 
             if (!response.IsSuccessStatusCode)
             {
-                _logger.LogError(
-                    "Failed to retrieve data from {RequestUrl}. Status Code: {StatusCode}",
-                    requestUrl,
-                    response.StatusCode);
+                _logger.LogError("Failed to retrieve data from {RequestUrl}. Status Code: {StatusCode}", requestUrl, response.StatusCode);
                 response.EnsureSuccessStatusCode();
             }
 
-            var content = await response.Content.ReadAsStringAsync();
-
-            // s_logger.LogInformation("Received response: {Content}", content);
-        
-            return content;
+            return await response.Content.ReadAsStringAsync();
         }
 
         public async Task<BatchResultDetail> PostDataAsync(string endpoint, string csvBodyString)

@@ -9,7 +9,7 @@ public interface IDbConnectionFactory
     Task<IDbConnection> CreateConnectionAsync();
 }
 
-public class SqlConnectionFactory(string connectionString, TokenCredential? tokenCredential = null) : IDbConnectionFactory
+public class SqlConnectionFactory(string connectionString, TokenCredential? tokenCredential = null, int connectionTimeout = 300) : IDbConnectionFactory
 {
     private static readonly string[] SqlScopes = ["https://database.windows.net/.default"];
 
@@ -20,7 +20,12 @@ public class SqlConnectionFactory(string connectionString, TokenCredential? toke
             throw new InvalidOperationException("Connection string cannot be null or empty.");
         }
 
-        var connection = new SqlConnection(connectionString);
+        var builder = new SqlConnectionStringBuilder(connectionString)
+        {
+            ConnectTimeout = connectionTimeout
+        };
+
+        var connection = new SqlConnection(builder.ConnectionString);
 
         if (tokenCredential != null)
         {
