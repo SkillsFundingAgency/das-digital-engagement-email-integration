@@ -672,13 +672,13 @@ public class CampaignService(IExternalApiService externalApiService, IUnitOfWork
                 ClientFamily = userAgent?.ClientFamily,
             };
 
-            if (contact.ID > 0 && !string.IsNullOrEmpty(contact.DisplayDate))
+            if (contact.ID > 0)
             {
                 contacts.Add(contact);
             }
             else
             {
-                logger.LogWarning("Skipping invalid DisplayedContact record: ID={ContactId}, DisplayDate={DisplayDate}", contact.ID, contact.DisplayDate);
+                logger.LogWarning("Skipping invalid DisplayedContact record: ID={ContactId}", contact.ID);
             }
         }
 
@@ -725,13 +725,13 @@ public class CampaignService(IExternalApiService externalApiService, IUnitOfWork
                 ClientFamily = userAgent?.ClientFamily,
             };
 
-            if (contact.ID > 0 && !string.IsNullOrEmpty(contact.ClickedDate))
+            if (contact.ID > 0)
             {
                 contacts.Add(contact);
             }
             else
             {
-                logger.LogWarning("Skipping invalid ClickedLinkContact record: ID={ContactId}, ClickedDate={ClickedDate}", contact.ID, contact.ClickedDate);
+                logger.LogWarning("Skipping invalid ClickedLinkContact record: ID={ContactId}", contact.ID);
             }
         }
 
@@ -764,13 +764,13 @@ public class CampaignService(IExternalApiService externalApiService, IUnitOfWork
                 ResponseText = item?["ResponseText"]?.GetValue<string>()
             };
 
-            if (contact.ID > 0 && !string.IsNullOrEmpty(contact.BounceDate))
+            if (contact.ID > 0)
             {
                 contacts.Add(contact);
             }
             else
             {
-                logger.LogWarning("Skipping invalid BouncedContact record: ID={ContactId}, BounceDate={BounceDate}", contact.ID, contact.BounceDate);
+                logger.LogWarning("Skipping invalid BouncedContact record: ID={ContactId}", contact.ID);
             }
         }
 
@@ -802,13 +802,13 @@ public class CampaignService(IExternalApiService externalApiService, IUnitOfWork
                 IsComplaint = item?["IsComplaint"]?.GetValue<bool>() ?? false
             };
 
-            if (contact.ID > 0 && !string.IsNullOrEmpty(contact.UnsubscribedDate))
+            if (contact.ID > 0)
             {
                 contacts.Add(contact);
             }
             else
             {
-                logger.LogWarning("Skipping invalid UnsubscribedContact record: ID={ContactId}, UnsubscribedDate={UnsubscribedDate}", contact.ID, contact.UnsubscribedDate);
+                logger.LogWarning("Skipping invalid UnsubscribedContact record: ID={ContactId}", contact.ID);
             }
         }
 
@@ -852,13 +852,13 @@ public class CampaignService(IExternalApiService externalApiService, IUnitOfWork
                 Account = item?["Subaccount"]?["Name"]?.GetValue<string>()
             };
 
-            if (send.ID > 0 && !string.IsNullOrEmpty(send.SendCompletedDate))
+            if (send.ID > 0)
             {
                 sends.Add(send);
             }
             else
             {
-                logger.LogWarning("Skipping invalid Send record: ID={SendId}, SendCompleteDate={SendCompleteDate}", send.ID, send.SendCompletedDate);
+                logger.LogWarning("Skipping invalid Send record: ID={SendId}", send.ID);
             }
         }
 
