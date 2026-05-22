@@ -794,7 +794,7 @@ public class CampaignService(IExternalApiService externalApiService, IUnitOfWork
             var contact = new UnsubscribedContact
             {
                 ID = item?["ID"]?.GetValue<int>() ?? 0,
-                UnsubscribedDate = item?["UnsubscribedDate"]?.GetValue<string>(),
+                UnsubscribedDate = item?["UnsubscribeDate"]?.GetValue<string>(),
                 ContactEmail = item?[ContactProperty]?[EmailProperty]?.GetValue<string>(),
                 SendID = sendId,
                 CampaignID = item?[nameof(UnsubscribedContact.CampaignID)]?.GetValue<int>() ?? 0,
