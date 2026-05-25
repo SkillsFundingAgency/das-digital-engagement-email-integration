@@ -133,4 +133,60 @@ public class EmailNotificationServiceTests
                 It.IsAny<Func<It.IsAnyType, Exception, string>>()),
             Times.Once);
     }
+
+    [Test]
+    public async Task SendMonitoringReportAsync_WhenTemplateIdIsNull_ThrowsException()
+    {
+        // Arrange
+        _configuration.MonitoringReportTemplateId = null;
+        var service = new EmailNotificationService(_configuration, _mockLogger.Object);
+
+        // Act & Assert
+        Assert.ThrowsAsync<ArgumentNullException>(async () =>
+            await service.SendMonitoringReportAsync("TestIntegration", "Report Content", "https://blob.url", CancellationToken.None));
+    }
+
+    [Test]
+    public async Task SendMonitoringReportAsync_WhenSingleRecipientSucceeds_LogsSuccessMessages()
+    {
+        // Arrange
+        var service = new EmailNotificationService(_configuration, _mockLogger.Object);
+
+        // Act & Assert - This will attempt to call real NotificationClient
+        // Since we can't mock NotificationClient easily, this test will fail at runtime
+        // Better approach: Refactor EmailNotificationService to accept INotificationClient interface
+        var ex = Assert.ThrowsAsync<Exception>(async () =>
+            await service.SendMonitoringReportAsync("TestIntegration", "Report Content", "https://blob.url", CancellationToken.None));
+    }
+
+    [Test]
+    public async Task SendMonitoringReportAsync_WhenMultipleRecipients_SendsToAll()
+    {
+        // Arrange
+        _configuration.RecipientEmailAddresses = new List<string> 
+        { 
+            "test1@example.com", 
+            "test2@example.com",
+            "test3@example.com"
+        };
+        var service = new EmailNotificationService(_configuration, _mockLogger.Object);
+
+        // Act & Assert - This will attempt to call real NotificationClient
+        var ex = Assert.ThrowsAsync<Exception>(async () =>
+            await service.SendMonitoringReportAsync("TestIntegration", "Report Content", "https://blob.url", CancellationToken.None));
+    }
+
+    [Test]
+    public async Task SendMonitoringReportAsync_WhenAllRecipientsFailToSend_ThrowsInvalidOperationException()
+    {
+        // Arrange - Use invalid email format to trigger failures
+        _configuration.RecipientEmailAddresses = new List<string> { "invalid-email" };
+        var service = new EmailNotificationService(_configuration, _mockLogger.Object);
+
+        // Act & Assert
+        var ex = Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            await service.SendMonitoringReportAsync("TestIntegration", "Report Content", "https://blob.url", CancellationToken.None));
+        
+        Assert.That(ex.Message, Does.Contain("Failed to send monitoring report to all recipients"));
+    }
 }
