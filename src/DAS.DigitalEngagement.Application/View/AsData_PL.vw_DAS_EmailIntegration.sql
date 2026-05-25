@@ -236,6 +236,57 @@ FoundationApprenticeshipAggregate AS (
         ON faa.EmployerAccountID = aub.EmployerAccountID
     GROUP BY aub.EmployerEmail
 ),
+-- Acc_Account → Comt_Commitment → Comt_Apprenticeship → FAT2_StandardSector
+ApprenticeshipUnitAccountCTE AS (
+    SELECT
+        e.Id AS EmployerAccountID,
+        CAST(
+            CASE
+                WHEN MAX(
+                    CASE
+                        -- Apprenticeship Unit with approved status
+                        WHEN ss.ApprenticeshipType = 'ApprenticeshipUnit'
+                             AND ss.Status = 'Approved for Delivery'
+                        THEN 1
+                        ELSE 0
+                    END
+                ) = 1
+                THEN 1
+                ELSE 0
+            END
+        AS BIT) AS HasApprenticeshipUnit
+    FROM ASData_PL.Acc_Account e
+    LEFT JOIN ASData_PL.Comt_Commitment c
+        ON e.Id = c.EmployerAccountId
+    LEFT JOIN ASData_PL.Comt_Apprenticeship a
+        ON c.Id = a.CommitmentId
+        AND a.IsApproved = 1
+        AND a.HasHadDataLockSuccess = 1
+        AND a.TrainingType = 0
+    LEFT JOIN ASData_PL.FAT2_StandardSector ss
+        ON a.TrainingCode = ss.Larscode
+    GROUP BY e.Id
+),
+ApprenticeshipUnitAggregate AS (
+    SELECT
+        aub.EmployerEmail,
+        CAST(
+            CASE
+                -- No accounts → FALSE
+                WHEN COUNT(aub.EmployerAccountID) = 0
+                    THEN 0
+                -- Any TRUE or missing account data → TRUE
+                WHEN MAX(COALESCE(aua.HasApprenticeshipUnit, 0)) = 1
+                    THEN 1
+                -- All explicitly FALSE
+                ELSE 0
+            END
+        AS BIT) AS HasApprenticeshipUnit
+    FROM AccountUsersBase aub
+    LEFT JOIN ApprenticeshipUnitAccountCTE aua
+        ON aua.EmployerAccountID = aub.EmployerAccountID
+    GROUP BY aub.EmployerEmail
+),
 EmployerCommitmentAccountCTE AS (
     SELECT
         e.Id AS EmployerAccountID,
@@ -442,6 +493,12 @@ AccountUsers AS (
             ELSE ''
         END AS HasFoundationAppLast24Months,
 
+        CASE
+            WHEN aua.HasApprenticeshipUnit = 1 THEN 'true'
+            WHEN aua.HasApprenticeshipUnit = 0 THEN 'false'
+            ELSE ''
+        END AS HasApprenticeshipUnit,
+
         rs.Stage1a,
         rs.Stage1b,
         rs.Stage2,
@@ -493,6 +550,8 @@ AccountUsers AS (
         ON er.EmployerEmail = aa.EmployerEmail
     LEFT JOIN FoundationApprenticeshipAggregate faa
         ON faa.EmployerEmail = aa.EmployerEmail
+    LEFT JOIN ApprenticeshipUnitAggregate aua
+        ON aua.EmployerEmail = aa.EmployerEmail
     LEFT JOIN [ASData_PL].[vw_DAS_RegistrationStages] rs
         ON rs.UserEmail = aa.EmployerEmail
         AND aa.EmployerAccountID IS NOT NULL
@@ -561,6 +620,7 @@ Merged AS (
         au.AccountUserRole,
 
         au.HasFoundationAppLast24Months,
+        au.HasApprenticeshipUnit,
 
         -- Registration
         au.Stage1a,
@@ -614,6 +674,7 @@ CombinedData AS (
         ActiveVacancies,
         AccountUserRole,
         HasFoundationAppLast24Months AS Foundationappinlast24months,
+        HasApprenticeshipUnit AS ApprenticeshipUnit,
         Stage1a,
         Stage1b,
         Stage2,
@@ -657,13 +718,12 @@ CombinedData AS (
 -- Final output with Primary User Type determined from combined data
 SELECT
     *,
-    -- Primary User Type: Single decision based on ALL combined data
+    -- Primary User Type: Priority-based logic
     CASE
+        -- Rule 1: If email is in provider table with ProviderTypeId 1 or 3 = Provider (always, even if in employer tables)
+        WHEN IsProvider = 'true' AND ProviderTypeId IN (1, 3) THEN 'Provider'
 
-        -- Rule 1: If email is in provider table (not employer provider) = provider always
-        WHEN IsProvider = 'true' AND ProvierTypeId in (1,3) THEN 'Provider'
-
-        -- Rule 2: If email is employer-provider (ProviderTypeId = 2) = always employer provider
+        -- Rule 2: If email is in provider table with ProviderTypeId = 2 = Employer Provider (always, even if in employer tables)
         WHEN IsProvider = 'true' AND Employerprovider = 'true' THEN 'Employer Provider'
         
         -- Rule 3: If email is in apps.gov sign up table AND employer table = Employer
@@ -676,7 +736,6 @@ SELECT
         WHEN AppsgovSignUpDate IS NOT NULL AND (IsEmployer = 'false' OR IsEmployer IS NULL) THEN 'Apps.gov sign up'
         
         ELSE ''
-
     END AS Primaryusertype
 FROM CombinedData
 GO
