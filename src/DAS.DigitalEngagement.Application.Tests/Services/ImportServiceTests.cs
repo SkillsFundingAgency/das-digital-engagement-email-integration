@@ -815,19 +815,17 @@ namespace DAS.DigitalEngagement.Application.Tests.Services
                 .Returns(new List<ExpandoObject> { new ExpandoObject() });
             _mockCsvService.Setup(x => x.ToCsv(It.IsAny<IList<ExpandoObject>>())).Returns("csv,data");
             
-            var batchResult = new BatchResultDetail
-            {
-                Status = "Completed",
-                TokenFromEshot = "test-token",
-                RecordsReceived = 1,
-                RecordsProcessed = 0
-            };
-            
+            // All attempts throw exception
             _mockExternalApiService
                 .Setup(x => x.PostDataAsync(It.IsAny<string>(), It.IsAny<string>()))
-                .ReturnsAsync(batchResult);
+                .ReturnsAsync(new BatchResultDetail
+                {
+                    Status = "Completed",
+                    TokenFromEshot = "test-token",
+                    RecordsReceived = 1,
+                    RecordsProcessed = 0
+                });
             
-            // All attempts throw exception
             _mockExternalApiService
                 .Setup(x => x.GetDataAsync(It.IsAny<string>()))
                 .ThrowsAsync(new InvalidOperationException("Service unavailable"));
@@ -863,18 +861,6 @@ namespace DAS.DigitalEngagement.Application.Tests.Services
             _mockPayLoadMapper.Setup(x => x.MapToPayload(It.IsAny<IList<TestLead>>(), "Lead"))
                 .Returns(new List<ExpandoObject> { new ExpandoObject() });
             _mockCsvService.Setup(x => x.ToCsv(It.IsAny<IList<ExpandoObject>>())).Returns("csv,data");
-            
-            var batchResult = new BatchResultDetail
-            {
-                Status = "Completed",
-                TokenFromEshot = "test-token",
-                RecordsReceived = 1,
-                RecordsProcessed = 0
-            };
-            
-            _mockExternalApiService
-                .Setup(x => x.PostDataAsync(It.IsAny<string>(), It.IsAny<string>()))
-                .ReturnsAsync(batchResult);
             
             // Different exceptions on each attempt
             _mockExternalApiService
@@ -969,12 +955,6 @@ namespace DAS.DigitalEngagement.Application.Tests.Services
             var service = CreateService();
             var leads = new List<TestLead> { new TestLead { Email = "test@example.com", Name = "Test User" } };
             var chunks = new List<IList<TestLead>> { leads };
-            
-            _mockCsvService.Setup(x => x.GetByteCount(leads)).Returns(1000);
-            _mockChunkingService.Setup(x => x.GetChunks(1000, leads)).Returns(chunks);
-            _mockPayLoadMapper.Setup(x => x.MapToPayload(It.IsAny<IList<TestLead>>(), "Lead"))
-                .Returns(new List<ExpandoObject> { new ExpandoObject() });
-            _mockCsvService.Setup(x => x.ToCsv(It.IsAny<IList<ExpandoObject>>())).Returns("csv,data");
             
             var batchResult = new BatchResultDetail
             {
