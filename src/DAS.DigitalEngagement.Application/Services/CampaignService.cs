@@ -85,7 +85,7 @@ public class CampaignService(IExternalApiService externalApiService, IUnitOfWork
             {
                 var endpoint = BuildDisplayedContactsEndpoint(sendId, skip, _pageSize);
                 var response = await externalApiService.GetDataAsync(endpoint);
-                var contacts = ParseDisplayedContactsFromResponse(response, userAgentInfo);
+                var contacts = ParseDisplayedContactsFromResponse(response, userAgentInfo, sendId);
                 displayedContacts.AddRange(contacts);
 
                 logger.LogInformation("Retrieved {ContactCount} displayed contacts for Send {SendId} at skip={Skip}", contacts.Count, sendId, skip);
@@ -135,7 +135,7 @@ public class CampaignService(IExternalApiService externalApiService, IUnitOfWork
             {
                 var endpoint = BuildClickedLinkContactsEndpoint(sendId, skip, _pageSize);
                 var response = await externalApiService.GetDataAsync(endpoint);
-                var contacts = ParseClickedLinkContactsFromResponse(response, userAgentInfo);
+                var contacts = ParseClickedLinkContactsFromResponse(response, userAgentInfo, sendId);
                 clickedLinkContacts.AddRange(contacts);
 
                 logger.LogInformation("Retrieved {ContactCount} clicked link contacts for Send {SendId} at skip={Skip}", contacts.Count, sendId, skip);
@@ -187,7 +187,7 @@ public class CampaignService(IExternalApiService externalApiService, IUnitOfWork
             {
                 var endpoint = BuildBouncedContactsEndpoint(sendId, skip, _pageSize);
                 var response = await externalApiService.GetDataAsync(endpoint);
-                var contacts = ParseBouncedContactsFromResponse(response);
+                var contacts = ParseBouncedContactsFromResponse(response, sendId);
                 bouncedContacts.AddRange(contacts);
 
                 logger.LogInformation("Retrieved {ContactCount} bounced email contacts for Send {SendId} at skip={Skip}", contacts.Count, sendId, skip);
@@ -238,7 +238,7 @@ public class CampaignService(IExternalApiService externalApiService, IUnitOfWork
             {
                 var endpoint = BuildUnsubscribedContactsEndpoint(sendId, skip, _pageSize);
                 var response = await externalApiService.GetDataAsync(endpoint);
-                var contacts = ParseUnsubscribedContactsFromResponse(response);
+                var contacts = ParseUnsubscribedContactsFromResponse(response, sendId);
                 unsubscribedContacts.AddRange(contacts);
 
                 logger.LogInformation("Retrieved {ContactCount} unsubscribed email contacts for Send {SendId} at skip={Skip}", contacts.Count, sendId, skip);
@@ -505,7 +505,7 @@ public class CampaignService(IExternalApiService externalApiService, IUnitOfWork
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error bulk inserting bounced contacts into database");
+            logger.LogError(ex, "Error bulk inserting bounced contacts into database, Exception: {Exception}", ex);
             return false;
         }
     }
@@ -530,7 +530,7 @@ public class CampaignService(IExternalApiService externalApiService, IUnitOfWork
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error bulk inserting clicked link contacts into database");
+            logger.LogError(ex, "Error bulk inserting clicked link contacts into database, Exception: {Exception}", ex);
             return false;
         }
     }
@@ -555,7 +555,7 @@ public class CampaignService(IExternalApiService externalApiService, IUnitOfWork
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error bulk inserting displayed email contacts into database");
+            logger.LogError(ex, "Error bulk inserting displayed email contacts into database, Exception: {Exception}", ex);
             return false;
         }
     }
@@ -580,7 +580,7 @@ public class CampaignService(IExternalApiService externalApiService, IUnitOfWork
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error bulk inserting unsubscribed contacts into database");
+            logger.LogError(ex, "Error bulk inserting unsubscribed contacts into database, Exception: {Exception}", ex);
             return false;
         }
     }
@@ -635,7 +635,7 @@ public class CampaignService(IExternalApiService externalApiService, IUnitOfWork
         return $"UserAgents?$filter={filter}&$orderby={orderBy}&$skip={skip}&$top={top}";
     }
 
-    private List<DisplayedContact> ParseDisplayedContactsFromResponse(string jsonResponse, IEnumerable<UserAgentInfo> userAgentInfos)
+    private List<DisplayedContact> ParseDisplayedContactsFromResponse(string jsonResponse, IEnumerable<UserAgentInfo> userAgentInfos, int sendId)
     {
         var valueArray = GetValueArrayFromJsonResponse(jsonResponse);
 
@@ -659,7 +659,7 @@ public class CampaignService(IExternalApiService externalApiService, IUnitOfWork
                 DisplayDate = item?["DisplayDate"]?.GetValue<string>(),
                 ContactEmail = item?[ContactProperty]?[EmailProperty]?.GetValue<string>(),
                 Format = item?["Format"]?.GetValue<string>(),
-                SendID = item?[nameof(DisplayedContact.SendID)]?.GetValue<int>() ?? 0,
+                SendID = sendId,
                 CampaignID = item?[nameof(DisplayedContact.CampaignID)]?.GetValue<int>() ?? 0,
                 TimeInSecondsSpentReadingEmail = item?["TimeInSecondsSpentReadingEmail"]?.GetValue<int>() ?? 0,
                 IsSuspectedBOT = item?["IsSuspectedBOT"]?.GetValue<bool>() ?? false,
@@ -672,20 +672,20 @@ public class CampaignService(IExternalApiService externalApiService, IUnitOfWork
                 ClientFamily = userAgent?.ClientFamily,
             };
 
-            if (contact.ID > 0 && !string.IsNullOrEmpty(contact.DisplayDate))
+            if (contact.ID > 0)
             {
                 contacts.Add(contact);
             }
             else
             {
-                logger.LogWarning("Skipping invalid DisplayedContact record: ID={ContactId}, DisplayDate={DisplayDate}", contact.ID, contact.DisplayDate);
+                logger.LogWarning("Skipping invalid DisplayedContact record: ID={ContactId}", contact.ID);
             }
         }
 
         return contacts;
     }
 
-    private List<ClickedLinkContact> ParseClickedLinkContactsFromResponse(string jsonResponse, IEnumerable<UserAgentInfo> userAgentInfos)
+    private List<ClickedLinkContact> ParseClickedLinkContactsFromResponse(string jsonResponse, IEnumerable<UserAgentInfo> userAgentInfos, int sendId)
     {
         var valueArray = GetValueArrayFromJsonResponse(jsonResponse);
 
@@ -708,7 +708,7 @@ public class CampaignService(IExternalApiService externalApiService, IUnitOfWork
                 ID = item?["ID"]?.GetValue<int>() ?? 0,
                 ClickedDate = item?["ClickDate"]?.GetValue<string>(),
                 ContactEmail = item?["Contact"]?["Email"]?.GetValue<string>(),
-                SendID = item?[nameof(ClickedLinkContact.SendID)]?.GetValue<int>() ?? 0,
+                SendID = sendId,
                 CampaignID = item?[nameof(ClickedLinkContact.CampaignID)]?.GetValue<int>() ?? 0,
                 FriendlyName = item?["FriendlyName"]?.GetValue<string>(),
                 LinkID = item?["LinkID"]?.GetValue<int>() ?? 0,
@@ -725,20 +725,20 @@ public class CampaignService(IExternalApiService externalApiService, IUnitOfWork
                 ClientFamily = userAgent?.ClientFamily,
             };
 
-            if (contact.ID > 0 && !string.IsNullOrEmpty(contact.ClickedDate))
+            if (contact.ID > 0)
             {
                 contacts.Add(contact);
             }
             else
             {
-                logger.LogWarning("Skipping invalid ClickedLinkContact record: ID={ContactId}, ClickedDate={ClickedDate}", contact.ID, contact.ClickedDate);
+                logger.LogWarning("Skipping invalid ClickedLinkContact record: ID={ContactId}", contact.ID);
             }
         }
 
         return contacts;
     }
 
-    private List<BouncedContact> ParseBouncedContactsFromResponse(string jsonResponse)
+    private List<BouncedContact> ParseBouncedContactsFromResponse(string jsonResponse, int sendId)
     {
         var valueArray = GetValueArrayFromJsonResponse(jsonResponse);
 
@@ -759,25 +759,25 @@ public class CampaignService(IExternalApiService externalApiService, IUnitOfWork
                 BounceType = item?["BounceType"]?.GetValue<string>(),
                 BounceDate = item?["BounceDate"]?.GetValue<string>(),
                 ContactEmail = item?[ContactProperty]?[EmailProperty]?.GetValue<string>(),
-                SendID = item?[nameof(BouncedContact.SendID)]?.GetValue<int>() ?? 0,
+                SendID = sendId,
                 CampaignID = item?[nameof(BouncedContact.CampaignID)]?.GetValue<int>() ?? 0,
                 ResponseText = item?["ResponseText"]?.GetValue<string>()
             };
 
-            if (contact.ID > 0 && !string.IsNullOrEmpty(contact.BounceDate))
+            if (contact.ID > 0)
             {
                 contacts.Add(contact);
             }
             else
             {
-                logger.LogWarning("Skipping invalid BouncedContact record: ID={ContactId}, BounceDate={BounceDate}", contact.ID, contact.BounceDate);
+                logger.LogWarning("Skipping invalid BouncedContact record: ID={ContactId}", contact.ID);
             }
         }
 
         return contacts;
     }
 
-    private List<UnsubscribedContact> ParseUnsubscribedContactsFromResponse(string jsonResponse)
+    private List<UnsubscribedContact> ParseUnsubscribedContactsFromResponse(string jsonResponse, int sendId)
     {
         var valueArray = GetValueArrayFromJsonResponse(jsonResponse);
 
@@ -794,21 +794,21 @@ public class CampaignService(IExternalApiService externalApiService, IUnitOfWork
             var contact = new UnsubscribedContact
             {
                 ID = item?["ID"]?.GetValue<int>() ?? 0,
-                UnsubscribedDate = item?["UnsubscribedDate"]?.GetValue<string>(),
+                UnsubscribedDate = item?["UnsubscribeDate"]?.GetValue<string>(),
                 ContactEmail = item?[ContactProperty]?[EmailProperty]?.GetValue<string>(),
-                SendID = item?[nameof(UnsubscribedContact.SendID)]?.GetValue<int>() ?? 0,
+                SendID = sendId,
                 CampaignID = item?[nameof(UnsubscribedContact.CampaignID)]?.GetValue<int>() ?? 0,
                 IsGlobalUnsubscribe = item?["IsGlobalUnsubscribe"]?.GetValue<bool>() ?? false,
                 IsComplaint = item?["IsComplaint"]?.GetValue<bool>() ?? false
             };
 
-            if (contact.ID > 0 && !string.IsNullOrEmpty(contact.UnsubscribedDate))
+            if (contact.ID > 0)
             {
                 contacts.Add(contact);
             }
             else
             {
-                logger.LogWarning("Skipping invalid UnsubscribedContact record: ID={ContactId}, UnsubscribedDate={UnsubscribedDate}", contact.ID, contact.UnsubscribedDate);
+                logger.LogWarning("Skipping invalid UnsubscribedContact record: ID={ContactId}", contact.ID);
             }
         }
 
@@ -852,13 +852,13 @@ public class CampaignService(IExternalApiService externalApiService, IUnitOfWork
                 Account = item?["Subaccount"]?["Name"]?.GetValue<string>()
             };
 
-            if (send.ID > 0 && !string.IsNullOrEmpty(send.SendCompletedDate))
+            if (send.ID > 0)
             {
                 sends.Add(send);
             }
             else
             {
-                logger.LogWarning("Skipping invalid Send record: ID={SendId}, SendCompleteDate={SendCompleteDate}", send.ID, send.SendCompletedDate);
+                logger.LogWarning("Skipping invalid Send record: ID={SendId}", send.ID);
             }
         }
 
@@ -917,7 +917,7 @@ public class CampaignService(IExternalApiService externalApiService, IUnitOfWork
     {
         return displayedContacts.Select(contact => new DisplayedEmails
         {
-            ExternalId = contact.ID,
+            ExternalId = contact.SendID,
             CampaignId = contact.CampaignID,
             ContactEmail = contact.ContactEmail,
             DisplayedDate = contact.DisplayDate != null ? DateTime.Parse(contact.DisplayDate, System.Globalization.CultureInfo.InvariantCulture) : default,
@@ -938,7 +938,7 @@ public class CampaignService(IExternalApiService externalApiService, IUnitOfWork
     {
         return clickedLinkContacts.Select(contact => new ClickedLinks
         {
-            ExternalId = contact.ID,
+            ExternalId = contact.SendID,
             CampaignId = contact.CampaignID,
             ContactEmail = contact.ContactEmail,
             Url = contact.URL,
@@ -962,7 +962,7 @@ public class CampaignService(IExternalApiService externalApiService, IUnitOfWork
     {
         return bouncedContacts.Select(contact => new BouncedEmails
         {
-            ExternalId = contact.ID,
+            ExternalId = contact.SendID,
             CampaignId = contact.CampaignID,
             ContactEmail = contact.ContactEmail,
             BounceDate = contact.BounceDate != null ? DateTime.Parse(contact.BounceDate, System.Globalization.CultureInfo.InvariantCulture) : default,
@@ -976,7 +976,6 @@ public class CampaignService(IExternalApiService externalApiService, IUnitOfWork
     {
         return unsubscribedContacts.Select(contact => new UnsubscribedContacts
         {
-            Id = contact.ID,
             ExternalId = contact.SendID,
             CampaignId = contact.CampaignID,
             ContactEmail = contact.ContactEmail,
