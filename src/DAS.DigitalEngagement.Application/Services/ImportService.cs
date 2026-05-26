@@ -135,111 +135,150 @@ namespace DAS.DigitalEngagement.Application.Services
 
             _logger.LogInformation("Batch {BatchId}: Verifying import with token: {Token}", batchIndex, importResult.TokenFromEshot);
 
-            // Retry logic with increasing delays to handle API processing time
             int maxRetries = _emailMarketingApi.ApiRetryCount > 0 
                 ? _emailMarketingApi.ApiRetryCount 
                 : 5;
-            int baseDelaySeconds = 10;
+
+            await RetryVerificationWithBackoff(importResult, batchIndex, maxRetries);
+        }
+
+        private async Task RetryVerificationWithBackoff(BatchResultDetail importResult, int batchIndex, int maxRetries)
+        {
+            const int baseDelaySeconds = 10;
             
             for (int attempt = 1; attempt <= maxRetries; attempt++)
             {
-                // Wait before checking (10s, 20s, 30s, 40s, 50s)
                 await Task.Delay(TimeSpan.FromSeconds(baseDelaySeconds * attempt));
 
-                try
+                var verificationResult = await TryVerifyImportStatus(importResult, batchIndex, attempt, maxRetries);
+                
+                if (verificationResult == VerificationResult.Success)
                 {
-                    // The token value should be wrapped in single quotes for OData filter
-                    var filter = WebUtility.UrlEncode($"Token eq '{importResult.TokenFromEshot}'");
-                    var response = await _externalApiService.GetDataAsync($"ContactImports?$filter={filter}");
-
-                    var node = JsonNode.Parse(response)?["value"]?.AsArray()?.FirstOrDefault();
-                    if (node == null)
-                    {
-                        _logger.LogWarning("Batch {BatchId}: Attempt {Attempt}/{MaxRetries} - No data found for token {Token}", 
-                            batchIndex, attempt, maxRetries, importResult.TokenFromEshot);
-                        
-                        if (attempt < maxRetries)
-                        {
-                            continue; // Retry
-                        }
-                        
-                        importResult.Status = "Failed";
-                        importResult.Error = $"No import status found for token after {maxRetries} attempts";
-                        return;
-                    }
-
-                    var importStatus = node["ImportStatus"]?.GetValue<string>();
-                    
-                    // Check if still processing
-                    if (importStatus == "Waiting" || importStatus == "Processing")
-                    {
-                        _logger.LogInformation("Batch {BatchId}: Attempt {Attempt}/{MaxRetries} - Import still processing (Status: {Status})", 
-                            batchIndex, attempt, maxRetries, importStatus);
-                        
-                        if (attempt < maxRetries)
-                        {
-                            continue; // Retry
-                        }
-                    }
-
-                    // Parse the response fields - note the API uses "IsPartiallyImport" not "IsPartiallyImported"
-                    importResult.RecordsReceived = node["ContactsReceived"]?.GetValue<int?>() ?? 0;
-                    importResult.RecordsProcessed = node["ContactsImported"]?.GetValue<int?>() ?? 0;
-                    importResult.RecordsFailed = importResult.RecordsReceived - importResult.RecordsProcessed;
-                    
-                    // Try both field names for compatibility
-                    importResult.IsPartiallyImported = node["IsPartiallyImport"]?.GetValue<bool?>() 
-                        ?? node["IsPartiallyImported"]?.GetValue<bool?>() 
-                        ?? false;
-                    
-                    importResult.AdditionalInfo = node["AdditionalInfo"]?.GetValue<string>();
-
-                    // Map ImportStatus to our Status field
-                    // API returns "Error" even for partial imports, so we need to check IsPartiallyImport
-                    if (importStatus == "Error")
-                    {
-                        // If it's partially imported, consider it completed with warnings
-                        if (importResult.IsPartiallyImported && importResult.RecordsProcessed > 0)
-                        {
-                            importResult.Status = "Completed";
-                            _logger.LogWarning("Batch {BatchId}: Partial import - {RecordsProcessed}/{RecordsReceived} records imported. {RecordsFailed} failed. Reason: {AdditionalInfo}", 
-                                batchIndex, importResult.RecordsProcessed, importResult.RecordsReceived, importResult.RecordsFailed, importResult.AdditionalInfo);
-                        }
-                        else
-                        {
-                            importResult.Status = "Failed";
-                            importResult.Error = importResult.AdditionalInfo;
-                            _logger.LogError("Batch {BatchId}: Import failed - {Error}", batchIndex, importResult.Error);
-                        }
-                    }
-                    else
-                    {
-                        importResult.Status = "Completed";
-                        _logger.LogInformation("Batch {BatchId}: Import successful - {RecordsProcessed}/{RecordsReceived} records imported", 
-                            batchIndex, importResult.RecordsProcessed, importResult.RecordsReceived);
-                    }
-
-                    _logger.LogInformation("Batch {BatchId}: Import verification completed - ContactsReceived={ContactsReceived}, ContactsImported={ContactsImported}, RecordsFailed={RecordsFailed}, IsPartiallyImported={IsPartiallyImported}, ImportStatus={ImportStatus}", 
-                        batchIndex, importResult.RecordsReceived, importResult.RecordsProcessed, importResult.RecordsFailed, importResult.IsPartiallyImported, importStatus);
-                    
-                    return; // Success, exit retry loop
+                    return;
                 }
-                catch (Exception ex)
+                
+                if (verificationResult == VerificationResult.Failed)
                 {
-                    _logger.LogError(ex, "Batch {BatchId}: Attempt {Attempt}/{MaxRetries} - Error verifying contact import", 
-                        batchIndex, attempt, maxRetries);
-                    
-                    if (attempt < maxRetries)
-                    {
-                        continue; // Retry
-                    }
+                    return;
                 }
+                
+                // Continue retrying for VerificationResult.Retry
             }
 
-            // If we get here, all retries failed
+            // All retries exhausted
             _logger.LogError("Batch {BatchId}: Failed to verify import after {MaxRetries} attempts", batchIndex, maxRetries);
             importResult.Status = "Failed";
             importResult.Error = $"Failed to verify import status after {maxRetries} attempts";
+        }
+
+        private async Task<VerificationResult> TryVerifyImportStatus(BatchResultDetail importResult, int batchIndex, int attempt, int maxRetries)
+        {
+            try
+            {
+                var filter = WebUtility.UrlEncode($"Token eq '{importResult.TokenFromEshot}'");
+                var response = await _externalApiService.GetDataAsync($"ContactImports?$filter={filter}");
+
+                var node = JsonNode.Parse(response)?["value"]?.AsArray()?.FirstOrDefault();
+                if (node == null)
+                {
+                    return HandleMissingNode(importResult, batchIndex, attempt, maxRetries);
+                }
+
+                var importStatus = node["ImportStatus"]?.GetValue<string>();
+                
+                if (IsStillProcessing(importStatus))
+                {
+                    return HandleProcessingStatus(batchIndex, attempt, maxRetries, importStatus);
+                }
+
+                PopulateImportResult(importResult, node);
+                SetFinalStatus(importResult, batchIndex, importStatus);
+                
+                return VerificationResult.Success;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Batch {BatchId}: Attempt {Attempt}/{MaxRetries} - Error verifying contact import", 
+                    batchIndex, attempt, maxRetries);
+                
+                return attempt < maxRetries ? VerificationResult.Retry : VerificationResult.Failed;
+            }
+        }
+
+        private VerificationResult HandleMissingNode(BatchResultDetail importResult, int batchIndex, int attempt, int maxRetries)
+        {
+            _logger.LogWarning("Batch {BatchId}: Attempt {Attempt}/{MaxRetries} - No data found for token {Token}", 
+                batchIndex, attempt, maxRetries, importResult.TokenFromEshot);
+            
+            if (attempt < maxRetries)
+            {
+                return VerificationResult.Retry;
+            }
+            
+            importResult.Status = "Failed";
+            importResult.Error = $"No import status found for token after {maxRetries} attempts";
+            return VerificationResult.Failed;
+        }
+
+        private bool IsStillProcessing(string importStatus)
+        {
+            return importStatus == "Waiting" || importStatus == "Processing";
+        }
+
+        private VerificationResult HandleProcessingStatus(int batchIndex, int attempt, int maxRetries, string importStatus)
+        {
+            _logger.LogInformation("Batch {BatchId}: Attempt {Attempt}/{MaxRetries} - Import still processing (Status: {Status})", 
+                batchIndex, attempt, maxRetries, importStatus);
+            
+            return attempt < maxRetries ? VerificationResult.Retry : VerificationResult.Success;
+        }
+
+        private void PopulateImportResult(BatchResultDetail importResult, JsonNode node)
+        {
+            importResult.RecordsReceived = node["ContactsReceived"]?.GetValue<int?>() ?? 0;
+            importResult.RecordsProcessed = node["ContactsImported"]?.GetValue<int?>() ?? 0;
+            importResult.RecordsFailed = importResult.RecordsReceived - importResult.RecordsProcessed;
+            
+            importResult.IsPartiallyImported = node["IsPartiallyImport"]?.GetValue<bool?>() 
+                ?? node["IsPartiallyImported"]?.GetValue<bool?>() 
+                ?? false;
+            
+            importResult.AdditionalInfo = node["AdditionalInfo"]?.GetValue<string>();
+        }
+
+        private void SetFinalStatus(BatchResultDetail importResult, int batchIndex, string importStatus)
+        {
+            if (importStatus == "Error")
+            {
+                if (importResult.IsPartiallyImported && importResult.RecordsProcessed > 0)
+                {
+                    importResult.Status = "Completed";
+                    _logger.LogWarning("Batch {BatchId}: Partial import - {RecordsProcessed}/{RecordsReceived} records imported. {RecordsFailed} failed. Reason: {AdditionalInfo}", 
+                        batchIndex, importResult.RecordsProcessed, importResult.RecordsReceived, importResult.RecordsFailed, importResult.AdditionalInfo);
+                }
+                else
+                {
+                    importResult.Status = "Failed";
+                    importResult.Error = importResult.AdditionalInfo;
+                    _logger.LogError("Batch {BatchId}: Import failed - {Error}", batchIndex, importResult.Error);
+                }
+            }
+            else
+            {
+                importResult.Status = "Completed";
+                _logger.LogInformation("Batch {BatchId}: Import successful - {RecordsProcessed}/{RecordsReceived} records imported", 
+                    batchIndex, importResult.RecordsProcessed, importResult.RecordsReceived);
+            }
+
+            _logger.LogInformation("Batch {BatchId}: Import verification completed - ContactsReceived={ContactsReceived}, ContactsImported={ContactsImported}, RecordsFailed={RecordsFailed}, IsPartiallyImported={IsPartiallyImported}, ImportStatus={ImportStatus}", 
+                batchIndex, importResult.RecordsReceived, importResult.RecordsProcessed, importResult.RecordsFailed, importResult.IsPartiallyImported, importStatus);
+        }
+
+        private enum VerificationResult
+        {
+            Success,
+            Failed,
+            Retry
         }
 
         private void ExtractToken(BatchResultDetail importResult)
