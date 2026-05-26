@@ -175,6 +175,7 @@ SELECT
     '' AS ActiveVacancies,
     '' AS AccountUserRole,
     '' AS Foundationappinlast24months,
+    '' AS ApprenticeshipUnit,
     '' AS Stage1a,
     '' AS Stage1b,
     '' AS Stage2,
@@ -198,7 +199,7 @@ SELECT
         WHEN pea.ProviderTypeId = 3 THEN 'Supporting Provider'
         ELSE ''
     END AS ProviderType,
-    ProviderTypeId,
+    CAST(pea.ProviderTypeId AS VARCHAR(100)) AS ProviderTypeId,
     CASE
         WHEN pea.IsEmployerProvider = 1 THEN 'true'
         ELSE 'false'

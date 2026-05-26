@@ -693,7 +693,7 @@ CombinedData AS (
         RecordSource,
         '' AS Ukprn,
         '' AS ProviderType,
-        '' AS ProvierTypeId,
+        '' AS ProviderTypeId,
         'false' AS Employerprovider,
         'false' AS IsProvider,
         '' AS Providersactivelinkedapps,
