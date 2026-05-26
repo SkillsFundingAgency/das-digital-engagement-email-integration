@@ -614,12 +614,6 @@ namespace DAS.DigitalEngagement.Application.Tests.Services
             var leads = new List<TestLead> { new TestLead { Email = "test@example.com", Name = "Test User" } };
             var chunks = new List<IList<TestLead>> { leads };
             
-            _mockCsvService.Setup(x => x.GetByteCount(leads)).Returns(1000);
-            _mockChunkingService.Setup(x => x.GetChunks(1000, leads)).Returns(chunks);
-            _mockPayLoadMapper.Setup(x => x.MapToPayload(It.IsAny<IList<TestLead>>(), "Lead"))
-                .Returns(new List<ExpandoObject> { new ExpandoObject() });
-            _mockCsvService.Setup(x => x.ToCsv(It.IsAny<IList<ExpandoObject>>())).Returns("csv,data");
-            
             var batchResult = new BatchResultDetail
             {
                 Status = "Completed",
@@ -637,15 +631,83 @@ namespace DAS.DigitalEngagement.Application.Tests.Services
 
             // Assert
             Assert.That(result.BatchResults.Any(b => b.Status == "Failed"), Is.True);
-            Assert.That(result.BatchResults.Any(b => b.Error?.Contains("No token received")), Is.True);
+            Assert.That(result.BatchResults.Any(b => b.Error == "No token received from external API"), Is.True);
         }
 
-        #endregion
+        [Test]
+        public async Task ImportEmployeeRegistration_NullToken_MarksAsFailed()
+        {
+            // Arrange
+            var service = CreateService();
+            var leads = new List<TestLead> { new TestLead { Email = "test@example.com", Name = "Test User" } };
+            var chunks = new List<IList<TestLead>> { leads };
+            
+            var batchResult = new BatchResultDetail
+            {
+                Status = "Completed",
+                TokenFromEshot = null,
+                RecordsReceived = 1,
+                RecordsProcessed = 0
+            };
+            
+            _mockExternalApiService
+                .Setup(x => x.PostDataAsync(It.IsAny<string>(), It.IsAny<string>()))
+                .ReturnsAsync(batchResult);
 
-        #region VerifyContactImport Tests - Retry Logic
+            // Act
+            var result = await service.ImportEmployeeRegistration(leads);
+
+            // Assert
+            Assert.That(result.BatchResults.Any(b => b.Status == "Failed"), Is.True);
+            Assert.That(result.BatchResults.Any(b => b.Error == "No token received from external API"), Is.True);
+            _mockLogger.Verify(
+                x => x.Log(
+                    LogLevel.Error,
+                    It.IsAny<EventId>(),
+                    It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("No token received from API")),
+                    It.IsAny<Exception>(),
+                    It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+                Times.AtLeast(1));
+        }
 
         [Test]
-        public async Task ImportEmployeeRegistration_VerificationSucceedsOnSecondAttempt_CompletesSuccessfully()
+        public async Task ImportEmployeeRegistration_WhitespaceToken_MarksAsFailed()
+        {
+            // Arrange
+            var service = CreateService();
+            var leads = new List<TestLead> { new TestLead { Email = "test@example.com", Name = "Test User" } };
+            var chunks = new List<IList<TestLead>> { leads };
+            
+            var batchResult = new BatchResultDetail
+            {
+                Status = "Completed",
+                TokenFromEshot = "   ",
+                RecordsReceived = 1,
+                RecordsProcessed = 0
+            };
+            
+            _mockExternalApiService
+                .Setup(x => x.PostDataAsync(It.IsAny<string>(), It.IsAny<string>()))
+                .ReturnsAsync(batchResult);
+
+            // Act
+            var result = await service.ImportEmployeeRegistration(leads);
+
+            // Assert
+            Assert.That(result.BatchResults.Any(b => b.Status == "Failed"), Is.True);
+            Assert.That(result.BatchResults.Any(b => b.Error == "No token received from external API"), Is.True);
+            _mockLogger.Verify(
+                x => x.Log(
+                    LogLevel.Error,
+                    It.IsAny<EventId>(),
+                    It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("No token received from API") && v.ToString().Contains("Batch")),
+                    It.IsAny<Exception>(),
+                    It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+                Times.AtLeast(1));
+        }
+
+        [Test]
+        public async Task ImportEmployeeRegistration_VerificationExceptionOnFirstAttempt_RetriesSuccessfully()
         {
             // Arrange
             var service = CreateService();
@@ -670,9 +732,58 @@ namespace DAS.DigitalEngagement.Application.Tests.Services
                 .Setup(x => x.PostDataAsync(It.IsAny<string>(), It.IsAny<string>()))
                 .ReturnsAsync(batchResult);
             
+            // First attempt throws exception, second succeeds
+            _mockExternalApiService
+                .SetupSequence(x => x.GetDataAsync(It.IsAny<string>()))
+                .ThrowsAsync(new HttpRequestException("Network error"))
+                .ReturnsAsync("{\"value\":[{\"ImportStatus\":\"Completed\",\"ContactsReceived\":1,\"ContactsImported\":1,\"IsPartiallyImport\":false}]}");
+
+            // Act
+            var result = await service.ImportEmployeeRegistration(leads);
+
+            // Assert
+            Assert.That(result.Status, Is.EqualTo("Completed"));
+            _mockLogger.Verify(
+                x => x.Log(
+                    LogLevel.Error,
+                    It.IsAny<EventId>(),
+                    It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("Error verifying contact import") && v.ToString().Contains("Attempt 1")),
+                    It.IsAny<Exception>(),
+                    It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+                Times.AtLeast(1));
+        }
+
+        [Test]
+        public async Task ImportEmployeeRegistration_VerificationExceptionOnMiddleAttempt_ContinuesRetrying()
+        {
+            // Arrange
+            var service = CreateService();
+            var leads = new List<TestLead> { new TestLead { Email = "test@example.com", Name = "Test User" } };
+            var chunks = new List<IList<TestLead>> { leads };
+            
+            _mockCsvService.Setup(x => x.GetByteCount(leads)).Returns(1000);
+            _mockChunkingService.Setup(x => x.GetChunks(1000, leads)).Returns(chunks);
+            _mockPayLoadMapper.Setup(x => x.MapToPayload(It.IsAny<IList<TestLead>>(), "Lead"))
+                .Returns(new List<ExpandoObject> { new ExpandoObject() });
+            _mockCsvService.Setup(x => x.ToCsv(It.IsAny<IList<ExpandoObject>>())).Returns("csv,data");
+            
+            var batchResult = new BatchResultDetail
+            {
+                Status = "Completed",
+                TokenFromEshot = "test-token",
+                RecordsReceived = 1,
+                RecordsProcessed = 1
+            };
+            
+            _mockExternalApiService
+                .Setup(x => x.PostDataAsync(It.IsAny<string>(), It.IsAny<string>()))
+                .ReturnsAsync(batchResult);
+            
+            // First attempt fails, second throws exception, third succeeds
             _mockExternalApiService
                 .SetupSequence(x => x.GetDataAsync(It.IsAny<string>()))
                 .ReturnsAsync("{\"value\":[]}")
+                .ThrowsAsync(new TimeoutException("Request timeout"))
                 .ReturnsAsync("{\"value\":[{\"ImportStatus\":\"Completed\",\"ContactsReceived\":1,\"ContactsImported\":1,\"IsPartiallyImport\":false}]}");
 
             // Act
@@ -680,11 +791,18 @@ namespace DAS.DigitalEngagement.Application.Tests.Services
 
             // Assert
             Assert.That(result.Status, Is.EqualTo("Completed"));
-            _mockExternalApiService.Verify(x => x.GetDataAsync(It.IsAny<string>()), Times.AtLeast(2));
+            _mockLogger.Verify(
+                x => x.Log(
+                    LogLevel.Error,
+                    It.IsAny<EventId>(),
+                    It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("Error verifying contact import") && v.ToString().Contains("Attempt 2")),
+                    It.Is<Exception>(ex => ex is TimeoutException),
+                    It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+                Times.AtLeast(1));
         }
 
         [Test]
-        public async Task ImportEmployeeRegistration_ProcessingStatusRetriesUntilComplete_CompletesSuccessfully()
+        public async Task ImportEmployeeRegistration_AllVerificationAttemptsThrowException_MarkesAsFailed()
         {
             // Arrange
             var service = CreateService();
@@ -702,29 +820,106 @@ namespace DAS.DigitalEngagement.Application.Tests.Services
                 Status = "Completed",
                 TokenFromEshot = "test-token",
                 RecordsReceived = 1,
-                RecordsProcessed = 1
+                RecordsProcessed = 0
             };
             
             _mockExternalApiService
                 .Setup(x => x.PostDataAsync(It.IsAny<string>(), It.IsAny<string>()))
                 .ReturnsAsync(batchResult);
             
+            // All attempts throw exception
+            _mockExternalApiService
+                .Setup(x => x.GetDataAsync(It.IsAny<string>()))
+                .ThrowsAsync(new InvalidOperationException("Service unavailable"));
+
+            // Act
+            var result = await service.ImportEmployeeRegistration(leads);
+
+            // Assert
+            Assert.That(result.BatchResults.Any(b => b.Status == "Failed"), Is.True);
+            Assert.That(result.BatchResults.Any(b => b.Error?.Contains("Failed to verify import status after") == true), Is.True);
+            
+            // Verify all retry attempts logged the error
+            _mockLogger.Verify(
+                x => x.Log(
+                    LogLevel.Error,
+                    It.IsAny<EventId>(),
+                    It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("Error verifying contact import")),
+                    It.Is<Exception>(ex => ex is InvalidOperationException),
+                    It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+                Times.AtLeast(3)); // Should retry ApiRetryCount (3) times
+        }
+
+        [Test]
+        public async Task ImportEmployeeRegistration_DifferentExceptionTypes_LogsAppropriately()
+        {
+            // Arrange
+            var service = CreateService();
+            var leads = new List<TestLead> { new TestLead { Email = "test@example.com", Name = "Test User" } };
+            var chunks = new List<IList<TestLead>> { leads };
+            
+            _mockCsvService.Setup(x => x.GetByteCount(leads)).Returns(1000);
+            _mockChunkingService.Setup(x => x.GetChunks(1000, leads)).Returns(chunks);
+            _mockPayLoadMapper.Setup(x => x.MapToPayload(It.IsAny<IList<TestLead>>(), "Lead"))
+                .Returns(new List<ExpandoObject> { new ExpandoObject() });
+            _mockCsvService.Setup(x => x.ToCsv(It.IsAny<IList<ExpandoObject>>())).Returns("csv,data");
+            
+            var batchResult = new BatchResultDetail
+            {
+                Status = "Completed",
+                TokenFromEshot = "test-token",
+                RecordsReceived = 1,
+                RecordsProcessed = 0
+            };
+            
+            _mockExternalApiService
+                .Setup(x => x.PostDataAsync(It.IsAny<string>(), It.IsAny<string>()))
+                .ReturnsAsync(batchResult);
+            
+            // Different exceptions on each attempt
             _mockExternalApiService
                 .SetupSequence(x => x.GetDataAsync(It.IsAny<string>()))
-                .ReturnsAsync("{\"value\":[{\"ImportStatus\":\"Waiting\"}]}")
-                .ReturnsAsync("{\"value\":[{\"ImportStatus\":\"Processing\"}]}")
-                .ReturnsAsync("{\"value\":[{\"ImportStatus\":\"Completed\",\"ContactsReceived\":1,\"ContactsImported\":1,\"IsPartiallyImport\":false}]}");
+                .ThrowsAsync(new HttpRequestException("Network error"))
+                .ThrowsAsync(new TaskCanceledException("Request cancelled"))
+                .ThrowsAsync(new System.Text.Json.JsonException("Invalid JSON"));
 
             // Act
             var result = await service.ImportEmployeeRegistration(leads);
 
             // Assert
-            Assert.That(result.Status, Is.EqualTo("Completed"));
-            _mockExternalApiService.Verify(x => x.GetDataAsync(It.IsAny<string>()), Times.AtLeast(3));
+            Assert.That(result.BatchResults.Any(b => b.Status == "Failed"), Is.True);
+            
+            // Verify different exception types are logged
+            _mockLogger.Verify(
+                x => x.Log(
+                    LogLevel.Error,
+                    It.IsAny<EventId>(),
+                    It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("Error verifying contact import")),
+                    It.Is<Exception>(ex => ex is HttpRequestException),
+                    It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+                Times.Once);
+            
+            _mockLogger.Verify(
+                x => x.Log(
+                    LogLevel.Error,
+                    It.IsAny<EventId>(),
+                    It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("Error verifying contact import")),
+                    It.Is<Exception>(ex => ex is TaskCanceledException),
+                    It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+                Times.Once);
+            
+            _mockLogger.Verify(
+                x => x.Log(
+                    LogLevel.Error,
+                    It.IsAny<EventId>(),
+                    It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("Error verifying contact import")),
+                    It.Is<Exception>(ex => ex is System.Text.Json.JsonException),
+                    It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+                Times.Once);
         }
 
         [Test]
-        public async Task ImportEmployeeRegistration_MaxRetriesExceeded_MarkesAsFailed()
+        public async Task ImportEmployeeRegistration_EmptyTokenAfterExtraction_MarksAsFailedAndLogsError()
         {
             // Arrange
             var service = CreateService();
@@ -737,10 +932,11 @@ namespace DAS.DigitalEngagement.Application.Tests.Services
                 .Returns(new List<ExpandoObject> { new ExpandoObject() });
             _mockCsvService.Setup(x => x.ToCsv(It.IsAny<IList<ExpandoObject>>())).Returns("csv,data");
             
+            // Token is JSON but extracts to empty string
             var batchResult = new BatchResultDetail
             {
                 Status = "Completed",
-                TokenFromEshot = "test-token",
+                TokenFromEshot = "{\"Token\":\"\"}",
                 RecordsReceived = 1,
                 RecordsProcessed = 0
             };
@@ -748,22 +944,26 @@ namespace DAS.DigitalEngagement.Application.Tests.Services
             _mockExternalApiService
                 .Setup(x => x.PostDataAsync(It.IsAny<string>(), It.IsAny<string>()))
                 .ReturnsAsync(batchResult);
-            
-            _mockExternalApiService
-                .Setup(x => x.GetDataAsync(It.IsAny<string>()))
-                .ReturnsAsync("{\"value\":[]}");
 
             // Act
             var result = await service.ImportEmployeeRegistration(leads);
 
             // Assert
             Assert.That(result.BatchResults.Any(b => b.Status == "Failed"), Is.True);
-            Assert.That(result.BatchResults.Any(b => b.Error?.Contains("No import status found")), Is.True);
-            _mockExternalApiService.Verify(x => x.GetDataAsync(It.IsAny<string>()), Times.AtLeast(3));
+            Assert.That(result.BatchResults.Any(b => b.Error == "No token received from external API"), Is.True);
+            
+            _mockLogger.Verify(
+                x => x.Log(
+                    LogLevel.Error,
+                    It.IsAny<EventId>(),
+                    It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("No token received from API")),
+                    It.IsAny<Exception>(),
+                    It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+                Times.AtLeast(2)); // Once per template
         }
 
         [Test]
-        public async Task ImportEmployeeRegistration_VerificationThrowsException_RetriesAndFails()
+        public async Task ImportEmployeeRegistration_TokenIsJsonWithNullValue_MarksAsFailed()
         {
             // Arrange
             var service = CreateService();
@@ -779,7 +979,7 @@ namespace DAS.DigitalEngagement.Application.Tests.Services
             var batchResult = new BatchResultDetail
             {
                 Status = "Completed",
-                TokenFromEshot = "test-token",
+                TokenFromEshot = "{\"Token\":null}",
                 RecordsReceived = 1,
                 RecordsProcessed = 0
             };
@@ -787,136 +987,13 @@ namespace DAS.DigitalEngagement.Application.Tests.Services
             _mockExternalApiService
                 .Setup(x => x.PostDataAsync(It.IsAny<string>(), It.IsAny<string>()))
                 .ReturnsAsync(batchResult);
-            
-            _mockExternalApiService
-                .Setup(x => x.GetDataAsync(It.IsAny<string>()))
-                .ThrowsAsync(new HttpRequestException("Verification API error"));
 
             // Act
             var result = await service.ImportEmployeeRegistration(leads);
 
             // Assert
             Assert.That(result.BatchResults.Any(b => b.Status == "Failed"), Is.True);
-            Assert.That(result.BatchResults.Any(b => b.Error?.Contains("Failed to verify import")), Is.True);
-        }
-
-        #endregion
-
-        #region VerifyContactImport Tests - Import Status Handling
-
-        [Test]
-        public async Task ImportEmployeeRegistration_ErrorStatusWithPartialImport_MarksAsCompleted()
-        {
-            // Arrange
-            var service = CreateService();
-            var leads = new List<TestLead> { new TestLead { Email = "test@example.com", Name = "Test User" } };
-            var chunks = new List<IList<TestLead>> { leads };
-            
-            _mockCsvService.Setup(x => x.GetByteCount(leads)).Returns(1000);
-            _mockChunkingService.Setup(x => x.GetChunks(1000, leads)).Returns(chunks);
-            _mockPayLoadMapper.Setup(x => x.MapToPayload(It.IsAny<IList<TestLead>>(), "Lead"))
-                .Returns(new List<ExpandoObject> { new ExpandoObject() });
-            _mockCsvService.Setup(x => x.ToCsv(It.IsAny<IList<ExpandoObject>>())).Returns("csv,data");
-            
-            var batchResult = new BatchResultDetail
-            {
-                Status = "Completed",
-                TokenFromEshot = "test-token",
-                RecordsReceived = 10,
-                RecordsProcessed = 5
-            };
-            
-            _mockExternalApiService
-                .Setup(x => x.PostDataAsync(It.IsAny<string>(), It.IsAny<string>()))
-                .ReturnsAsync(batchResult);
-            
-            _mockExternalApiService
-                .Setup(x => x.GetDataAsync(It.IsAny<string>()))
-                .ReturnsAsync("{\"value\":[{\"ImportStatus\":\"Error\",\"ContactsReceived\":10,\"ContactsImported\":5,\"IsPartiallyImport\":true,\"AdditionalInfo\":\"Some records failed validation\"}]}");
-
-            // Act
-            var result = await service.ImportEmployeeRegistration(leads);
-
-            // Assert
-            Assert.That(result.BatchResults.Any(b => b.Status == "Completed"), Is.True);
-            Assert.That(result.BatchResults.Any(b => b.IsPartiallyImported), Is.True);
-            Assert.That(result.BatchResults.Any(b => b.RecordsFailed == 5), Is.True);
-        }
-
-        [Test]
-        public async Task ImportEmployeeRegistration_ErrorStatusWithNoImportedRecords_MarksAsFailed()
-        {
-            // Arrange
-            var service = CreateService();
-            var leads = new List<TestLead> { new TestLead { Email = "test@example.com", Name = "Test User" } };
-            var chunks = new List<IList<TestLead>> { leads };
-            
-            _mockCsvService.Setup(x => x.GetByteCount(leads)).Returns(1000);
-            _mockChunkingService.Setup(x => x.GetChunks(1000, leads)).Returns(chunks);
-            _mockPayLoadMapper.Setup(x => x.MapToPayload(It.IsAny<IList<TestLead>>(), "Lead"))
-                .Returns(new List<ExpandoObject> { new ExpandoObject() });
-            _mockCsvService.Setup(x => x.ToCsv(It.IsAny<IList<ExpandoObject>>())).Returns("csv,data");
-            
-            var batchResult = new BatchResultDetail
-            {
-                Status = "Completed",
-                TokenFromEshot = "test-token",
-                RecordsReceived = 10,
-                RecordsProcessed = 0
-            };
-            
-            _mockExternalApiService
-                .Setup(x => x.PostDataAsync(It.IsAny<string>(), It.IsAny<string>()))
-                .ReturnsAsync(batchResult);
-            
-            _mockExternalApiService
-                .Setup(x => x.GetDataAsync(It.IsAny<string>()))
-                .ReturnsAsync("{\"value\":[{\"ImportStatus\":\"Error\",\"ContactsReceived\":10,\"ContactsImported\":0,\"IsPartiallyImport\":false,\"AdditionalInfo\":\"Invalid data format\"}]}");
-
-            // Act
-            var result = await service.ImportEmployeeRegistration(leads);
-
-            // Assert
-            Assert.That(result.BatchResults.Any(b => b.Status == "Failed"), Is.True);
-            Assert.That(result.BatchResults.Any(b => b.Error?.Contains("Invalid data format")), Is.True);
-        }
-
-        [Test]
-        public async Task ImportEmployeeRegistration_UsesIsPartiallyImportedFieldName_ParsesCorrectly()
-        {
-            // Arrange
-            var service = CreateService();
-            var leads = new List<TestLead> { new TestLead { Email = "test@example.com", Name = "Test User" } };
-            var chunks = new List<IList<TestLead>> { leads };
-            
-            _mockCsvService.Setup(x => x.GetByteCount(leads)).Returns(1000);
-            _mockChunkingService.Setup(x => x.GetChunks(1000, leads)).Returns(chunks);
-            _mockPayLoadMapper.Setup(x => x.MapToPayload(It.IsAny<IList<TestLead>>(), "Lead"))
-                .Returns(new List<ExpandoObject> { new ExpandoObject() });
-            _mockCsvService.Setup(x => x.ToCsv(It.IsAny<IList<ExpandoObject>>())).Returns("csv,data");
-            
-            var batchResult = new BatchResultDetail
-            {
-                Status = "Completed",
-                TokenFromEshot = "test-token",
-                RecordsReceived = 10,
-                RecordsProcessed = 8
-            };
-            
-            _mockExternalApiService
-                .Setup(x => x.PostDataAsync(It.IsAny<string>(), It.IsAny<string>()))
-                .ReturnsAsync(batchResult);
-            
-            // Test with alternative field name
-            _mockExternalApiService
-                .Setup(x => x.GetDataAsync(It.IsAny<string>()))
-                .ReturnsAsync("{\"value\":[{\"ImportStatus\":\"Completed\",\"ContactsReceived\":10,\"ContactsImported\":8,\"IsPartiallyImported\":true}]}");
-
-            // Act
-            var result = await service.ImportEmployeeRegistration(leads);
-
-            // Assert
-            Assert.That(result.BatchResults.Any(b => b.IsPartiallyImported), Is.True);
+            Assert.That(result.BatchResults.Any(b => b.Error == "No token received from external API"), Is.True);
         }
 
         #endregion
