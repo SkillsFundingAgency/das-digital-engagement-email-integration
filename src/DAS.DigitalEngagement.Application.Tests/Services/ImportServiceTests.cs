@@ -103,7 +103,148 @@ namespace DAS.DigitalEngagement.Application.Tests.Services
         }
 
         [Test]
-        public async Task IsContactImportTemplatesExist_FirstTemplateExistsSecondDoesNot_ReturnsFalse()
+        public async Task IsContactImportTemplatesExist_ResponseWithMultipleTemplates_ReturnsTrue()
+        {
+            // Arrange
+            var service = CreateService();
+            var responseJson = "{\"value\":[{\"ID\":123},{\"ID\":124}]}";
+            
+            _mockExternalApiService
+                .Setup(x => x.GetDataAsync(It.IsAny<string>()))
+                .ReturnsAsync(responseJson);
+
+            // Act
+            var result = await service.IsContactImportTemplatesExist();
+
+            // Assert
+            Assert.That(result, Is.True);
+        }
+
+        [Test]
+        public async Task IsContactImportTemplatesExist_ResponseWithNullValue_ReturnsFalse()
+        {
+            // Arrange
+            var service = CreateService();
+            var responseJson = "{\"value\":null}";
+            
+            _mockExternalApiService
+                .Setup(x => x.GetDataAsync(It.IsAny<string>()))
+                .ReturnsAsync(responseJson);
+
+            // Act
+            var result = await service.IsContactImportTemplatesExist();
+
+            // Assert
+            Assert.That(result, Is.False);
+        }
+
+        [Test]
+        public async Task IsContactImportTemplatesExist_ResponseWithoutValueProperty_ReturnsFalse()
+        {
+            // Arrange
+            var service = CreateService();
+            var responseJson = "{\"data\":[{\"ID\":123}]}";
+            
+            _mockExternalApiService
+                .Setup(x => x.GetDataAsync(It.IsAny<string>()))
+                .ReturnsAsync(responseJson);
+
+            // Act
+            var result = await service.IsContactImportTemplatesExist();
+
+            // Assert
+            Assert.That(result, Is.False);
+        }
+
+        [Test]
+        public async Task IsContactImportTemplatesExist_EmptyJsonObject_ReturnsFalse()
+        {
+            // Arrange
+            var service = CreateService();
+            var responseJson = "{}";
+            
+            _mockExternalApiService
+                .Setup(x => x.GetDataAsync(It.IsAny<string>()))
+                .ReturnsAsync(responseJson);
+
+            // Act
+            var result = await service.IsContactImportTemplatesExist();
+
+            // Assert
+            Assert.That(result, Is.False);
+        }
+
+        [Test]
+        public async Task IsContactImportTemplatesExist_ValueIsNotArray_ReturnsFalse()
+        {
+            // Arrange
+            var service = CreateService();
+            var responseJson = "{\"value\":\"not an array\"}";
+            
+            _mockExternalApiService
+                .Setup(x => x.GetDataAsync(It.IsAny<string>()))
+                .ReturnsAsync(responseJson);
+
+            // Act
+            var result = await service.IsContactImportTemplatesExist();
+
+            // Assert
+            Assert.That(result, Is.False);
+        }
+
+        [Test]
+        public async Task IsContactImportTemplatesExist_ValueIsEmptyObject_ReturnsFalse()
+        {
+            // Arrange
+            var service = CreateService();
+            var responseJson = "{\"value\":{}}";
+            
+            _mockExternalApiService
+                .Setup(x => x.GetDataAsync(It.IsAny<string>()))
+                .ReturnsAsync(responseJson);
+
+            // Act
+            var result = await service.IsContactImportTemplatesExist();
+
+            // Assert
+            Assert.That(result, Is.False);
+        }
+
+        [Test]
+        public void IsContactImportTemplatesExist_InvalidJsonFormat_ThrowsJsonException()
+        {
+            // Arrange
+            var service = CreateService();
+            
+            _mockExternalApiService
+                .Setup(x => x.GetDataAsync(It.IsAny<string>()))
+                .ReturnsAsync("{invalid json format");
+
+            // Act & Assert
+            Assert.ThrowsAsync<System.Text.Json.JsonException>(() => 
+                service.IsContactImportTemplatesExist());
+        }
+
+        [Test]
+        public async Task IsContactImportTemplatesExist_FirstTemplateHasCountGreaterThanOne_ReturnsTrue()
+        {
+            // Arrange
+            var service = CreateService();
+            var responseJson = "{\"value\":[{\"ID\":123},{\"ID\":123}]}"; // Duplicate IDs
+            
+            _mockExternalApiService
+                .Setup(x => x.GetDataAsync(It.IsAny<string>()))
+                .ReturnsAsync(responseJson);
+
+            // Act
+            var result = await service.IsContactImportTemplatesExist();
+
+            // Assert
+            Assert.That(result, Is.True);
+        }
+
+        [Test]
+        public async Task IsContactImportTemplatesExist_SecondTemplateCheckFails_LogsWarningAndReturnsFalse()
         {
             // Arrange
             var service = CreateService();
@@ -118,6 +259,33 @@ namespace DAS.DigitalEngagement.Application.Tests.Services
 
             // Assert
             Assert.That(result, Is.False);
+            _mockLogger.Verify(
+                x => x.Log(
+                    LogLevel.Warning,
+                    It.IsAny<EventId>(),
+                    It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("Template ID 456 not found")),
+                    It.IsAny<Exception>(),
+                    It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+                Times.Once);
+        }
+
+        [Test]
+        public async Task IsContactImportTemplatesExist_BothTemplatesExistWithDifferentResponses_ReturnsTrue()
+        {
+            // Arrange
+            var service = CreateService();
+            
+            _mockExternalApiService
+                .SetupSequence(x => x.GetDataAsync(It.IsAny<string>()))
+                .ReturnsAsync("{\"value\":[{\"ID\":123,\"Name\":\"Template1\"}]}")
+                .ReturnsAsync("{\"value\":[{\"ID\":456,\"Name\":\"Template2\",\"Active\":true}]}");
+
+            // Act
+            var result = await service.IsContactImportTemplatesExist();
+
+            // Assert
+            Assert.That(result, Is.True);
+            _mockExternalApiService.Verify(x => x.GetDataAsync(It.IsAny<string>()), Times.Exactly(2));
         }
 
         [Test]
