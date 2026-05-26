@@ -18,6 +18,7 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Handlers.Import
         private Mock<ILogger<ImportDataMartHandler>> _loggerMock;
         private Mock<IImportService> _importServiceMock;
         private ImportDataMartHandler _handler;
+        private static readonly int[] TemplatedUploadIds = new[] { 1 };
 
         [SetUp]
         public void SetUp()
@@ -39,7 +40,7 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Handlers.Import
                     ObjectName = "NotLead",
                     ViewName = "SomeView",
                     FieldMapping = "SomeFieldMapping",
-                    TemplatedUploadId = new[] { 1 }
+                    TemplatedUploadId = TemplatedUploadIds
                 }
             };
 
@@ -64,7 +65,7 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Handlers.Import
                     ObjectName = "Lead",
                     ViewName = "SomeView",
                     FieldMapping = "SomeFieldMapping",
-                    TemplatedUploadId = new[] { 1 }
+                    TemplatedUploadId = TemplatedUploadIds
                 }
             };
             _importServiceMock.Setup(x => x.IsContactImportTemplatesExist()).ReturnsAsync(false);
@@ -118,7 +119,7 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Handlers.Import
                     ObjectName = "Lead",
                     ViewName = "SomeView",
                     FieldMapping = "SomeFieldMapping",
-                    TemplatedUploadId = new[] { 1 }
+                    TemplatedUploadId = TemplatedUploadIds
                 }
             };
             _importServiceMock.Setup(x => x.IsContactImportTemplatesExist()).ReturnsAsync(true);

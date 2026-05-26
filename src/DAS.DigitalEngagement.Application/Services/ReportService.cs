@@ -156,8 +156,8 @@ namespace DAS.DigitalEngagement.Application.Services
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to save report file.");
-                throw;
+                _logger.LogError(ex, "Failed to save report file '{FileName}' to blob storage container '{Container}'.", fileName, _container);
+                throw new InvalidOperationException($"Failed to save report file '{fileName}' to blob storage.", ex);
             }
         }
 

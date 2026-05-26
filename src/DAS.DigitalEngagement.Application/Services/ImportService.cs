@@ -48,7 +48,7 @@ namespace DAS.DigitalEngagement.Application.Services
                 
                 if (count < 1)
                 {
-                    _logger.LogWarning($"Template ID {templateId} not found");
+                    _logger.LogWarning("Template ID {TemplateId} not found", templateId);
                     return false;
                 }
             }
@@ -201,7 +201,14 @@ namespace DAS.DigitalEngagement.Application.Services
                 _logger.LogError(ex, "Batch {BatchId}: Attempt {Attempt}/{MaxRetries} - Error verifying contact import", 
                     batchIndex, attempt, maxRetries);
                 
-                return attempt < maxRetries ? VerificationResult.Retry : VerificationResult.Failed;
+                if (attempt >= maxRetries)
+                {
+                    importResult.Status = "Failed";
+                    importResult.Error = "Failed to verify import status";
+                    return VerificationResult.Failed;
+                }
+                
+                return VerificationResult.Retry;
             }
         }
 

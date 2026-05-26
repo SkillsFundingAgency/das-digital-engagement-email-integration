@@ -26,6 +26,7 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Services
 
         private List<DataMartSettings> _settings;
         private EmailMarketingApi _emailMarketingApi;
+        private static readonly int[] TemplatedUploadIds = new[] { 100,200 };
 
         [SetUp]
         public void Setup()
@@ -41,7 +42,7 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Services
                 new DataMartSettings
                 {
                     ObjectName = "Lead",
-                    TemplatedUploadId = new[] { 100, 200 },
+                    TemplatedUploadId = TemplatedUploadIds,
                     FieldMapping = "field-map",
                     ViewName = "LeadView"
                 }

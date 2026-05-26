@@ -28,7 +28,7 @@ public class EmailNotificationService : IEmailNotificationService
 
     public async Task SendMonitoringReportAsync(string integrationName, string reportContent, string blobUrl, CancellationToken cancellationToken = default)
     {
-        if (_configuration.RecipientEmailAddresses == null || !_configuration.RecipientEmailAddresses.Any())
+        if (_configuration.RecipientEmailAddresses == null || _configuration.RecipientEmailAddresses.Count == 0)
         {
             _logger.LogWarning("No recipient email addresses configured for monitoring report");
             return;

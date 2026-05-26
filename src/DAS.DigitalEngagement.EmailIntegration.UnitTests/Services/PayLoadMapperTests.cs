@@ -8,6 +8,8 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Services
 {
     public class PayLoadMapperTests
     {
+        private static readonly int[] TemplatedUploadIds = new[] { 0 };
+
         [Test]
         public void MapToPayload_ThrowsIfLeadsIsNull()
         {
@@ -26,7 +28,7 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Services
                     ObjectName = "Lead",
                     FieldMapping = fieldMapping,
                     ViewName = "LeadView",
-                    TemplatedUploadId = new[] { 0 }
+                    TemplatedUploadId = TemplatedUploadIds
                 }
             };
             var mapper = new PayLoadMapper(dataMartSettings);

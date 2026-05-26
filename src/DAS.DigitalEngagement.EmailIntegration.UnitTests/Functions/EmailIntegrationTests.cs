@@ -20,6 +20,8 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Functions
         private Mock<IReportService> _reportServiceMock;
         private ApplicationConfiguration _configuration;
         private Integration.EmailIntegration _sut;
+        private static readonly int[] TemplatedUploadIds = new[] { 1 };
+
         [SetUp]
         public void SetUp()
         {
@@ -43,7 +45,7 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Functions
                         ViewName = "TestView",
                         ObjectName = "TestObject",
                         FieldMapping = "TestFieldMapping",
-                        TemplatedUploadId = new[] { 1 }
+                        TemplatedUploadId = TemplatedUploadIds
                     }
                 },
                 GovNotifyConfiguration = new GovNotifyConfiguration
