@@ -1,5 +1,4 @@
-﻿using Notify.Client;
-using Notify.Models;
+﻿using Notify.Models.Responses;
 using Microsoft.Extensions.Logging;
 using DAS.DigitalEngagement.Application.Services.Interfaces;
 using DAS.DigitalEngagement.Models.Infrastructure;
@@ -8,23 +7,23 @@ namespace DAS.DigitalEngagement.Application.Services;
 
 public class EmailNotificationService : IEmailNotificationService
 {
-    private readonly NotificationClient _notificationClient;
+    private readonly INotificationClientWrapper _notificationClient;
     private readonly GovNotifyConfiguration _configuration;
     private readonly ILogger<EmailNotificationService> _logger;
 
     public EmailNotificationService(
         GovNotifyConfiguration configuration,
-        ILogger<EmailNotificationService> logger)
+        ILogger<EmailNotificationService> logger,
+        INotificationClientWrapper notificationClient)
     {
         _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _notificationClient = notificationClient ?? throw new ArgumentNullException(nameof(notificationClient));
         
         if (string.IsNullOrWhiteSpace(_configuration.ApiKey))
         {
             throw new InvalidOperationException("GovUK Notify API Key is not configured");
         }
-        
-        _notificationClient = new NotificationClient(_configuration.ApiKey);
     }
 
     public async Task SendMonitoringReportAsync(string integrationName, string reportContent, string blobUrl, CancellationToken cancellationToken = default)
