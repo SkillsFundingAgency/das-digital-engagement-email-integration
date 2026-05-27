@@ -179,8 +179,6 @@ namespace DAS.DigitalEngagement.Application.Services.UnitTests
             mockBlobClient.Verify(x => x.UploadAsync(It.IsAny<Stream>(), true, It.IsAny<CancellationToken>()), Times.Once);
         }
 
-
-       
         /// <summary>
         /// Tests that SaveReportToBlob logs error and re-throws exception when CreateIfNotExistsAsync fails.
         /// </summary>
@@ -202,21 +200,39 @@ namespace DAS.DigitalEngagement.Application.Services.UnitTests
                 .Returns(mockBlobContainerClient.Object);
 
             mockBlobContainerClient
-                .Setup(x => x.CreateIfNotExistsAsync(It.IsAny<PublicAccessType>(), It.IsAny<System.Collections.Generic.IDictionary<string, string>>(), It.IsAny<BlobContainerEncryptionScopeOptions>(), It.IsAny<CancellationToken>()))
+                .Setup(x => x.CreateIfNotExistsAsync(
+                    It.IsAny<PublicAccessType>(),
+                    It.IsAny<IDictionary<string, string>>(),
+                    It.IsAny<BlobContainerEncryptionScopeOptions>(),
+                    It.IsAny<CancellationToken>()))
                 .ThrowsAsync(expectedException);
 
-            var service = new ReportService(mockBlobServiceClient.Object, mockLogger.Object, mockEmailNotificationService.Object);
+            var service = new ReportService(
+                mockBlobServiceClient.Object,
+                mockLogger.Object,
+                mockEmailNotificationService.Object);
 
             // Act & Assert
-            var thrownException = Assert.ThrowsAsync<RequestFailedException>(async () => await service.SaveReportToBlob(reportContent, fileName));
-            Assert.That(thrownException, Is.EqualTo(expectedException));
+            var thrownException = Assert.ThrowsAsync<InvalidOperationException>(
+                async () => await service.SaveReportToBlob(reportContent, fileName));
+
+            Assert.That(thrownException, Is.Not.Null);
+
+            Assert.That(
+                thrownException!.Message,
+                Is.EqualTo($"Failed to save report file '{fileName}' to blob storage."));
+
+            Assert.That(
+                thrownException.InnerException,
+                Is.EqualTo(expectedException));
 
             mockLogger.Verify(
                 x => x.Log(
                     LogLevel.Error,
                     It.IsAny<EventId>(),
-                    It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("Failed to save report file.")),
-                    expectedException,
+                    It.Is<It.IsAnyType>((v, t) =>
+                        v.ToString()!.Contains($"Failed to save report file '{fileName}' to blob storage container")),
+                    It.Is<Exception>(ex => ex == expectedException),
                     It.IsAny<Func<It.IsAnyType, Exception, string>>()),
                 Times.Once);
         }
@@ -1062,8 +1078,9 @@ namespace DAS.DigitalEngagement.Application.Services.UnitTests
                 .Returns(mockBlobContainerClient.Object);
 
             mockBlobContainerClient
-                .Setup(x => x.CreateIfNotExistsAsync(It.IsAny<PublicAccessType>(), It.IsAny<System.Collections.Generic.IDictionary<string, string>>(), It.IsAny<BlobContainerEncryptionScopeOptions>(), It.IsAny<CancellationToken>()))
-                .ReturnsAsync(Mock.Of<Response<BlobContainerInfo>>());
+               .Setup(x => x.CreateIfNotExistsAsync(It.IsAny<PublicAccessType>(), It.IsAny<System.Collections.Generic.IDictionary<string, string>>(), It.IsAny<BlobContainerEncryptionScopeOptions>(), It.IsAny<CancellationToken>()))
+
+               .ReturnsAsync(Mock.Of<Response<BlobContainerInfo>>());
 
             mockBlobContainerClient
                 .Setup(x => x.GetBlobClient(It.IsAny<string>()))
