@@ -186,8 +186,8 @@ namespace DAS.DigitalEngagement.Application.Services
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to save report file or send email notification.");
-                throw;
+                _logger.LogError(ex, "Failed to save report file '{FileName}' or send email notification for integration '{IntegrationName}' to blob storage container '{Container}'.", fileName, integrationName, _container);
+                throw new InvalidOperationException($"Failed to save report file '{fileName}' or send email notification for integration '{integrationName}'.", ex);
             }
         }
 

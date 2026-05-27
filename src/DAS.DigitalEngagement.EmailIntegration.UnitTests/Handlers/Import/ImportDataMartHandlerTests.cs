@@ -91,7 +91,7 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Handlers.Import
                     ObjectName = "Lead",
                     ViewName = "SomeView",
                     FieldMapping = "SomeFieldMapping",
-                    TemplatedUploadId = new[] { 1 }
+                    TemplatedUploadId = TemplatedUploadIds
                 }
             };
             _importServiceMock.Setup(x => x.IsContactImportTemplatesExist()).ReturnsAsync(true);
