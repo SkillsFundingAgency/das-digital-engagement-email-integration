@@ -397,6 +397,9 @@ EmailActiveApprenticesAggregate AS (
         AND e.DasAccountId_v2 <> 'N/A'
     LEFT JOIN ASData_PL.Va_Vacancy v
         ON v.EmployerId = e.EmployerId
+        -- AND ISNULL(v.IsDeleted_v2, 0) = 0
+        AND v.ApplicationClosingDate >= GETDATE()
+        AND v.EmployerId IS NOT NULL
     GROUP BY
         a.Id
 ),

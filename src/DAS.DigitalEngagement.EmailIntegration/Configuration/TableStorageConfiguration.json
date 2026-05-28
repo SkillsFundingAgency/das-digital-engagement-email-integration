@@ -184,17 +184,17 @@
           "Source": "ProviderActiveVacancies",
           "Target": "Providersactivelinkedvacancies"
         },
-        {
-          "Source": "Primaryusertype",
-          "Target": "Primaryusertype"
-        },
+        //{
+        //  "Source": "Primaryusertype",
+        //  "Target": "Primaryusertype"
+        //},
         {
           "Source": "Foundationappinlast24months",
           "Target": "Foundationappinlast24months"
         },
         {
           "Source": "ApprenticeshipUnit",
-          "Target": "AppsUnitInlast24Months"
+          "Target": "AppsUnitInlast24months"
         }
       ]
     }

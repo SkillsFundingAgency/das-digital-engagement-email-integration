@@ -12,7 +12,7 @@ public class PerformanceDataImporter(
     ILogger<PerformanceDataImporter> logger)
 {
     [Function("PerformanceDataImporter")]
-    public async Task Run([TimerTrigger("%PerformanceDataImportSchedule%", RunOnStartup = true)] TimerInfo myTimer)
+    public async Task Run([TimerTrigger("%PerformanceDataImportSchedule%")] TimerInfo myTimer)
     {
         logger.LogInformation("Performance Data Importer started at: {DateTime}", DateTime.Now);
         logger.LogInformation(
