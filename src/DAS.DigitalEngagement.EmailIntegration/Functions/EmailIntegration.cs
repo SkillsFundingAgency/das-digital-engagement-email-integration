@@ -37,23 +37,26 @@ public class EmailIntegration
 
         var reportFilename = $"Data-Mart/Lead/Import-{DateTime.UtcNow.ToString("s", System.Globalization.CultureInfo.InvariantCulture)}";
         string report;
+        string integrationName = "Email Integration";
 
         try
         {
-            var importSummary = await _importDataMartHandler.Handle(_configuration.DataMart);
+             var importSummary = await _importDataMartHandler.Handle(_configuration.DataMart);
 
-            report =_reportService.CreateImportSummaryReport(importSummary);
+            report = _reportService.CreateImportSummaryReport(importSummary);
             _logger.LogInformation("Import Summary: {ImportSummary}", importSummary.ToString());
             _logger.LogInformation("Email Integration Job completed successfully");
 
+            // Save report to blob and send email notification
+            await _reportService.SaveReportToBlobAndNotifyAsync(report, reportFilename, integrationName);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Email Integration Job failed with an exception");
             report = $"Unable to import custom object Lead: {ex}";
 
+            // Save error report to blob and send email notification
+            await _reportService.SaveReportToBlobAndNotifyAsync(report, reportFilename, $"{integrationName} - Failed");
         }
-
-        await _reportService.SaveReportToBlob(report, reportFilename);
     }
 }

@@ -44,9 +44,15 @@ namespace DAS.DigitalEngagement.EmailIntegration.Validators
                 AddIfNullOrWhiteSpace(dm.ViewName, $"DataMart[{i}].ViewName: required and cannot be empty.", failures);
                 AddIfNullOrWhiteSpace(dm.ObjectName, $"DataMart[{i}].ObjectName: required and cannot be empty.", failures);
                 AddIfNullOrWhiteSpace(dm.FieldMapping, $"DataMart[{i}].FieldMapping: required and cannot be empty.", failures);
-                if (dm.TemplatedUploadId == 0)
+                
+                if (dm.TemplatedUploadId == null || dm.TemplatedUploadId.Length == 0)
+                {
                     failures.Add($"DataMart[{i}].TemplatedUploadId: required and cannot be empty.");
-
+                }
+                else if (dm.TemplatedUploadId.Any(id => id <= 0))
+                {
+                    failures.Add($"DataMart[{i}].TemplatedUploadId: all IDs must be greater than zero.");
+                }
             }
         }
 

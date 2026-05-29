@@ -17,6 +17,29 @@ namespace DAS.DigitalEngagement.Models.Import
                     .Sum(b => b.RecordsProcessed);
             }
         }
+        public int TotalRecordsReceived
+        {
+            get
+            {
+                return BatchResults
+                    .Sum(b => b.RecordsReceived);
+            }
+        }
+        public int TotalRecordsFailed
+        {
+            get
+            {
+                return BatchResults
+                    .Sum(b => b.RecordsFailed);
+            }
+        }
+        public bool IsPartiallyImported
+        {
+            get
+            {
+                return BatchResults.Any(b => b.IsPartiallyImported);
+            }
+        }
         public string? FieldMapping { get; set; }
 
         public List<BatchResultDetail> BatchResults { get; set; } = new();
@@ -34,6 +57,9 @@ namespace DAS.DigitalEngagement.Models.Import
             foreach (var batch in BatchResults)
             {
                 summary.AppendLine($"  - Status: {batch.Status}, RecordsProcessed: {batch.RecordsProcessed}");
+                summary.AppendLine($"    RecordsReceived: {batch.RecordsReceived}, RecordsFailed: {batch.RecordsFailed}, IsPartiallyImported: {batch.IsPartiallyImported}");
+                summary.AppendLine($"    AdditionalInfo: {batch.AdditionalInfo}");
+
             }
             summary.AppendLine("Messages:");
             foreach (var msg in Messages)

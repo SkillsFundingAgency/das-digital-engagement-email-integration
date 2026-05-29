@@ -6,5 +6,6 @@ namespace DAS.DigitalEngagement.Application.Services.Interfaces
     {
         string CreateImportSummaryReport(ImportSummaryResult summary);
         Task SaveReportToBlob(string reportContent, string fileName);
+        Task SaveReportToBlobAndNotifyAsync(string reportContent, string fileName, string integrationName);
     }
 }

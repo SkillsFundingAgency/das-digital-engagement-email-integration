@@ -20,6 +20,8 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Functions
         private Mock<IReportService> _reportServiceMock;
         private ApplicationConfiguration _configuration;
         private Integration.EmailIntegration _sut;
+        private static readonly int[] TemplatedUploadIds = new[] { 1 };
+
         [SetUp]
         public void SetUp()
         {
@@ -43,8 +45,14 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Functions
                         ViewName = "TestView",
                         ObjectName = "TestObject",
                         FieldMapping = "TestFieldMapping",
-                        TemplatedUploadId = 1
+                        TemplatedUploadId = TemplatedUploadIds
                     }
+                },
+                GovNotifyConfiguration = new GovNotifyConfiguration
+                {
+                    ApiKey = "TestGovNotifyApiKey",
+                    MonitoringReportTemplateId = "TestTemplateId",
+                    RecipientEmailAddresses = new List<string> { "test@example.com" }
                 }
             };
             _sut = new Integration.EmailIntegration(_loggerMock.Object, _importDataMartHandlerMock.Object, _configuration, _reportServiceMock.Object);
@@ -128,6 +136,65 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Functions
                     It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("Email Integration Job failed with an exception")),
                     exception,
                     It.IsAny<Func<It.IsAnyType, Exception, string>>()),
+                Times.Once);
+        }
+
+        [Test]
+        public async Task RunAsync_CallsSaveReportToBlobAndNotifyAsync_OnSuccess()
+        {
+            // Arrange
+            var timerInfo = new TimerInfo();
+            var importSummary = new ImportSummaryResult
+            {
+                Status = "Completed",
+                StartTime = DateTime.UtcNow,
+                EndTime = DateTime.UtcNow,
+                TotalRecordsFromDb = 100,
+                BatchResults = new List<BatchResultDetail>()
+            };
+            
+            var expectedReport = "test report content";
+            
+            _importDataMartHandlerMock
+                .Setup(h => h.Handle(_configuration.DataMart))
+                .ReturnsAsync(importSummary);
+            
+            _reportServiceMock
+                .Setup(r => r.CreateImportSummaryReport(importSummary))
+                .Returns(expectedReport);
+
+            // Act
+            await _sut.RunAsync(timerInfo);
+
+            // Assert
+            _reportServiceMock.Verify(
+                r => r.SaveReportToBlobAndNotifyAsync(
+                    expectedReport,
+                    It.Is<string>(s => s.StartsWith("Data-Mart/Lead/Import-")),
+                    "Email Integration"),
+                Times.Once);
+        }
+
+        [Test]
+        public async Task RunAsync_CallsSaveReportToBlobAndNotifyAsync_OnFailure()
+        {
+            // Arrange
+            var timerInfo = new TimerInfo();
+            var exception = new Exception("Test exception");
+            
+            _importDataMartHandlerMock
+                .Setup(h => h.Handle(_configuration.DataMart))
+                .ThrowsAsync(exception);
+
+            // Act
+            await _sut.RunAsync(timerInfo);
+
+            // Assert
+            _reportServiceMock.Verify(
+                r => r.SaveReportToBlobAndNotifyAsync(
+                    It.Is<string>(s => s.Contains("Unable to import custom object Lead")),
+                    It.Is<string>(s => s.StartsWith("Data-Mart/Lead/Import-")),
+                    "Email Integration - Failed"),
                 Times.Once);
         }
     }

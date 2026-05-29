@@ -16,7 +16,7 @@ public class PerformanceDataImporterTests
     private readonly Mock<ILogger<PerformanceDataImporter>> _loggerMock;
     private readonly Mock<IImportCampaignPerformanceHandler> _importCampaignPerformanceHandlerMock;
     private ApplicationConfiguration _configuration;
-
+    private static readonly int[] TemplatedUploadIds = new[] { 1 };
     public PerformanceDataImporterTests()
     {
         _loggerMock = new Mock<ILogger<PerformanceDataImporter>>();
@@ -38,9 +38,15 @@ public class PerformanceDataImporterTests
                         ViewName = "TestView",
                         ObjectName = "TestObject",
                         FieldMapping = "TestFieldMapping",
-                        TemplatedUploadId = 1
+                        TemplatedUploadId = TemplatedUploadIds
                     }
-                }
+                },
+            GovNotifyConfiguration = new GovNotifyConfiguration
+            {
+                ApiKey = "TestApiKey",
+                MonitoringReportTemplateId = "TestTemplateId",
+                RecipientEmailAddresses = new List<string> { "test@example.com" }
+            }
         };
     }
 

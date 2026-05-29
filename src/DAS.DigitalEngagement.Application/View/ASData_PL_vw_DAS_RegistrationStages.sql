@@ -1,4 +1,4 @@
-﻿DROP VIEW [ASData_PL].[vw_DAS_RegistrationStages]
+﻿DROP VIEW IF EXISTS [ASData_PL].[vw_DAS_RegistrationStages]
 GO
 
 SET ANSI_NULLS ON
@@ -51,19 +51,18 @@ cte_Stages AS (
         CASE WHEN ag.SignedAgreementId IS NOT NULL THEN 'true' ELSE 'false' END AS Stage4a,
         CASE WHEN ag.Acknowledged = 1 AND ag.SignedAgreementId IS NULL THEN 'true' ELSE 'false' END AS Stage4b,
 
-        CASE WHEN a.AddTrainingProviderAcknowledged = 1 THEN 'true' ELSE 'false' END AS Stage5a,
         CASE 
-            WHEN prov.AccountId IS NULL 
-             AND a.AddTrainingProviderAcknowledged = 0
-            THEN 'true' ELSE 'false'
-        END AS Stage5b
+            WHEN a.AddTrainingProviderAcknowledged = 1 THEN 'true' 
+            WHEN prov.AccountId IS NULL THEN 'false' ELSE 'true' 
+        END AS Stage5 -- [Stage 5 - Provider added]
+
     FROM ASData_PL.Acc_User u
     LEFT JOIN ASData_PL.Acc_AccountUserRole aur ON u.Id = aur.UserId
     LEFT JOIN ASData_PL.Acc_Account a ON aur.AccountId = a.Id
     LEFT JOIN cte_Paye paye ON a.Id = paye.AccountId
     LEFT JOIN cte_Providers prov ON a.Id = prov.AccountId
     LEFT JOIN cte_Agreement ag ON a.Id = ag.AccountId
-    WHERE a.Name <> 'MY ACCOUNT'
+    WHERE a.Name <> 'MY ACCOUNT' Or a.Name IS NULL
 )
 -- sonar-ignore-end
 
@@ -87,9 +86,8 @@ SELECT
     CASE WHEN MIN(Stage3)  = MAX(Stage3)  THEN MIN(Stage3)  ELSE '' END AS Stage3,
     CASE WHEN MIN(Stage4a) = MAX(Stage4a) THEN MIN(Stage4a) ELSE '' END AS Stage4a,
     CASE WHEN MIN(Stage4b) = MAX(Stage4b) THEN MIN(Stage4b) ELSE '' END AS Stage4b,
-    CASE WHEN MIN(Stage5a) = MAX(Stage5a) THEN MIN(Stage5a) ELSE '' END AS Stage5a,
-    CASE WHEN MIN(Stage5b) = MAX(Stage5b) THEN MIN(Stage5b) ELSE '' END AS Stage5b
-
+    CASE WHEN MIN(Stage5) = MAX(Stage5) THEN MIN(Stage5) ELSE '' END AS Stage5
+  
 FROM cte_Stages
 GROUP BY
     UserEmail;

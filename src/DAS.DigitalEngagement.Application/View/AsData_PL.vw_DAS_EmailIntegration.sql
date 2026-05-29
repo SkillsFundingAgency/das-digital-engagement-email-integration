@@ -66,7 +66,7 @@ EmailActiveReservationAggregate AS (
                     THEN 0
 
                 -- Any active OR missing value  TRUE
-                WHEN MAX(COALESCE(rs.HasActiveReservation, 1)) = 1
+                WHEN MAX(COALESCE(rs.HasActiveReservation, 0)) = 1
                     THEN 1
 
                 -- All explicitly inactive
@@ -134,7 +134,7 @@ EmployerSizeCTE AS (
             WHEN de.EmployeeSize1 LIKE '%(Medium)%' THEN 'Medium'
             WHEN de.EmployeeSize1 LIKE '%(Large)%'  THEN 'Large'
             WHEN de.EmployeeSize1 LIKE '%(Macro)%'  THEN 'Macro'
-            ELSE 'Others'
+            ELSE ''
         END AS NormalizedEmployerSize,
         de.EmployerSectorEstimate
     FROM ASData_PL.DimEmployer de
@@ -152,11 +152,8 @@ EmployerAttributesAggregate AS (
                 THEN MAX(es.EmployerSectorEstimate)
             ELSE ''
         END AS EmployerSector,
-        CASE
-            WHEN COUNT(DISTINCT aub.CreatedDate) = 1
-                THEN MAX(aub.CreatedDate)
-            ELSE NULL
-        END AS AccountCreationDate
+
+        MIN(aub.CreatedDate) AS AccountCreationDate
 
     FROM AccountUsersBase aub
     LEFT JOIN EmployerSizeCTE es
@@ -239,6 +236,57 @@ FoundationApprenticeshipAggregate AS (
         ON faa.EmployerAccountID = aub.EmployerAccountID
     GROUP BY aub.EmployerEmail
 ),
+-- Acc_Account → Comt_Commitment → Comt_Apprenticeship → FAT2_StandardSector
+ApprenticeshipUnitAccountCTE AS (
+    SELECT
+        e.Id AS EmployerAccountID,
+        CAST(
+            CASE
+                WHEN MAX(
+                    CASE
+                        -- Apprenticeship Unit with approved status
+                        WHEN ss.ApprenticeshipType = 'ApprenticeshipUnit'
+                             AND ss.Status = 'Approved for Delivery'
+                        THEN 1
+                        ELSE 0
+                    END
+                ) = 1
+                THEN 1
+                ELSE 0
+            END
+        AS BIT) AS HasApprenticeshipUnit
+    FROM ASData_PL.Acc_Account e
+    LEFT JOIN ASData_PL.Comt_Commitment c
+        ON e.Id = c.EmployerAccountId
+    LEFT JOIN ASData_PL.Comt_Apprenticeship a
+        ON c.Id = a.CommitmentId
+        AND a.IsApproved = 1
+        AND a.HasHadDataLockSuccess = 1
+        AND a.TrainingType = 0
+    LEFT JOIN ASData_PL.FAT2_StandardSector ss
+        ON a.TrainingCode = ss.Larscode
+    GROUP BY e.Id
+),
+ApprenticeshipUnitAggregate AS (
+    SELECT
+        aub.EmployerEmail,
+        CAST(
+            CASE
+                -- No accounts → FALSE
+                WHEN COUNT(aub.EmployerAccountID) = 0
+                    THEN 0
+                -- Any TRUE or missing account data → TRUE
+                WHEN MAX(COALESCE(aua.HasApprenticeshipUnit, 0)) = 1
+                    THEN 1
+                -- All explicitly FALSE
+                ELSE 0
+            END
+        AS BIT) AS HasApprenticeshipUnit
+    FROM AccountUsersBase aub
+    LEFT JOIN ApprenticeshipUnitAccountCTE aua
+        ON aua.EmployerAccountID = aub.EmployerAccountID
+    GROUP BY aub.EmployerEmail
+),
 EmployerCommitmentAccountCTE AS (
     SELECT
         e.Id AS EmployerAccountID,
@@ -257,14 +305,8 @@ EmployerCommitmentAccountCTE AS (
             ELSE NULL
         END AS EndDate,
 
-        -- CompletionDate (same rule applied for consistency)
-        CASE
-            WHEN COUNT(DISTINCT a.CompletionDate) = 1
-                THEN MAX(a.CompletionDate)
-            ELSE NULL
-        END AS CompletionDate,
+      MAX(a.EndDate) AS CompletionDate,
 
-        
         -- Active Apprentices flag (account-level)
         CAST(
             CASE
@@ -281,7 +323,9 @@ EmployerCommitmentAccountCTE AS (
 
      FROM [ASData_PL].[Acc_Account] e
         LEFT JOIN ASData_PL.Comt_Commitment  c ON e.Id = c.EmployerAccountId
-        LEFT JOIN ASData_PL.Comt_Apprenticeship a ON c.Id = a.CommitmentId       
+        LEFT JOIN ASData_PL.Comt_Apprenticeship a ON c.Id = a.CommitmentId  
+                            AND a.StopDate IS NULL
+                            AND a.PauseDate IS NULL
         LEFT JOIN [ASData_PL].[Assessor_Learner] l ON a.Id = l.ApprenticeshipId
     GROUP BY
         e.Id
@@ -353,6 +397,9 @@ EmailActiveApprenticesAggregate AS (
         AND e.DasAccountId_v2 <> 'N/A'
     LEFT JOIN ASData_PL.Va_Vacancy v
         ON v.EmployerId = e.EmployerId
+        -- AND ISNULL(v.IsDeleted_v2, 0) = 0
+        AND v.ApplicationClosingDate >= GETDATE()
+        AND v.EmployerId IS NOT NULL
     GROUP BY
         a.Id
 ),
@@ -376,7 +423,7 @@ EmployerAccountRoleCTE AS (
         CASE
             WHEN aur.Role = 1 THEN 'Owner'
             WHEN aur.Role = 2 THEN 'Transactor'
-            WHEN aur.Role = 3 THEN 'TBC'
+            WHEN aur.Role = 3 THEN 'Viewer'
             ELSE ''
         END AS AccountRole
     FROM ASData_PL.Acc_Account e
@@ -449,14 +496,19 @@ AccountUsers AS (
             ELSE ''
         END AS HasFoundationAppLast24Months,
 
+        CASE
+            WHEN aua.HasApprenticeshipUnit = 1 THEN 'true'
+            WHEN aua.HasApprenticeshipUnit = 0 THEN 'false'
+            ELSE ''
+        END AS HasApprenticeshipUnit,
+
         rs.Stage1a,
         rs.Stage1b,
         rs.Stage2,
         rs.Stage3,
         rs.Stage4a,
         rs.Stage4b,
-        rs.Stage5a,
-        rs.Stage5b,
+        rs.Stage5,
 
         -- Registration progress score (0–8)
         (
@@ -466,14 +518,12 @@ AccountUsers AS (
             CASE WHEN rs.Stage3  = 'Y' THEN 1 ELSE 0 END +
             CASE WHEN rs.Stage4a = 'Y' THEN 1 ELSE 0 END +
             CASE WHEN rs.Stage4b = 'Y' THEN 1 ELSE 0 END +
-            CASE WHEN rs.Stage5a = 'Y' THEN 1 ELSE 0 END +
-            CASE WHEN rs.Stage5b = 'Y' THEN 1 ELSE 0 END
+            CASE WHEN rs.Stage5 = 'Y' THEN 1 ELSE 0 END 
         ) AS RegistrationProgressScore,
 
         -- Highest completed stage label
         CASE
-            WHEN rs.Stage5a = 'Y' THEN 'Stage 5 - Provider added'
-            WHEN rs.Stage5b = 'Y' THEN 'Stage 5 - Provider pending'
+            WHEN rs.Stage5 = 'Y' THEN 'Stage 5 - Provider added'
             WHEN rs.Stage4a = 'Y' THEN 'Stage 4 - Agreement signed'
             WHEN rs.Stage4b = 'Y' THEN 'Stage 4 - Agreement acknowledged'
             WHEN rs.Stage3  = 'Y' THEN 'Stage 3 - Account confirmed'
@@ -503,14 +553,18 @@ AccountUsers AS (
         ON er.EmployerEmail = aa.EmployerEmail
     LEFT JOIN FoundationApprenticeshipAggregate faa
         ON faa.EmployerEmail = aa.EmployerEmail
+    LEFT JOIN ApprenticeshipUnitAggregate aua
+        ON aua.EmployerEmail = aa.EmployerEmail
     LEFT JOIN [ASData_PL].[vw_DAS_RegistrationStages] rs
         ON rs.UserEmail = aa.EmployerEmail
         AND aa.EmployerAccountID IS NOT NULL
-        AND rs.EmployerAccountId = aa.EmployerAccountID
+        AND ISNULL(NULLIF(rs.EmployerAccountId, ''), '') = ISNULL(NULLIF(aa.EmployerAccountID, ''), '')
 ),
 CampaignUsersRanked AS (
     SELECT
         cud.Email,
+        cud.FirstName,
+        cud.LastName,
         cud.UkEmployerSize,
         cud.PrimaryIndustry,
         cud.PrimaryLocation,
@@ -523,18 +577,10 @@ CampaignUsersRanked AS (
         ) AS rn
     FROM ASData_PL.CPG_UserData cud
 ),
-CampaignNameAggregate AS (
-    SELECT
-        Email,
-        CASE WHEN COUNT(DISTINCT FirstName) = 1 THEN MAX(FirstName) ELSE '' END AS CampaignFirstName,
-        CASE WHEN COUNT(DISTINCT LastName)  = 1 THEN MAX(LastName)  ELSE '' END AS CampaignLastName
-    FROM ASData_PL.CPG_UserData
-    GROUP BY Email
-),
 CampaignUsers AS (
     SELECT
-        cna.CampaignFirstName,
-        CASE WHEN cna.CampaignFirstName = '' THEN '' ELSE cna.CampaignLastName END AS CampaignLastName,
+        cur.FirstName AS CampaignFirstName,
+        CASE WHEN cur.FirstName = '' THEN '' ELSE cur.LastName END AS CampaignLastName,
         cur.Email,
         cur.UkEmployerSize,
         cur.PrimaryIndustry,
@@ -543,8 +589,6 @@ CampaignUsers AS (
         cur.PersonOrigin,
         cur.IncludeInUR
     FROM CampaignUsersRanked cur
-    LEFT JOIN CampaignNameAggregate cna
-        ON cna.Email = cur.Email
     WHERE cur.rn = 1
 ),
 Merged AS (
@@ -579,6 +623,7 @@ Merged AS (
         au.AccountUserRole,
 
         au.HasFoundationAppLast24Months,
+        au.HasApprenticeshipUnit,
 
         -- Registration
         au.Stage1a,
@@ -587,8 +632,7 @@ Merged AS (
         au.Stage3,
         au.Stage4a,
         au.Stage4b,
-        au.Stage5a,
-        au.Stage5b,
+        au.Stage5,
         au.RegistrationProgressScore,
         au.CurrentRegistrationStage,
 
@@ -633,14 +677,14 @@ CombinedData AS (
         ActiveVacancies,
         AccountUserRole,
         HasFoundationAppLast24Months AS Foundationappinlast24months,
+        HasApprenticeshipUnit AS ApprenticeshipUnit,
         Stage1a,
         Stage1b,
         Stage2,
         Stage3,
         Stage4a,
         Stage4b,
-        Stage5a,
-        Stage5b,
+        Stage5,
         RegistrationProgressScore,
         CurrentRegistrationStage,
         UkEmployerSize,
@@ -652,8 +696,9 @@ CombinedData AS (
         RecordSource,
         '' AS Ukprn,
         '' AS ProviderType,
-        '' AS Employerprovider,
-        '' AS IsProvider,
+        '' AS ProviderTypeId,
+        'false' AS Employerprovider,
+        'false' AS IsProvider,
         '' AS Providersactivelinkedapps,
         '' AS Providersactivelinkedvacancies,
         CASE
@@ -676,25 +721,24 @@ CombinedData AS (
 -- Final output with Primary User Type determined from combined data
 SELECT
     *,
-    -- Primary User Type: Single decision based on ALL combined data
+    -- Primary User Type: Priority-based logic
     CASE
+        -- Rule 1: If email is in provider table with ProviderTypeId 1 or 3 = Provider (always, even if in employer tables)
+        WHEN IsProvider = 'true' AND ProviderTypeId IN (1, 3) THEN 'Provider'
 
-        -- Rule 1: If email is in provider table (not employer provider) = provider always
-        WHEN IsProvider = 'true' THEN 'Provider'
-
-        -- Rule 2: If email is employer-provider (ProviderTypeId = 2) = always employer provider
-        WHEN Employerprovider = 'true' THEN 'Employer Provider'
+        -- Rule 2: If email is in provider table with ProviderTypeId = 2 = Employer Provider (always, even if in employer tables)
+        WHEN IsProvider = 'true' AND Employerprovider = 'true' THEN 'Employer Provider'
         
-        -- Rule 3: If email is in both levy and non levy, but not provider = always levy
-        WHEN LevyStatus = 'Both' THEN 'Levy'
+        -- Rule 3: If email is in apps.gov sign up table AND employer table = Employer
+        WHEN AppsgovSignUpDate IS NOT NULL AND IsEmployer = 'true' THEN 'Employer'
         
-        -- Rule 4: If email is levy (not provider)
-        WHEN LevyStatus = 'Levy' THEN 'Levy'
+        -- Rule 4: If email is ONLY in employer table = Employer
+        WHEN IsEmployer = 'true' AND (IsProvider = 'false' OR IsProvider IS NULL) AND AppsgovSignUpDate IS NULL THEN 'Employer'
         
-        -- Rule 5: If email is non levy only (not provider, not employer provider, not in multiple levy types)
-        WHEN LevyStatus = 'Non Levy' THEN 'Non Levy'
+        -- Rule 5: If email is in apps.gov sign up table ONLY = Apps.gov sign up
+        WHEN AppsgovSignUpDate IS NOT NULL AND (IsEmployer = 'false' OR IsEmployer IS NULL) THEN 'Apps.gov sign up'
         
-        ELSE 'Unknown'
+        ELSE ''
     END AS Primaryusertype
 FROM CombinedData
 GO
