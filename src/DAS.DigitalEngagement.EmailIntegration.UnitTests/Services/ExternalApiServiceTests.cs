@@ -4,6 +4,7 @@ using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using DAS.DigitalEngagement.Application.Services;
+using DAS.DigitalEngagement.Models.Import;
 using DAS.DigitalEngagement.Models.Infrastructure;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -112,7 +113,7 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Services
 
             var result = await service.PostDataAsync("endpoint", "csv,data");
 
-            Assert.That(result.Status, Is.EqualTo("Completed"));
+            Assert.That(result.Status, Is.EqualTo(BatchStatus.Completed));
             Assert.That(result.TokenFromEshot, Is.EqualTo(expectedContent));
             Assert.That(result.Error, Is.Null);
         }
@@ -135,7 +136,7 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Services
 
             var result = await service.PostDataAsync("endpoint", "csv,data");
 
-            Assert.That(result.Status, Is.EqualTo("Failed"));
+            Assert.That(result.Status, Is.EqualTo(BatchStatus.Failed));
             Assert.That(result.Error, Does.Contain("Failed to post data to"));
             Assert.That(result.Error, Does.Contain("Response status code does not indicate success: 400 (Bad Request)"));
         }
@@ -154,7 +155,7 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Services
 
             var result = await service.PostDataAsync("endpoint", "csv,data");
 
-            Assert.That(result.Status, Is.EqualTo("Failed"));
+            Assert.That(result.Status, Is.EqualTo(BatchStatus.Failed));
             Assert.That(result.Error, Does.Contain("network error"));
         }   
     }

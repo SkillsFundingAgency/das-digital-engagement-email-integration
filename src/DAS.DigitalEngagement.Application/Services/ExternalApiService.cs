@@ -58,7 +58,7 @@ namespace DAS.DigitalEngagement.Application.Services
         {
             var result = new BatchResultDetail
             {
-                Status = "Pending",
+                Status = BatchStatus.Unknown,
                 Error = null
             };
 
@@ -67,8 +67,6 @@ namespace DAS.DigitalEngagement.Application.Services
 
             var request = new HttpRequestMessage(HttpMethod.Post, requestUrl);
             request.Headers.Authorization = new AuthenticationHeaderValue("Token", _apiKey);
-
-
 
             var bytes = Encoding.UTF8.GetBytes(csvBodyString);
             var bodyContent = new ByteArrayContent(bytes);
@@ -87,19 +85,20 @@ namespace DAS.DigitalEngagement.Application.Services
                         "Failed to post data to {RequestUrl}. Status Code: {StatusCode}",
                         requestUrl,
                         response.StatusCode);
-                    result.Status = "Failed";
+                    result.Status = BatchStatus.Failed;
                     result.Error = $"Failed to post data to {requestUrl}. Status Code: {response.StatusCode}";
                     response.EnsureSuccessStatusCode();
                 }
+
                 var content = await response.Content.ReadAsStringAsync();
                 result.TokenFromEshot = content;
-                result.Status = "Completed";
+                result.Status = BatchStatus.Completed;
 
                 _logger.LogInformation("Received response: {Content}", content);
             }
             catch (Exception ex)
             {
-                result.Status = "Failed";
+                result.Status = BatchStatus.Failed;
                 result.Error = $"Failed to post data to {requestUrl}. Error: {ex.Message}";
                 _logger.LogError(ex, "Exception occurred while posting data to {RequestUrl}", requestUrl);
             }

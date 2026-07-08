@@ -33,7 +33,7 @@ namespace DAS.DigitalEngagement.Application.Import.Handlers
 
             if (!config.Any(x => x.ObjectName == "Lead"))
             {
-                summary.Status = "Failed";
+                summary.Status = BatchStatus.Failed;
                 summary.EndTime = DateTime.UtcNow;
                 summary.Messages.Add("Expected Object name is configured in the Configuration");
                 return summary;
@@ -42,7 +42,7 @@ namespace DAS.DigitalEngagement.Application.Import.Handlers
             if (!await _importService.IsContactImportTemplatesExist())
             {
                 _logger.LogWarning("Contact import template is not availabel in E-shot.");
-                summary.Status = "Failed";
+                summary.Status = BatchStatus.Failed;
                 summary.EndTime = DateTime.UtcNow;
                 summary.Messages.Add("Contact import template is not available in E-shot.");
                 return summary;
@@ -59,7 +59,7 @@ namespace DAS.DigitalEngagement.Application.Import.Handlers
             }
 
             _logger.LogInformation("DataMart Handler did not retrieve any records for employer lead import");
-            summary.Status = "Completed";
+            summary.Status = BatchStatus.Completed;
             summary.EndTime = DateTime.UtcNow;
             summary.Messages.Add("No records to import.");
             return summary;

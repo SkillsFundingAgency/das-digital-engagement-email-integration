@@ -20,6 +20,7 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Handlers.Import
         private ImportDataMartHandler _handler;
         private static readonly int[] TemplatedUploadIds = new[] { 1 };
 
+
         [SetUp]
         public void SetUp()
         {
@@ -48,7 +49,7 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Handlers.Import
             var result = await _handler.Handle(config);
 
             // Assert
-            Assert.That(result.Status, Is.EqualTo("Failed"));
+            Assert.That(result.Status, Is.EqualTo(BatchStatus.Failed));
             Assert.That(result.Messages, Does.Contain("Expected Object name is configured in the Configuration"));
             Assert.That(result.StartTime, Is.Not.Null);
             Assert.That(result.EndTime, Is.Not.Null);
@@ -74,7 +75,7 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Handlers.Import
             var result = await _handler.Handle(config);
 
             // Assert
-            Assert.That(result.Status, Is.EqualTo("Failed"));
+            Assert.That(result.Status, Is.EqualTo(BatchStatus.Failed));
             Assert.That(result.Messages, Does.Contain("Contact import template is not available in E-shot."));
             Assert.That(result.StartTime, Is.Not.Null);
             Assert.That(result.EndTime, Is.Not.Null);
@@ -97,7 +98,11 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Handlers.Import
             _importServiceMock.Setup(x => x.IsContactImportTemplatesExist()).ReturnsAsync(true);
             var data = new List<object> { new object() };
             _dataMartRepositoryMock.Setup(x => x.RetrieveEmployeeRegistrationData()).ReturnsAsync(data);
-            var expectedSummary = new ImportSummaryResult { Status = "Completed", Messages = new List<string> { "Imported" } };
+            var expectedSummary = new ImportSummaryResult
+            {
+                Status = BatchStatus.Completed,
+                Messages = { "Imported" }
+            };
             _importServiceMock.Setup(x => x.ImportEmployeeRegistration(data)).ReturnsAsync(expectedSummary);
 
             // Act
@@ -129,7 +134,7 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Handlers.Import
             var result = await _handler.Handle(config);
 
             // Assert
-            Assert.That(result.Status, Is.EqualTo("Completed"));
+            Assert.That(result.Status, Is.EqualTo(BatchStatus.Completed));
             Assert.That(result.Messages, Does.Contain("No records to import."));
             Assert.That(result.StartTime, Is.Not.Null);
             Assert.That(result.EndTime, Is.Not.Null);

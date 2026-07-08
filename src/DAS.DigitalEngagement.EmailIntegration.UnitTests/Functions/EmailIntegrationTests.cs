@@ -146,7 +146,7 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Functions
             var timerInfo = new TimerInfo();
             var importSummary = new ImportSummaryResult
             {
-                Status = "Completed",
+                Status = BatchStatus.Completed,
                 StartTime = DateTime.UtcNow,
                 EndTime = DateTime.UtcNow,
                 TotalRecordsFromDb = 100,

@@ -66,7 +66,7 @@ namespace DAS.DigitalEngagement.Application.Services
                 Messages = new List<string>(),
                 BatchResults = new List<BatchResultDetail>(),
                 TotalRecordsFromDb = leads?.Count ?? 0,
-                Status = "Partial",
+                Status = BatchStatus.Partial,
                 FieldMapping = empRegistrationSettings.FieldMapping
             };
 
@@ -104,16 +104,16 @@ namespace DAS.DigitalEngagement.Application.Services
             }
             catch (Exception ex)
             {
-                summary.Status = "Failed";
+                summary.Status = BatchStatus.Failed;
                 summary.Messages.Add($"Import failed: {ex.Message}");
                 _logger.LogError(ex, "Error during employee registration import.");
             }
             finally
             {
                 summary.EndTime = DateTime.UtcNow;
-                if (summary.Status != "Failed")
+                if (summary.Status != BatchStatus.Failed)
                 {
-                    summary.Status = summary.BatchResults.All(b => b.Status == "Completed") ? "Completed" : "Partial";
+                    summary.Status = summary.BatchResults.All(b => b.Status == BatchStatus.Completed) ? BatchStatus.Completed : BatchStatus.Partial;
                 }
                 summary.Messages.Add("Import completed.");
             }
@@ -128,7 +128,7 @@ namespace DAS.DigitalEngagement.Application.Services
             if (string.IsNullOrEmpty(importResult.TokenFromEshot))
             {
                 _logger.LogError("Batch {BatchId}: No token received from API", batchIndex);
-                importResult.Status = "Failed";
+                importResult.Status = BatchStatus.Failed;
                 importResult.Error = "No token received from external API";
                 return;
             }
@@ -167,7 +167,7 @@ namespace DAS.DigitalEngagement.Application.Services
 
             // All retries exhausted
             _logger.LogError("Batch {BatchId}: Failed to verify import after {MaxRetries} attempts", batchIndex, maxRetries);
-            importResult.Status = "Failed";
+            importResult.Status = BatchStatus.Failed;
             importResult.Error = $"Failed to verify import status after {maxRetries} attempts";
         }
 
@@ -203,7 +203,7 @@ namespace DAS.DigitalEngagement.Application.Services
                 
                 if (attempt >= maxRetries)
                 {
-                    importResult.Status = "Failed";
+                    importResult.Status = BatchStatus.Failed;
                     importResult.Error = "Failed to verify import status";
                     return VerificationResult.Failed;
                 }
@@ -222,7 +222,7 @@ namespace DAS.DigitalEngagement.Application.Services
                 return VerificationResult.Retry;
             }
             
-            importResult.Status = "Failed";
+            importResult.Status = BatchStatus.Failed;
             importResult.Error = $"No import status found for token after {maxRetries} attempts";
             return VerificationResult.Failed;
         }
@@ -259,20 +259,20 @@ namespace DAS.DigitalEngagement.Application.Services
             {
                 if (importResult.IsPartiallyImported && importResult.RecordsProcessed > 0)
                 {
-                    importResult.Status = "Completed";
+                    importResult.Status = BatchStatus.Completed;
                     _logger.LogWarning("Batch {BatchId}: Partial import - {RecordsProcessed}/{RecordsReceived} records imported. {RecordsFailed} failed. Reason: {AdditionalInfo}", 
                         batchIndex, importResult.RecordsProcessed, importResult.RecordsReceived, importResult.RecordsFailed, importResult.AdditionalInfo);
                 }
                 else
                 {
-                    importResult.Status = "Failed";
+                    importResult.Status = BatchStatus.Failed;
                     importResult.Error = importResult.AdditionalInfo;
                     _logger.LogError("Batch {BatchId}: Import failed - {Error}", batchIndex, importResult.Error);
                 }
             }
             else
             {
-                importResult.Status = "Completed";
+                importResult.Status = BatchStatus.Completed;
                 _logger.LogInformation("Batch {BatchId}: Import successful - {RecordsProcessed}/{RecordsReceived} records imported", 
                     batchIndex, importResult.RecordsProcessed, importResult.RecordsReceived);
             }
