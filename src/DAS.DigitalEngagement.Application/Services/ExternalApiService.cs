@@ -58,7 +58,7 @@ namespace DAS.DigitalEngagement.Application.Services
         {
             var result = new BatchResultDetail
             {
-                Status = BatchStatus.Unknown,
+                Status = BatchStatus.InProgress,
                 Error = null
             };
 

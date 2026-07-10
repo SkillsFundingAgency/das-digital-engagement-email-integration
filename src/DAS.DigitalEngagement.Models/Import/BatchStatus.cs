@@ -2,11 +2,10 @@ namespace DAS.DigitalEngagement.Models.Import
 {
     public enum BatchStatus
     {
-        Completed,
-        Failed,
-        Partial,
         InProgress,
+        Partial,
         Cancelled,
-        Unknown
+        Completed,
+        Failed
     }
 }

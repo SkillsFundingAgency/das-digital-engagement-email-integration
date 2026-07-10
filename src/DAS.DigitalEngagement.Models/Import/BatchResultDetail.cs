@@ -3,7 +3,7 @@ namespace DAS.DigitalEngagement.Models.Import
     public class BatchResultDetail
     {
         public string? BatchId { get; set; }
-        public required BatchStatus Status { get; set; } // replaced string with enum
+        public required BatchStatus Status { get; set; }
         public int RecordsProcessed { get; set; }
         public int RecordsReceived { get; set; }
         public int RecordsFailed { get; set; } = 0;
