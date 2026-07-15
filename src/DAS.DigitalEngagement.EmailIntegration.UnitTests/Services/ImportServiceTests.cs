@@ -146,7 +146,7 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Services
                 .Setup(x => x.PostDataAsync(It.IsAny<string>(), It.IsAny<string>()))
                 .ReturnsAsync(new BatchResultDetail
                 {
-                    Status = "Completed",
+                    Status = BatchStatus.Completed,
                     TokenFromEshot = "abc-token"
                 });
 
@@ -170,11 +170,11 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Services
             var result = await _sut.ImportEmployeeRegistration(leads);
 
             // Assert
-            Assert.That(result.Status, Is.EqualTo("Completed"));
+            Assert.That(result.Status, Is.EqualTo(BatchStatus.Completed));
             // 2 template IDs * 1 chunk each = 2 batches
             Assert.That(result.BatchResults.Count, Is.EqualTo(2));
             Assert.That(result.Messages.Any(m => m.Contains("Import completed.")));
-            Assert.That(result.BatchResults.All(x => x.Status == "Completed"));
+            Assert.That(result.BatchResults.All(x => x.Status == BatchStatus.Completed));
         }
 
         [Test]
@@ -208,7 +208,7 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Services
                 .Setup(x => x.PostDataAsync(It.IsAny<string>(), It.IsAny<string>()))
                 .ReturnsAsync(new BatchResultDetail
                 {
-                    Status = "Completed",
+                    Status = BatchStatus.Completed,
                     TokenFromEshot = "abc"
                 });
 
@@ -232,10 +232,10 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Services
             var result = await _sut.ImportEmployeeRegistration(leads);
 
             // Assert
-            Assert.That(result.Status, Is.EqualTo("Completed"));
+            Assert.That(result.Status, Is.EqualTo(BatchStatus.Completed));
             // 2 templates, both should have partial imports
             Assert.That(result.BatchResults.Count, Is.EqualTo(2));
-            Assert.That(result.BatchResults.All(x => x.Status == "Completed"));
+            Assert.That(result.BatchResults.All(x => x.Status == BatchStatus.Completed));
             Assert.That(result.BatchResults.All(x => x.IsPartiallyImported == true));
             Assert.That(result.BatchResults.All(x => x.RecordsFailed == 5));
         }
@@ -271,7 +271,7 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Services
                 .Setup(x => x.PostDataAsync(It.IsAny<string>(), It.IsAny<string>()))
                 .ReturnsAsync(new BatchResultDetail
                 {
-                    Status = "Failed",
+                    Status = BatchStatus.Failed,
                     TokenFromEshot = null
                 });
 
@@ -279,10 +279,10 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Services
             var result = await _sut.ImportEmployeeRegistration(leads);
 
             // Assert
-            Assert.That(result.Status, Is.EqualTo("Partial"));
+            Assert.That(result.Status, Is.EqualTo(BatchStatus.Partial));
             // 2 templates, both should fail
             Assert.That(result.BatchResults.Count, Is.EqualTo(2));
-            Assert.That(result.BatchResults.All(x => x.Status == "Failed"));
+            Assert.That(result.BatchResults.All(x => x.Status == BatchStatus.Failed));
             Assert.That(result.BatchResults.All(x => x.Error == "No token received from external API"));
         }
 
@@ -317,7 +317,7 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Services
                 .Setup(x => x.PostDataAsync(It.IsAny<string>(), It.IsAny<string>()))
                 .ReturnsAsync(new BatchResultDetail
                 {
-                    Status = "Completed",
+                    Status = BatchStatus.Completed,
                     TokenFromEshot = "abc"
                 });
 
@@ -330,7 +330,7 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Services
 
             // Assert
             Assert.That(result.BatchResults.Count, Is.EqualTo(2)); // 2 templates
-            Assert.That(result.BatchResults.All(x => x.Status == "Failed"));
+            Assert.That(result.BatchResults.All(x => x.Status == BatchStatus.Failed));
             Assert.That(result.BatchResults.All(x => x.Error.Contains("No import status found")));
         }
 
@@ -365,7 +365,7 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Services
                 .Setup(x => x.PostDataAsync(It.IsAny<string>(), It.IsAny<string>()))
                 .ReturnsAsync(new BatchResultDetail
                 {
-                    Status = "Completed",
+                    Status = BatchStatus.Completed,
                     TokenFromEshot = "abc"
                 });
 
@@ -378,7 +378,7 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Services
 
             // Assert
             Assert.That(result.BatchResults.Count, Is.EqualTo(2)); // 2 templates
-            Assert.That(result.BatchResults.All(x => x.Status == "Failed"));
+            Assert.That(result.BatchResults.All(x => x.Status == BatchStatus.Failed));
             Assert.That(result.BatchResults.All(x => x.Error.Contains("Failed to verify import status")));
         }
 
@@ -413,7 +413,7 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Services
                 .Setup(x => x.PostDataAsync(It.IsAny<string>(), It.IsAny<string>()))
                 .ReturnsAsync(new BatchResultDetail
                 {
-                    Status = "Completed",
+                    Status = BatchStatus.Completed,
                     TokenFromEshot = "abc"
                 });
 
@@ -437,7 +437,7 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Services
 
             // Assert - After retry exhaustion with Waiting status, it should still complete
             Assert.That(result.BatchResults.Count, Is.EqualTo(2)); // 2 templates
-            Assert.That(result.BatchResults.All(x => x.Status == "Completed"));
+            Assert.That(result.BatchResults.All(x => x.Status == BatchStatus.Completed));
         }
 
         [Test]
@@ -471,7 +471,7 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Services
                 .Setup(x => x.PostDataAsync(It.IsAny<string>(), It.IsAny<string>()))
                 .ReturnsAsync(new BatchResultDetail
                 {
-                    Status = "Completed",
+                    Status = BatchStatus.Completed,
                     TokenFromEshot = """{"Token":"real-token"}"""
                 });
 
@@ -510,7 +510,7 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Services
             var result = await _sut.ImportEmployeeRegistration(new List<string>());
 
             // Assert
-            Assert.That(result.Status, Is.EqualTo("Failed"));
+            Assert.That(result.Status, Is.EqualTo(BatchStatus.Failed));
             Assert.That(result.Messages.Any(x => x.Contains("boom")));
         }
 
@@ -531,7 +531,7 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Services
 
             // Assert
             Assert.That(result.TotalRecordsFromDb, Is.EqualTo(0));
-            Assert.That(result.Status, Is.EqualTo("Completed"));
+            Assert.That(result.Status, Is.EqualTo(BatchStatus.Completed));
         }
     }
 }

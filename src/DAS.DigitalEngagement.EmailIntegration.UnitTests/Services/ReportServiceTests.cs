@@ -342,7 +342,7 @@ namespace DAS.DigitalEngagement.Application.Services.UnitTests
             // Arrange
             var summary = new ImportSummaryResult
             {
-                Status = "Completed",
+                Status = BatchStatus.Completed,
                 StartTime = new DateTime(2024, 1, 15, 10, 30, 0, DateTimeKind.Utc),
                 EndTime = new DateTime(2024, 1, 15, 10, 45, 0, DateTimeKind.Utc),
                 TotalRecordsFromDb = 100,
@@ -351,7 +351,7 @@ namespace DAS.DigitalEngagement.Application.Services.UnitTests
                     new BatchResultDetail
                     {
                         BatchId = "batch-001",
-                        Status = "Completed",
+                        Status = BatchStatus.Completed,
                         RecordsProcessed = 50,
                         TokenFromEshot = "token-123",
                         Error = null
@@ -359,7 +359,7 @@ namespace DAS.DigitalEngagement.Application.Services.UnitTests
                     new BatchResultDetail
                     {
                         BatchId = "batch-002",
-                        Status = "Completed",
+                        Status = BatchStatus.Completed,
                         RecordsProcessed = 50,
                         TokenFromEshot = "token-456",
                         Error = null
@@ -401,11 +401,11 @@ namespace DAS.DigitalEngagement.Application.Services.UnitTests
             // Arrange
             var summary = new ImportSummaryResult
             {
-                Status = "Completed",
+                Status = BatchStatus.Completed,
                 StartTime = DateTime.UtcNow,
                 EndTime = DateTime.UtcNow,
                 TotalRecordsFromDb = 0,
-                BatchResults = [],
+                BatchResults = new List<BatchResultDetail>(),
                 Messages = new List<string>()
             };
 
@@ -427,7 +427,7 @@ namespace DAS.DigitalEngagement.Application.Services.UnitTests
             // Arrange
             var summary = new ImportSummaryResult
             {
-                Status = "Failed",
+                Status = BatchStatus.Failed,
                 StartTime = DateTime.UtcNow,
                 EndTime = DateTime.UtcNow,
                 TotalRecordsFromDb = 0,
@@ -453,7 +453,7 @@ namespace DAS.DigitalEngagement.Application.Services.UnitTests
             // Arrange
             var summary = new ImportSummaryResult
             {
-                Status = "Partial",
+                Status = BatchStatus.Partial,
                 StartTime = DateTime.UtcNow,
                 EndTime = DateTime.UtcNow,
                 TotalRecordsFromDb = 5,
@@ -479,7 +479,7 @@ namespace DAS.DigitalEngagement.Application.Services.UnitTests
             // Arrange
             var summary = new ImportSummaryResult
             {
-                Status = "Completed",
+                Status = BatchStatus.Completed,
                 StartTime = DateTime.UtcNow,
                 EndTime = DateTime.UtcNow,
                 TotalRecordsFromDb = 20,
@@ -504,7 +504,7 @@ namespace DAS.DigitalEngagement.Application.Services.UnitTests
             // Arrange
             var summary = new ImportSummaryResult
             {
-                Status = "Completed",
+                Status = BatchStatus.Completed,
                 StartTime = DateTime.UtcNow,
                 EndTime = DateTime.UtcNow,
                 TotalRecordsFromDb = 50,
@@ -513,7 +513,7 @@ namespace DAS.DigitalEngagement.Application.Services.UnitTests
                     new BatchResultDetail
                     {
                         BatchId = "batch-001",
-                        Status = "Completed",
+                        Status = BatchStatus.Completed,
                         RecordsProcessed = 50,
                         TokenFromEshot = null,
                         Error = null
@@ -541,7 +541,7 @@ namespace DAS.DigitalEngagement.Application.Services.UnitTests
             // Arrange
             var summary = new ImportSummaryResult
             {
-                Status = "Completed",
+                Status = BatchStatus.Completed,
                 StartTime = DateTime.UtcNow,
                 EndTime = DateTime.UtcNow,
                 TotalRecordsFromDb = 30,
@@ -550,7 +550,7 @@ namespace DAS.DigitalEngagement.Application.Services.UnitTests
                     new BatchResultDetail
                     {
                         BatchId = "batch-002",
-                        Status = "Completed",
+                        Status = BatchStatus.Completed,
                         RecordsProcessed = 30,
                         TokenFromEshot = "",
                         Error = null
@@ -576,7 +576,7 @@ namespace DAS.DigitalEngagement.Application.Services.UnitTests
             // Arrange
             var summary = new ImportSummaryResult
             {
-                Status = "Completed",
+                Status = BatchStatus.Completed,
                 StartTime = DateTime.UtcNow,
                 EndTime = DateTime.UtcNow,
                 TotalRecordsFromDb = 25,
@@ -585,7 +585,7 @@ namespace DAS.DigitalEngagement.Application.Services.UnitTests
                     new BatchResultDetail
                     {
                         BatchId = "batch-003",
-                        Status = "Completed",
+                        Status = BatchStatus.Completed,
                         RecordsProcessed = 25,
                         TokenFromEshot = "token-789",
                         Error = null
@@ -612,7 +612,7 @@ namespace DAS.DigitalEngagement.Application.Services.UnitTests
             // Arrange
             var summary = new ImportSummaryResult
             {
-                Status = "Failed",
+                Status = BatchStatus.Failed,
                 StartTime = DateTime.UtcNow,
                 EndTime = DateTime.UtcNow,
                 TotalRecordsFromDb = 15,
@@ -621,7 +621,7 @@ namespace DAS.DigitalEngagement.Application.Services.UnitTests
                     new BatchResultDetail
                     {
                         BatchId = "batch-004",
-                        Status = "Failed",
+                        Status = BatchStatus.Failed,
                         RecordsProcessed = 0,
                         TokenFromEshot = null,
                         Error = ""
@@ -647,7 +647,7 @@ namespace DAS.DigitalEngagement.Application.Services.UnitTests
             // Arrange
             var summary = new ImportSummaryResult
             {
-                Status = "Failed",
+                Status = BatchStatus.Failed,
                 StartTime = DateTime.UtcNow,
                 EndTime = DateTime.UtcNow,
                 TotalRecordsFromDb = 75,
@@ -656,7 +656,7 @@ namespace DAS.DigitalEngagement.Application.Services.UnitTests
                     new BatchResultDetail
                     {
                         BatchId = "batch-005",
-                        Status = "Failed",
+                        Status = BatchStatus.Failed,
                         RecordsProcessed = 0,
                         TokenFromEshot = "token-error",
                         Error = "API connection timeout"
@@ -682,7 +682,7 @@ namespace DAS.DigitalEngagement.Application.Services.UnitTests
             // Arrange
             var summary = new ImportSummaryResult
             {
-                Status = "Completed",
+                Status = BatchStatus.Completed,
                 StartTime = DateTime.UtcNow,
                 EndTime = DateTime.UtcNow,
                 TotalRecordsFromDb = 10,
@@ -707,7 +707,7 @@ namespace DAS.DigitalEngagement.Application.Services.UnitTests
             // Arrange
             var summary = new ImportSummaryResult
             {
-                Status = "Partial",
+                Status = BatchStatus.Partial,
                 StartTime = DateTime.UtcNow,
                 EndTime = DateTime.UtcNow,
                 TotalRecordsFromDb = 200,
@@ -734,7 +734,7 @@ namespace DAS.DigitalEngagement.Application.Services.UnitTests
             // Arrange
             var summary = new ImportSummaryResult
             {
-                Status = "Completed",
+                Status = BatchStatus.Completed,
                 StartTime = DateTime.UtcNow,
                 EndTime = DateTime.UtcNow,
                 TotalRecordsFromDb = 0,
@@ -759,7 +759,7 @@ namespace DAS.DigitalEngagement.Application.Services.UnitTests
             // Arrange
             var summary = new ImportSummaryResult
             {
-                Status = "Completed",
+                Status = BatchStatus.Completed,
                 StartTime = DateTime.UtcNow,
                 EndTime = DateTime.UtcNow,
                 TotalRecordsFromDb = int.MaxValue,
@@ -807,7 +807,7 @@ namespace DAS.DigitalEngagement.Application.Services.UnitTests
             // Arrange
             var summary = new ImportSummaryResult
             {
-                Status = "Completed",
+                Status = BatchStatus.Completed,
                 StartTime = DateTime.MinValue,
                 EndTime = DateTime.MinValue,
                 TotalRecordsFromDb = 10,
@@ -832,7 +832,7 @@ namespace DAS.DigitalEngagement.Application.Services.UnitTests
             // Arrange
             var summary = new ImportSummaryResult
             {
-                Status = "Completed",
+                Status = BatchStatus.Completed,
                 StartTime = DateTime.MaxValue,
                 EndTime = DateTime.MaxValue,
                 TotalRecordsFromDb = 10,
@@ -857,15 +857,15 @@ namespace DAS.DigitalEngagement.Application.Services.UnitTests
             // Arrange
             var summary = new ImportSummaryResult
             {
-                Status = "Completed",
+                Status = BatchStatus.Completed,
                 StartTime = DateTime.UtcNow,
                 EndTime = DateTime.UtcNow,
                 TotalRecordsFromDb = 150,
                 BatchResults = new List<BatchResultDetail>
                 {
-                    new BatchResultDetail { BatchId = "batch-1", Status = "Completed", RecordsProcessed = 50 },
-                    new BatchResultDetail { BatchId = "batch-2", Status = "Completed", RecordsProcessed = 50 },
-                    new BatchResultDetail { BatchId = "batch-3", Status = "Completed", RecordsProcessed = 50 }
+                    new BatchResultDetail { BatchId = "batch-1", Status = BatchStatus.Completed, RecordsProcessed = 50 },
+                    new BatchResultDetail { BatchId = "batch-2", Status = BatchStatus.Completed, RecordsProcessed = 50 },
+                    new BatchResultDetail { BatchId = "batch-3", Status = BatchStatus.Completed, RecordsProcessed = 50 }
                 },
                 Messages = new List<string>()
             };
@@ -889,7 +889,7 @@ namespace DAS.DigitalEngagement.Application.Services.UnitTests
             // Arrange
             var summary = new ImportSummaryResult
             {
-                Status = "Completed",
+                Status = BatchStatus.Completed,
                 StartTime = DateTime.UtcNow,
                 EndTime = DateTime.UtcNow,
                 TotalRecordsFromDb = 10,
@@ -914,7 +914,7 @@ namespace DAS.DigitalEngagement.Application.Services.UnitTests
             // Arrange
             var summary = new ImportSummaryResult
             {
-                Status = "Completed",
+                Status = BatchStatus.Completed,
                 StartTime = DateTime.UtcNow,
                 EndTime = DateTime.UtcNow,
                 TotalRecordsFromDb = 10,
@@ -940,7 +940,7 @@ namespace DAS.DigitalEngagement.Application.Services.UnitTests
             // Arrange
             var summary = new ImportSummaryResult
             {
-                Status = "Failed",
+                Status = BatchStatus.Failed,
                 StartTime = DateTime.UtcNow,
                 EndTime = DateTime.UtcNow,
                 TotalRecordsFromDb = 10,
@@ -949,7 +949,7 @@ namespace DAS.DigitalEngagement.Application.Services.UnitTests
                     new BatchResultDetail
                     {
                         BatchId = "batch-001",
-                        Status = "Failed",
+                        Status = BatchStatus.Failed,
                         RecordsProcessed = 0,
                         Error = "Error: <XML> parsing failed with \"quotes\" & ampersand"
                     }
@@ -974,7 +974,7 @@ namespace DAS.DigitalEngagement.Application.Services.UnitTests
             // Arrange
             var summary = new ImportSummaryResult
             {
-                Status = "Completed",
+                Status = BatchStatus.Completed,
                 StartTime = new DateTime(2024, 1, 15, 10, 30, 0, DateTimeKind.Utc),
                 EndTime = new DateTime(2024, 1, 15, 10, 45, 0, DateTimeKind.Utc),
                 TotalRecordsFromDb = 100,
@@ -983,7 +983,7 @@ namespace DAS.DigitalEngagement.Application.Services.UnitTests
                     new BatchResultDetail
                     {
                         BatchId = "batch-001",
-                        Status = "Completed",
+                        Status = BatchStatus.Completed,
                         RecordsProcessed = 48,
                         RecordsReceived = 50,
                         RecordsFailed = 2,
@@ -1018,7 +1018,7 @@ namespace DAS.DigitalEngagement.Application.Services.UnitTests
             // Arrange
             var summary = new ImportSummaryResult
             {
-                Status = "Partial",
+                Status = BatchStatus.Partial,
                 StartTime = new DateTime(2024, 1, 15, 10, 30, 0, DateTimeKind.Utc),
                 EndTime = new DateTime(2024, 1, 15, 10, 45, 0, DateTimeKind.Utc),
                 TotalRecordsFromDb = 200,
@@ -1027,7 +1027,7 @@ namespace DAS.DigitalEngagement.Application.Services.UnitTests
                     new BatchResultDetail
                     {
                         BatchId = "batch-001",
-                        Status = "Completed",
+                        Status = BatchStatus.Completed,
                         RecordsProcessed = 98,
                         RecordsReceived = 100,
                         RecordsFailed = 2,
@@ -1036,7 +1036,7 @@ namespace DAS.DigitalEngagement.Application.Services.UnitTests
                     new BatchResultDetail
                     {
                         BatchId = "batch-002",
-                        Status = "Completed",
+                        Status = BatchStatus.Completed,
                         RecordsProcessed = 95,
                         RecordsReceived = 100,
                         RecordsFailed = 5,

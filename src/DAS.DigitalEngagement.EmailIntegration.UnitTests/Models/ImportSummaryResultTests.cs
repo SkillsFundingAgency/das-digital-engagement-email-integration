@@ -16,9 +16,9 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Models
             {
                 BatchResults = new List<BatchResultDetail>
                 {
-                    new BatchResultDetail { Status = "Completed", RecordsProcessed = 50, RecordsReceived = 50, RecordsFailed = 0 },
-                    new BatchResultDetail { Status = "Failed", RecordsProcessed = 0, RecordsReceived = 30, RecordsFailed = 30 },
-                    new BatchResultDetail { Status = "Completed", RecordsProcessed = 75, RecordsReceived = 80, RecordsFailed = 5 }
+                    new BatchResultDetail { Status = BatchStatus.Completed, RecordsProcessed = 50, RecordsReceived = 50, RecordsFailed = 0 },
+                    new BatchResultDetail { Status = BatchStatus.Failed, RecordsProcessed = 0, RecordsReceived = 30, RecordsFailed = 30 },
+                    new BatchResultDetail { Status = BatchStatus.Completed, RecordsProcessed = 75, RecordsReceived = 80, RecordsFailed = 5 }
                 }
             };
 
@@ -37,9 +37,9 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Models
             {
                 BatchResults = new List<BatchResultDetail>
                 {
-                    new BatchResultDetail { Status = "Completed", RecordsProcessed = 50, RecordsReceived = 50, RecordsFailed = 0 },
-                    new BatchResultDetail { Status = "Failed", RecordsProcessed = 0, RecordsReceived = 30, RecordsFailed = 30 },
-                    new BatchResultDetail { Status = "Completed", RecordsProcessed = 75, RecordsReceived = 80, RecordsFailed = 5 }
+                    new BatchResultDetail { Status = BatchStatus.Completed, RecordsProcessed = 50, RecordsReceived = 50, RecordsFailed = 0 },
+                    new BatchResultDetail { Status = BatchStatus.Failed, RecordsProcessed = 0, RecordsReceived = 30, RecordsFailed = 30 },
+                    new BatchResultDetail { Status = BatchStatus.Completed, RecordsProcessed = 75, RecordsReceived = 80, RecordsFailed = 5 }
                 }
             };
 
@@ -58,9 +58,9 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Models
             {
                 BatchResults = new List<BatchResultDetail>
                 {
-                    new BatchResultDetail { Status = "Completed", RecordsProcessed = 50, RecordsReceived = 50, RecordsFailed = 0 },
-                    new BatchResultDetail { Status = "Failed", RecordsProcessed = 0, RecordsReceived = 30, RecordsFailed = 30 },
-                    new BatchResultDetail { Status = "Completed", RecordsProcessed = 75, RecordsReceived = 80, RecordsFailed = 5 }
+                    new BatchResultDetail { Status = BatchStatus.Completed, RecordsProcessed = 50, RecordsReceived = 50, RecordsFailed = 0 },
+                    new BatchResultDetail { Status = BatchStatus.Failed, RecordsProcessed = 0, RecordsReceived = 30, RecordsFailed = 30 },
+                    new BatchResultDetail { Status = BatchStatus.Completed, RecordsProcessed = 75, RecordsReceived = 80, RecordsFailed = 5 }
                 }
             };
 
@@ -79,8 +79,8 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Models
             {
                 BatchResults = new List<BatchResultDetail>
                 {
-                    new BatchResultDetail { Status = "Completed", RecordsProcessed = 50, RecordsReceived = 50, RecordsFailed = 0, IsPartiallyImported = false },
-                    new BatchResultDetail { Status = "Completed", RecordsProcessed = 75, RecordsReceived = 80, RecordsFailed = 5, IsPartiallyImported = true }
+                    new BatchResultDetail { Status = BatchStatus.Completed, RecordsProcessed = 50, RecordsReceived = 50, RecordsFailed = 0, IsPartiallyImported = false },
+                    new BatchResultDetail { Status = BatchStatus.Completed, RecordsProcessed = 75, RecordsReceived = 80, RecordsFailed = 5, IsPartiallyImported = true }
                 }
             };
 
@@ -99,8 +99,8 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Models
             {
                 BatchResults = new List<BatchResultDetail>
                 {
-                    new BatchResultDetail { Status = "Completed", RecordsProcessed = 50, RecordsReceived = 50, RecordsFailed = 0, IsPartiallyImported = false },
-                    new BatchResultDetail { Status = "Completed", RecordsProcessed = 80, RecordsReceived = 80, RecordsFailed = 0, IsPartiallyImported = false }
+                    new BatchResultDetail { Status = BatchStatus.Completed, RecordsProcessed = 50, RecordsReceived = 50, RecordsFailed = 0, IsPartiallyImported = false },
+                    new BatchResultDetail { Status = BatchStatus.Completed, RecordsProcessed = 80, RecordsReceived = 80, RecordsFailed = 0, IsPartiallyImported = false }
                 }
             };
 
@@ -133,7 +133,7 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Models
             // Arrange
             var summary = new ImportSummaryResult
             {
-                Status = "Completed",
+                Status = BatchStatus.Completed,
                 StartTime = new DateTime(2024, 1, 15, 10, 0, 0, DateTimeKind.Utc),
                 EndTime = new DateTime(2024, 1, 15, 11, 0, 0, DateTimeKind.Utc),
                 TotalRecordsFromDb = 100,
@@ -141,7 +141,7 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Models
                 {
                     new BatchResultDetail 
                     { 
-                        Status = "Completed", 
+                        Status = BatchStatus.Completed, 
                         RecordsProcessed = 50, 
                         RecordsReceived = 50, 
                         RecordsFailed = 0,

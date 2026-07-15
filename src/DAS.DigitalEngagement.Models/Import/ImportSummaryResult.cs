@@ -2,7 +2,7 @@ namespace DAS.DigitalEngagement.Models.Import
 {
     public class ImportSummaryResult
     {
-        public  string? Status { get; set; } // e.g., "Completed", "Failed", "Partial"
+        public BatchStatus? Status { get; set; } // e.g., BatchStatus.Completed, BatchStatus.Failed, BatchStatus.Partial
         public DateTime StartTime { get; set; }
         public DateTime EndTime { get; set; }
         public int TotalRecordsFromDb { get; set; }
@@ -13,7 +13,7 @@ namespace DAS.DigitalEngagement.Models.Import
             get
             {
                 return BatchResults
-                    .Where(b => b.Status == "Completed")
+                    .Where(b => b.Status == BatchStatus.Completed)
                     .Sum(b => b.RecordsProcessed);
             }
         }
