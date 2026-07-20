@@ -1117,5 +1117,84 @@ namespace DAS.DigitalEngagement.Application.Services.UnitTests
                     It.IsAny<Func<It.IsAnyType, Exception, string>>()),
                 Times.Once);
         }
+
+        [Test]
+        public void CreateImportSummaryReport_WhenBatchIsPartiallyImportedAndStatusCompleted_SetsStatusToPartialAndIncludesInReport()
+        {
+            // Arrange
+            var service = CreateService();
+
+            var summary = new ImportSummaryResult
+            {
+                Status = BatchStatus.Completed,
+                BatchResults = new List<BatchResultDetail>
+                {
+                    new() {
+                        BatchId = "batch-1",
+                        IsPartiallyImported = true,
+                        RecordsReceived = 10,
+                        RecordsProcessed = 5,
+                        RecordsFailed = 5,
+                        Status = BatchStatus.InProgress
+                    }
+                }
+            };
+
+            // Act
+            var report = service.CreateImportSummaryReport(summary);
+
+            // Assert
+            Assert.That(summary.Status, Is.EqualTo(BatchStatus.Partial));
+            Assert.That(report, Does.Contain("Status: Partial") );
+        }
+
+        [Test]
+        public void CreateImportSummaryReport_WhenNoPartialBatchesAndStatusCompleted_KeepsStatusCompletedAndIncludesInReport()
+        {
+            // Arrange
+            var service = CreateService();
+
+            var summary = new ImportSummaryResult
+            {
+                Status = BatchStatus.Completed,
+                BatchResults = new List<BatchResultDetail>
+                {
+                    new BatchResultDetail
+                    {
+                        BatchId = "batch-1",
+                        IsPartiallyImported = false,
+                        RecordsReceived = 10,
+                        RecordsProcessed = 10,
+                        RecordsFailed = 0,
+                        Status = BatchStatus.InProgress
+                    },
+                    new BatchResultDetail
+                    {
+                        BatchId = "batch-2",
+                        IsPartiallyImported = false,
+                        RecordsReceived = 5,
+                        RecordsProcessed = 5,
+                        RecordsFailed = 0,
+                        Status = BatchStatus.InProgress
+                    }
+                }
+            };
+
+            // Act
+            var report = service.CreateImportSummaryReport(summary);
+
+            // Assert
+            Assert.That(summary.Status, Is.EqualTo(BatchStatus.Completed));
+            Assert.That(report, Does.Contain("Status: Completed"));
+        }
+
+        private ReportService CreateService()
+        {
+            var blobClientMock = new Mock<BlobServiceClient>();
+            var loggerMock = new Mock<ILogger<ReportService>>();
+            var emailMock = new Mock<IEmailNotificationService>();
+
+            return new ReportService(blobClientMock.Object, loggerMock.Object, emailMock.Object);
+        }
     }
 }

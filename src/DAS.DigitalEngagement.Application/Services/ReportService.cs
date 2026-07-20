@@ -23,6 +23,13 @@ namespace DAS.DigitalEngagement.Application.Services
 
         public string CreateImportSummaryReport(ImportSummaryResult summary)
         {
+            bool hasPartialBatches = summary.BatchResults != null && summary.BatchResults.Any(b => b.IsPartiallyImported);
+
+            if (hasPartialBatches && summary.Status == BatchStatus.Completed)
+            {
+                summary.Status = BatchStatus.Partial;
+            }
+
             var sb = new StringBuilder();
             sb.AppendLine("################################################################################");
             sb.AppendLine("#################### Import Summary Report ###############################");
