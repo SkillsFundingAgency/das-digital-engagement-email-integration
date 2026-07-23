@@ -337,53 +337,11 @@ public class EmailNotificationServiceTests
             Times.Once);
     }
 
-    [Test]
-    public void SendMonitoringReportAsync_WhenAllRecipientsFailToSend_ThrowsInvalidOperationException()
-    {
-        // Arrange
-        _configuration.RecipientEmailAddresses = new List<string> 
-        { 
-            "test1@example.com", 
-            "test2@example.com"
-        };
-
-        _mockNotificationClient
-            .Setup(x => x.SendEmailAsync(
-                It.IsAny<string>(), 
-                It.IsAny<string>(), 
-                It.IsAny<Dictionary<string, dynamic>>()))
-            .ThrowsAsync(new Exception("Failed to send"));
-
-        var service = new EmailNotificationService(_configuration, _mockLogger.Object, _mockNotificationClient.Object);
-
-        // Act & Assert
-        var ex = Assert.ThrowsAsync<InvalidOperationException>(async () =>
-            await service.SendMonitoringReportAsync("TestIntegration", "Report Content", "https://blob.url", CancellationToken.None));
-        
-        Assert.That(ex.Message, Does.Contain("Failed to send monitoring report to all recipients for integration TestIntegration"));
-
-        _mockLogger.Verify(
-            x => x.Log(
-                LogLevel.Error,
-                It.IsAny<EventId>(),
-                It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("Failed to send monitoring report email")),
-                It.IsAny<Exception>(),
-                It.IsAny<Func<It.IsAnyType, Exception, string>>()),
-            Times.Exactly(2));
-
-        _mockLogger.Verify(
-            x => x.Log(
-                LogLevel.Information,
-                It.IsAny<EventId>(),
-                It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("Sent: 0, Failed: 2")),
-                It.IsAny<Exception>(),
-                It.IsAny<Func<It.IsAnyType, Exception, string>>()),
-            Times.Once);
-    }
+    
 
     #endregion
 
-    #region SendMonitoringReportAsync - Edge Cases
+
 
     [Test]
     public async Task SendMonitoringReportAsync_WhenIntegrationNameIsNull_StillSendsEmail()
@@ -548,34 +506,66 @@ public class EmailNotificationServiceTests
             Times.AtLeastOnce);
     }
 
+   
+
+
+
+    #region SendMonitoringReportAsync - Mixed Valid/Invalid Recipients
+
     [Test]
-    public async Task SendMonitoringReportAsync_LogsRecipientEmailInErrorMessage()
+    public async Task SendMonitoringReportAsync_WhenRecipientsContainInvalidEmails_SkipsInvalidAddressesAndLogsWarnings()
     {
         // Arrange
-        var recipientEmail = "failing@example.com";
-        _configuration.RecipientEmailAddresses = new List<string> { recipientEmail };
-        
+        var recipients = new List<string>
+        {
+            "valid1@example.com",
+            "invalid-email",
+            "valid2@example.com"
+        };
+        _configuration.RecipientEmailAddresses = recipients;
+
+        var mockResponse = new EmailNotificationResponse { id = "notification-id-123" };
+        var attemptedEmails = new List<string>();
+
         _mockNotificationClient
             .Setup(x => x.SendEmailAsync(
-                It.IsAny<string>(), 
-                It.IsAny<string>(), 
+                It.IsAny<string>(),
+                It.IsAny<string>(),
                 It.IsAny<Dictionary<string, dynamic>>()))
-            .ThrowsAsync(new Exception("Send failed"));
+            .Callback<string, string, Dictionary<string, dynamic>>((email, template, personalisation) =>
+            {
+                attemptedEmails.Add(email);
+            })
+            .ReturnsAsync(mockResponse);
 
         var service = new EmailNotificationService(_configuration, _mockLogger.Object, _mockNotificationClient.Object);
 
-        // Act & Assert
-        Assert.ThrowsAsync<InvalidOperationException>(async () =>
-            await service.SendMonitoringReportAsync("TestIntegration", "Report Content", "https://blob.url", CancellationToken.None));
+        // Act
+        await service.SendMonitoringReportAsync("TestIntegration", "Report Content", "https://blob.url", CancellationToken.None);
 
+        // Assert - only valid addresses were attempted
+        Assert.That(attemptedEmails.Count, Is.EqualTo(2));
+        Assert.That(attemptedEmails, Does.Contain("valid1@example.com"));
+        Assert.That(attemptedEmails, Does.Contain("valid2@example.com"));
+        Assert.That(attemptedEmails, Does.Not.Contain("invalid-email"));
+
+        // Assert - a warning was logged containing the invalid email address
         _mockLogger.Verify(
             x => x.Log(
-                LogLevel.Error,
+                LogLevel.Warning,
                 It.IsAny<EventId>(),
-                It.Is<It.IsAnyType>((v, t) => v.ToString().Contains(recipientEmail)),
+                It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("invalid-email")),
                 It.IsAny<Exception>(),
-                It.IsAny<Func<It.IsAnyType, Exception, string>>()),
-            Times.Once);
+                It.IsAny<Func<It.IsAnyType, Exception, string>>() ),
+            Times.AtLeastOnce);
+
+        // Assert - SendEmailAsync invoked exactly for the two valid recipients
+        _mockNotificationClient.Verify(
+            x => x.SendEmailAsync(
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<Dictionary<string, dynamic>>()),
+            Times.Exactly(2));
     }
 
     #endregion

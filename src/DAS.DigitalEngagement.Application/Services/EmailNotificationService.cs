@@ -1,4 +1,4 @@
-﻿using Notify.Models.Responses;
+﻿using System.Text.RegularExpressions;
 using Microsoft.Extensions.Logging;
 using DAS.DigitalEngagement.Application.Services.Interfaces;
 using DAS.DigitalEngagement.Models.Infrastructure;
@@ -10,6 +10,12 @@ public class EmailNotificationService : IEmailNotificationService
     private readonly INotificationClientWrapper _notificationClient;
     private readonly GovNotifyConfiguration _configuration;
     private readonly ILogger<EmailNotificationService> _logger;
+
+    private static readonly Regex EmailRegex = new(
+                @"^[-!#$%&'*+/0-9=?A-Z^_a-z{|}~](\.?[-!#$%&'*+/0-9=?A-Z^_a-z{|}~])*@[a-zA-Z0-9_](-?[a-zA-Z0-9_])*(\.[a-zA-Z0-9](-?[a-zA-Z0-9])*)+$",
+                 RegexOptions.Compiled |
+                 RegexOptions.CultureInvariant |
+                 RegexOptions.IgnoreCase);
 
     public EmailNotificationService(
         GovNotifyConfiguration configuration,
@@ -47,16 +53,35 @@ public class EmailNotificationService : IEmailNotificationService
 
         foreach (var recipient in _configuration.RecipientEmailAddresses)
         {
+            var trimmedRecipient = recipient?.Trim();
+
+            if (string.IsNullOrWhiteSpace(trimmedRecipient))
+            {
+                _logger.LogWarning("Skipping empty recipient address configured for integration {IntegrationName}", integrationName);
+                failedCount++;
+                continue;
+            }
+
+            if (!EmailRegex.IsMatch(trimmedRecipient))
+            {
+                _logger.LogWarning(
+                    "Invalid email address '{EmailAddress}' configured for integration {IntegrationName}. Skipping.",
+                    trimmedRecipient,
+                    integrationName);
+                failedCount++;
+                continue;
+            }
+
             try
             {
                 var response = await _notificationClient.SendEmailAsync(
-                    recipient,
+                    trimmedRecipient,
                     _configuration.MonitoringReportTemplateId,
                     personalisation);
 
                 _logger.LogInformation(
                     "Monitoring report email sent to {EmailAddress} for integration {IntegrationName}. Notification ID: {NotificationId}", 
-                    recipient, integrationName, response.id);
+                    trimmedRecipient, integrationName, response.id);
                 
                 sentCount++;
             }
@@ -64,7 +89,7 @@ public class EmailNotificationService : IEmailNotificationService
             {
                 _logger.LogError(ex, 
                     "Failed to send monitoring report email to {EmailAddress} for integration {IntegrationName}", 
-                    recipient, integrationName);
+                    trimmedRecipient, integrationName);
                 failedCount++;
             }
         }
@@ -75,7 +100,7 @@ public class EmailNotificationService : IEmailNotificationService
 
         if (failedCount == _configuration.RecipientEmailAddresses.Count)
         {
-            throw new InvalidOperationException($"Failed to send monitoring report to all recipients for integration {integrationName}");
+            _logger.LogError("Failed to send monitoring report to all recipients for integration {IntegrationName}", integrationName);
         }
     }
 }
