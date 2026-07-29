@@ -15,7 +15,8 @@ public class EmailNotificationService : IEmailNotificationService
                 @"^[-!#$%&'*+/0-9=?A-Z^_a-z{|}~](\.?[-!#$%&'*+/0-9=?A-Z^_a-z{|}~])*@[a-zA-Z0-9_](-?[a-zA-Z0-9_])*(\.[a-zA-Z0-9](-?[a-zA-Z0-9])*)+$",
                  RegexOptions.Compiled |
                  RegexOptions.CultureInvariant |
-                 RegexOptions.IgnoreCase);
+                 RegexOptions.IgnoreCase,
+                 TimeSpan.FromSeconds(2));
 
     public EmailNotificationService(
         GovNotifyConfiguration configuration,
