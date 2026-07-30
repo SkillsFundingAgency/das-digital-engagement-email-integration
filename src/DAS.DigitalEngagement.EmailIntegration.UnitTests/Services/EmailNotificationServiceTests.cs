@@ -337,11 +337,44 @@ public class EmailNotificationServiceTests
             Times.Once);
     }
 
-    
-
     #endregion
 
+    [Test]
+    public async Task SendMonitoringReportAsync_WhenAllRecipientsFail_LogsError()
+    {
+        // Arrange - multiple recipients but Notify client always fails
+        _configuration.RecipientEmailAddresses = new List<string> { "fail1@example.com", "fail2@example.com" };
 
+        _mockNotificationClient
+            .Setup(x => x.SendEmailAsync(
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<Dictionary<string, dynamic>>()))
+            .ThrowsAsync(new Exception("Failed to send"));
+
+        var service = new EmailNotificationService(_configuration, _mockLogger.Object, _mockNotificationClient.Object);
+
+        // Act
+        await service.SendMonitoringReportAsync("MyIntegration", "report", "https://blob.url", CancellationToken.None);
+
+        // Assert - SendEmailAsync attempted for each recipient
+        _mockNotificationClient.Verify(
+            x => x.SendEmailAsync(
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<Dictionary<string, dynamic>>()),
+            Times.Exactly(2));
+
+        // Assert - final error logged when all recipients fail, includes integration name
+        _mockLogger.Verify(
+            x => x.Log(
+                LogLevel.Error,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("Failed to send monitoring report to all recipients for integration") && v.ToString().Contains("MyIntegration")),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception, string>>()),
+            Times.Once);
+    }
 
     [Test]
     public async Task SendMonitoringReportAsync_WhenIntegrationNameIsNull_StillSendsEmail()
@@ -505,12 +538,8 @@ public class EmailNotificationServiceTests
                 It.IsAny<Func<It.IsAnyType, Exception, string>>()),
             Times.AtLeastOnce);
     }
-
+    
    
-
-
-
-    #region SendMonitoringReportAsync - Mixed Valid/Invalid Recipients
 
     [Test]
     public async Task SendMonitoringReportAsync_WhenRecipientsContainInvalidEmails_SkipsInvalidAddressesAndLogsWarnings()
@@ -568,5 +597,31 @@ public class EmailNotificationServiceTests
             Times.Exactly(2));
     }
 
-    #endregion
+
+    [Test]
+    public async Task SendMonitoringReportAsync_SkipsWhitespaceRecipient_LogsWarning()
+    {
+        // Arrange - single recipient that is whitespace
+        _configuration.RecipientEmailAddresses = new List<string> { "   " };
+
+        var service = new EmailNotificationService(_configuration, _mockLogger.Object, _mockNotificationClient.Object);
+
+        // Act
+        await service.SendMonitoringReportAsync("MyIntegration", "report", "https://blob.url", CancellationToken.None);
+
+        // Assert - warning logged about skipping empty recipient and includes integration name
+        _mockLogger.Verify(
+            x => x.Log(
+                LogLevel.Warning,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("Skipping empty recipient address configured for integration") && v.ToString().Contains("MyIntegration")),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception, string>>()),
+            Times.Once);
+
+        // Assert - no attempt to send email
+        _mockNotificationClient.Verify(
+            x => x.SendEmailAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<Dictionary<string, dynamic>>()),
+            Times.Never);
+    }
 }
