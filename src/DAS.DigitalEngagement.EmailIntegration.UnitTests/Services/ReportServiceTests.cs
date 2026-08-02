@@ -95,6 +95,7 @@ namespace DAS.DigitalEngagement.Application.Services.UnitTests
             var reportContent = "Test report content";
             var fileName = "test-report";
             var expectedBlobPath = "Report/test-report.report.txt";
+            var expectedUrl = "https://test.blob.core.windows.net/container/Report/test-report.report.txt";
 
             var mockBlobServiceClient = new Mock<BlobServiceClient>();
             var mockLogger = new Mock<ILogger<ReportService>>();
@@ -115,27 +116,25 @@ namespace DAS.DigitalEngagement.Application.Services.UnitTests
                 .Returns(mockBlobClient.Object);
 
             mockBlobClient
+               .Setup(x => x.Uri)
+               .Returns(new Uri(expectedUrl));
+
+            mockBlobClient
                 .Setup(x => x.UploadAsync(It.IsAny<Stream>(), It.IsAny<bool>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(Mock.Of<Response<BlobContentInfo>>());
 
             var service = new ReportService(mockBlobServiceClient.Object, mockLogger.Object, mockEmailNotificationService.Object);
 
             // Act
-            await service.SaveReportToBlob(reportContent, fileName);
+            var result = await service.SaveReportToBlobInternalAsync(reportContent, fileName);
 
             // Assert
             mockBlobServiceClient.Verify(x => x.GetBlobContainerClient("email-integration-to-marketing-tool"), Times.Once);
             mockBlobContainerClient.Verify(x => x.CreateIfNotExistsAsync(It.IsAny<PublicAccessType>(), It.IsAny<System.Collections.Generic.IDictionary<string, string>>(), It.IsAny<BlobContainerEncryptionScopeOptions>(), It.IsAny<CancellationToken>()), Times.Once);
             mockBlobContainerClient.Verify(x => x.GetBlobClient(expectedBlobPath), Times.Once);
             mockBlobClient.Verify(x => x.UploadAsync(It.IsAny<Stream>(), true, It.IsAny<CancellationToken>()), Times.Once);
-            mockLogger.Verify(
-                x => x.Log(
-                    LogLevel.Information,
-                    It.IsAny<EventId>(),
-                    It.Is<It.IsAnyType>((v, t) => v.ToString().Contains($"Report file saved: {fileName}.report.txt")),
-                    It.IsAny<Exception>(),
-                    It.IsAny<Func<It.IsAnyType, Exception, string>>()),
-                Times.Once);
+
+            Assert.That(result, Is.EqualTo(expectedUrl));
         }
 
         /// <summary>
@@ -167,13 +166,17 @@ namespace DAS.DigitalEngagement.Application.Services.UnitTests
                 .Returns(mockBlobClient.Object);
 
             mockBlobClient
+                .Setup(x => x.Uri)
+                .Returns(new Uri("https://test.blob.core.windows.net/container/Report/test-report.report.txt"));
+
+            mockBlobClient
                 .Setup(x => x.UploadAsync(It.IsAny<Stream>(), It.IsAny<bool>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(Mock.Of<Response<BlobContentInfo>>());
 
             var service = new ReportService(mockBlobServiceClient.Object, mockLogger.Object, mockEmailNotificationService.Object);
 
             // Act
-            await service.SaveReportToBlob(reportContent, fileName);
+            await service.SaveReportToBlobInternalAsync(reportContent, fileName);
 
             // Assert
             mockBlobClient.Verify(x => x.UploadAsync(It.IsAny<Stream>(), true, It.IsAny<CancellationToken>()), Times.Once);
@@ -214,7 +217,7 @@ namespace DAS.DigitalEngagement.Application.Services.UnitTests
 
             // Act & Assert
             var thrownException = Assert.ThrowsAsync<InvalidOperationException>(
-                async () => await service.SaveReportToBlob(reportContent, fileName));
+                async () => await service.SaveReportToBlobInternalAsync(reportContent, fileName));
 
             Assert.That(thrownException, Is.Not.Null);
 
@@ -266,13 +269,17 @@ namespace DAS.DigitalEngagement.Application.Services.UnitTests
                 .Returns(mockBlobClient.Object);
 
             mockBlobClient
+                .Setup(x => x.Uri)
+                .Returns(new Uri("https://test.blob.core.windows.net/container/Report/test-report.report.txt"));
+
+            mockBlobClient
                 .Setup(x => x.UploadAsync(It.IsAny<Stream>(), It.IsAny<bool>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(Mock.Of<Response<BlobContentInfo>>());
 
             var service = new ReportService(mockBlobServiceClient.Object, mockLogger.Object, mockEmailNotificationService.Object);
 
             // Act
-            await service.SaveReportToBlob(reportContent, fileName);
+            await service.SaveReportToBlobInternalAsync(reportContent, fileName);
 
             // Assert
             mockBlobClient.Verify(x => x.UploadAsync(It.IsAny<Stream>(), true, It.IsAny<CancellationToken>()), Times.Once);
@@ -300,12 +307,18 @@ namespace DAS.DigitalEngagement.Application.Services.UnitTests
                 .Returns(mockBlobContainerClient.Object);
 
             mockBlobContainerClient
-                .Setup(x => x.CreateIfNotExistsAsync(It.IsAny<PublicAccessType>(), It.IsAny<System.Collections.Generic.IDictionary<string, string>>(), It.IsAny<BlobContainerEncryptionScopeOptions>(), It.IsAny<CancellationToken>()))
+                .Setup(x => x.CreateIfNotExistsAsync(It.IsAny<PublicAccessType>(),
+                            It.IsAny<System.Collections.Generic.IDictionary<string, string>>(),
+                            It.IsAny<BlobContainerEncryptionScopeOptions>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(Mock.Of<Response<BlobContainerInfo>>());
 
             mockBlobContainerClient
                 .Setup(x => x.GetBlobClient(expectedBlobPath))
                 .Returns(mockBlobClient.Object);
+
+            mockBlobClient
+             .Setup(x => x.Uri)
+             .Returns(new Uri("https://test.blob.core.windows.net/container/Report/test-report.report.txt"));
 
             mockBlobClient
                 .Setup(x => x.UploadAsync(It.IsAny<Stream>(), It.IsAny<bool>(), It.IsAny<CancellationToken>()))
@@ -314,7 +327,7 @@ namespace DAS.DigitalEngagement.Application.Services.UnitTests
             var service = new ReportService(mockBlobServiceClient.Object, mockLogger.Object, mockEmailNotificationService.Object);
 
             // Act
-            await service.SaveReportToBlob(reportContent, fileName);
+            await service.SaveReportToBlobInternalAsync(reportContent, fileName);
 
             // Assert
             mockBlobContainerClient.Verify(x => x.GetBlobClient(expectedBlobPath), Times.Once);
@@ -1145,7 +1158,7 @@ namespace DAS.DigitalEngagement.Application.Services.UnitTests
 
             // Assert
             Assert.That(summary.Status, Is.EqualTo(BatchStatus.Partial));
-            Assert.That(report, Does.Contain("Status: Partial") );
+            Assert.That(report, Does.Contain("Status: Partial"));
         }
 
         [Test]

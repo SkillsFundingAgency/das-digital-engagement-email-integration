@@ -147,7 +147,7 @@ namespace DAS.DigitalEngagement.Application.Services
             }
         }
 
-        public async Task SaveReportToBlob(string reportContent, string fileName)
+        public async Task<string> SaveReportToBlobInternalAsync(string reportContent, string fileName)
         {
             try
             {
@@ -159,7 +159,7 @@ namespace DAS.DigitalEngagement.Application.Services
                 using var stream = new MemoryStream(Encoding.UTF8.GetBytes(reportContent));
                 await reportBlobClient.UploadAsync(stream, overwrite: true);
 
-                _logger.LogInformation("Report file saved: {FileName}.report.txt", fileName);
+                return reportBlobClient.Uri.ToString();
             }
             catch (Exception ex)
             {
@@ -170,31 +170,28 @@ namespace DAS.DigitalEngagement.Application.Services
 
         public async Task SaveReportToBlobAndNotifyAsync(string reportContent, string fileName, string integrationName)
         {
+            string blobUrl;
+
             try
             {
-                // Save report to blob storage
-                var containerClient = _blobServiceClient.GetBlobContainerClient(_container);
-                await containerClient.CreateIfNotExistsAsync();
-
-                var reportBlobClient = containerClient.GetBlobClient($"Report/{fileName}.report.txt");
-
-                using var stream = new MemoryStream(Encoding.UTF8.GetBytes(reportContent));
-                await reportBlobClient.UploadAsync(stream, overwrite: true);
-
+                blobUrl = await SaveReportToBlobInternalAsync(reportContent, fileName);
                 _logger.LogInformation("Report file saved: {FileName}.report.txt", fileName);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to save report file '{FileName}' to blob storage container '{Container}'.", fileName, _container);
+                throw new InvalidOperationException($"Failed to save report file '{fileName}' to blob storage.", ex);
+            }
 
-                // Get blob URL
-                var blobUrl = reportBlobClient.Uri.ToString();
-
-                // Send email notification with both content and blob URL
+            try
+            {
                 await _emailNotificationService.SendMonitoringReportAsync(integrationName, reportContent, blobUrl);
-
                 _logger.LogInformation("Monitoring report email sent for integration: {IntegrationName}, Blob: {BlobUrl}", integrationName, blobUrl);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to save report file '{FileName}' or send email notification for integration '{IntegrationName}' to blob storage container '{Container}'.", fileName, integrationName, _container);
-                throw new InvalidOperationException($"Failed to save report file '{fileName}' or send email notification for integration '{integrationName}'.", ex);
+                _logger.LogError(ex, "Failed to send email notification for integration '{IntegrationName}'.", integrationName);
+                throw new InvalidOperationException($"Failed to send email notification for integration '{integrationName}'.", ex);
             }
         }
 

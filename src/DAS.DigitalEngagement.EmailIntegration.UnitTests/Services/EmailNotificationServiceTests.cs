@@ -18,6 +18,7 @@ public class EmailNotificationServiceTests
 {
     private Mock<ILogger<EmailNotificationService>> _mockLogger;
     private Mock<INotificationClientWrapper> _mockNotificationClient;
+    private Mock<IEmailDomainChecker> _mockEmailDomainChecker;
     private GovNotifyConfiguration _configuration;
 
     [SetUp]
@@ -25,6 +26,7 @@ public class EmailNotificationServiceTests
     {
         _mockLogger = new Mock<ILogger<EmailNotificationService>>();
         _mockNotificationClient = new Mock<INotificationClientWrapper>();
+        _mockEmailDomainChecker = new Mock<IEmailDomainChecker>();
         _configuration = new GovNotifyConfiguration
         {
             ApiKey = "test_service_id-1a234567-89ab-cdef-0123-456789abcdef-1a234567-89ab-cdef-0123-456789abcdef",
@@ -40,15 +42,15 @@ public class EmailNotificationServiceTests
     {
         // Act & Assert
         Assert.Throws<ArgumentNullException>(() => 
-            new EmailNotificationService(null, _mockLogger.Object, _mockNotificationClient.Object));
+            new EmailNotificationService(null, _mockLogger.Object, _mockNotificationClient.Object, _mockEmailDomainChecker.Object));
     }
 
-    [Test]
+    [Test]  
     public void Constructor_WhenLoggerIsNull_ThrowsArgumentNullException()
     {
         // Act & Assert
         Assert.Throws<ArgumentNullException>(() => 
-            new EmailNotificationService(_configuration, null, _mockNotificationClient.Object));
+            new EmailNotificationService(_configuration, null, _mockNotificationClient.Object, _mockEmailDomainChecker.Object));
     }
 
     [Test]
@@ -56,7 +58,7 @@ public class EmailNotificationServiceTests
     {
         // Act & Assert
         Assert.Throws<ArgumentNullException>(() => 
-            new EmailNotificationService(_configuration, _mockLogger.Object, null));
+            new EmailNotificationService(_configuration, _mockLogger.Object, null, _mockEmailDomainChecker.Object));
     }
 
     [Test]
@@ -67,7 +69,7 @@ public class EmailNotificationServiceTests
 
         // Act & Assert
         var ex = Assert.Throws<InvalidOperationException>(() => 
-            new EmailNotificationService(_configuration, _mockLogger.Object, _mockNotificationClient.Object));
+            new EmailNotificationService(_configuration, _mockLogger.Object, _mockNotificationClient.Object, _mockEmailDomainChecker.Object));
         
         Assert.That(ex.Message, Is.EqualTo("GovUK Notify API Key is not configured"));
     }
@@ -80,7 +82,7 @@ public class EmailNotificationServiceTests
 
         // Act & Assert
         var ex = Assert.Throws<InvalidOperationException>(() => 
-            new EmailNotificationService(_configuration, _mockLogger.Object, _mockNotificationClient.Object));
+            new EmailNotificationService(_configuration, _mockLogger.Object, _mockNotificationClient.Object, _mockEmailDomainChecker.Object));
         
         Assert.That(ex.Message, Is.EqualTo("GovUK Notify API Key is not configured"));
     }
@@ -93,7 +95,7 @@ public class EmailNotificationServiceTests
 
         // Act & Assert
         var ex = Assert.Throws<InvalidOperationException>(() => 
-            new EmailNotificationService(_configuration, _mockLogger.Object, _mockNotificationClient.Object));
+            new EmailNotificationService(_configuration, _mockLogger.Object, _mockNotificationClient.Object, _mockEmailDomainChecker.Object));
         
         Assert.That(ex.Message, Is.EqualTo("GovUK Notify API Key is not configured"));
     }
@@ -103,7 +105,7 @@ public class EmailNotificationServiceTests
     {
         // Act & Assert
         Assert.DoesNotThrow(() => 
-            new EmailNotificationService(_configuration, _mockLogger.Object, _mockNotificationClient.Object));
+            new EmailNotificationService(_configuration, _mockLogger.Object, _mockNotificationClient.Object, _mockEmailDomainChecker.Object));
     }
 
     #endregion
@@ -115,7 +117,7 @@ public class EmailNotificationServiceTests
     {
         // Arrange
         _configuration.RecipientEmailAddresses = null;
-        var service = new EmailNotificationService(_configuration, _mockLogger.Object, _mockNotificationClient.Object);
+        var service = new EmailNotificationService(_configuration, _mockLogger.Object, _mockNotificationClient.Object, _mockEmailDomainChecker.Object);
 
         // Act
         await service.SendMonitoringReportAsync("TestIntegration", "Report Content", "https://blob.url", CancellationToken.None);
@@ -140,7 +142,7 @@ public class EmailNotificationServiceTests
     {
         // Arrange
         _configuration.RecipientEmailAddresses = new List<string>();
-        var service = new EmailNotificationService(_configuration, _mockLogger.Object, _mockNotificationClient.Object);
+        var service = new EmailNotificationService(_configuration, _mockLogger.Object, _mockNotificationClient.Object, _mockEmailDomainChecker.Object);
 
         // Act
         await service.SendMonitoringReportAsync("TestIntegration", "Report Content", "https://blob.url", CancellationToken.None);
@@ -180,7 +182,12 @@ public class EmailNotificationServiceTests
                 It.IsAny<Dictionary<string, dynamic>>()))
             .ReturnsAsync(mockResponse);
 
-        var service = new EmailNotificationService(_configuration, _mockLogger.Object, _mockNotificationClient.Object);
+        // Ensure domain check passes
+        _mockEmailDomainChecker
+            .Setup(x => x.IsValidDomainAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+
+        var service = new EmailNotificationService(_configuration, _mockLogger.Object, _mockNotificationClient.Object, _mockEmailDomainChecker.Object);
 
         // Act
         await service.SendMonitoringReportAsync("TestIntegration", "Report Content", "https://blob.url", CancellationToken.None);
@@ -234,7 +241,12 @@ public class EmailNotificationServiceTests
                 It.IsAny<Dictionary<string, dynamic>>()))
             .ReturnsAsync(mockResponse);
 
-        var service = new EmailNotificationService(_configuration, _mockLogger.Object, _mockNotificationClient.Object);
+        // Ensure domain check passes
+        _mockEmailDomainChecker
+            .Setup(x => x.IsValidDomainAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+
+        var service = new EmailNotificationService(_configuration, _mockLogger.Object, _mockNotificationClient.Object, _mockEmailDomainChecker.Object);
 
         // Act
         await service.SendMonitoringReportAsync("TestIntegration", "Report Content", "https://blob.url", CancellationToken.None);
@@ -275,7 +287,12 @@ public class EmailNotificationServiceTests
             })
             .ReturnsAsync(mockResponse);
 
-        var service = new EmailNotificationService(_configuration, _mockLogger.Object, _mockNotificationClient.Object);
+        // Ensure domain check passes so SendEmailAsync is invoked
+        _mockEmailDomainChecker
+            .Setup(x => x.IsValidDomainAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+
+        var service = new EmailNotificationService(_configuration, _mockLogger.Object, _mockNotificationClient.Object, _mockEmailDomainChecker.Object);
 
         // Act
         await service.SendMonitoringReportAsync("TestIntegration", "Report Content", "https://blob.url", CancellationToken.None);
@@ -312,7 +329,12 @@ public class EmailNotificationServiceTests
             .ThrowsAsync(new Exception("Failed to send"))
             .ReturnsAsync(mockResponse);
 
-        var service = new EmailNotificationService(_configuration, _mockLogger.Object, _mockNotificationClient.Object);
+        // Ensure domain check passes
+        _mockEmailDomainChecker
+            .Setup(x => x.IsValidDomainAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+
+        var service = new EmailNotificationService(_configuration, _mockLogger.Object, _mockNotificationClient.Object, _mockEmailDomainChecker.Object);
 
         // Act
         await service.SendMonitoringReportAsync("TestIntegration", "Report Content", "https://blob.url", CancellationToken.None);
@@ -352,7 +374,12 @@ public class EmailNotificationServiceTests
                 It.IsAny<Dictionary<string, dynamic>>()))
             .ThrowsAsync(new Exception("Failed to send"));
 
-        var service = new EmailNotificationService(_configuration, _mockLogger.Object, _mockNotificationClient.Object);
+        // Ensure domain check passes (so failures are simulated by client)
+        _mockEmailDomainChecker
+            .Setup(x => x.IsValidDomainAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+
+        var service = new EmailNotificationService(_configuration, _mockLogger.Object, _mockNotificationClient.Object, _mockEmailDomainChecker.Object);
 
         // Act
         await service.SendMonitoringReportAsync("MyIntegration", "report", "https://blob.url", CancellationToken.None);
@@ -386,13 +413,18 @@ public class EmailNotificationServiceTests
             .Setup(x => x.SendEmailAsync(
                 It.IsAny<string>(), 
                 It.IsAny<string>(), 
-                It.IsAny<Dictionary<string, dynamic>>()))
+                It.IsAny<Dictionary<string, dynamic>>() ))
             .ReturnsAsync(mockResponse);
 
-        var service = new EmailNotificationService(_configuration, _mockLogger.Object, _mockNotificationClient.Object);
+        // Ensure domain check passes
+        _mockEmailDomainChecker
+            .Setup(x => x.IsValidDomainAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+
+        var service = new EmailNotificationService(_configuration, _mockLogger.Object, _mockNotificationClient.Object, _mockEmailDomainChecker.Object);
 
         // Act & Assert
-        Assert.DoesNotThrowAsync(async () =>
+         Assert.DoesNotThrowAsync(async () =>
             await service.SendMonitoringReportAsync(null, "Report Content", "https://blob.url", CancellationToken.None));
 
         _mockNotificationClient.Verify(
@@ -413,13 +445,18 @@ public class EmailNotificationServiceTests
             .Setup(x => x.SendEmailAsync(
                 It.IsAny<string>(), 
                 It.IsAny<string>(), 
-                It.IsAny<Dictionary<string, dynamic>>()))
+                It.IsAny<Dictionary<string, dynamic>>() ))
             .ReturnsAsync(mockResponse);
 
-        var service = new EmailNotificationService(_configuration, _mockLogger.Object, _mockNotificationClient.Object);
+        // Ensure domain check passes
+        _mockEmailDomainChecker
+            .Setup(x => x.IsValidDomainAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+
+        var service = new EmailNotificationService(_configuration, _mockLogger.Object, _mockNotificationClient.Object, _mockEmailDomainChecker.Object);
 
         // Act & Assert
-        Assert.DoesNotThrowAsync(async () =>
+         Assert.DoesNotThrowAsync(async () =>
             await service.SendMonitoringReportAsync("TestIntegration", null, "https://blob.url", CancellationToken.None));
 
         _mockNotificationClient.Verify(
@@ -440,13 +477,18 @@ public class EmailNotificationServiceTests
             .Setup(x => x.SendEmailAsync(
                 It.IsAny<string>(), 
                 It.IsAny<string>(), 
-                It.IsAny<Dictionary<string, dynamic>>()))
+                It.IsAny<Dictionary<string, dynamic>>() ))
             .ReturnsAsync(mockResponse);
 
-        var service = new EmailNotificationService(_configuration, _mockLogger.Object, _mockNotificationClient.Object);
+        // Ensure domain check passes
+        _mockEmailDomainChecker
+            .Setup(x => x.IsValidDomainAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+
+        var service = new EmailNotificationService(_configuration, _mockLogger.Object, _mockNotificationClient.Object, _mockEmailDomainChecker.Object);
 
         // Act & Assert
-        Assert.DoesNotThrowAsync(async () =>
+         Assert.DoesNotThrowAsync(async () =>
             await service.SendMonitoringReportAsync("TestIntegration", "Report Content", null, CancellationToken.None));
 
         _mockNotificationClient.Verify(
@@ -470,11 +512,15 @@ public class EmailNotificationServiceTests
                 It.IsAny<Dictionary<string, dynamic>>()))
             .ReturnsAsync(mockResponse);
 
-        var service = new EmailNotificationService(_configuration, _mockLogger.Object, _mockNotificationClient.Object);
+        _mockEmailDomainChecker
+            .Setup(x => x.IsValidDomainAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+
+        var service = new EmailNotificationService(_configuration, _mockLogger.Object, _mockNotificationClient.Object, _mockEmailDomainChecker.Object);
         var cts = new CancellationTokenSource();
 
         // Act & Assert
-        Assert.DoesNotThrowAsync(async () =>
+         Assert.DoesNotThrowAsync(async () =>
             await service.SendMonitoringReportAsync("TestIntegration", "Report Content", "https://blob.url", cts.Token));
     }
 
@@ -492,7 +538,11 @@ public class EmailNotificationServiceTests
                 It.IsAny<Dictionary<string, dynamic>>()))
             .ReturnsAsync(mockResponse);
 
-        var service = new EmailNotificationService(_configuration, _mockLogger.Object, _mockNotificationClient.Object);
+        _mockEmailDomainChecker
+            .Setup(x => x.IsValidDomainAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+
+        var service = new EmailNotificationService(_configuration, _mockLogger.Object, _mockNotificationClient.Object, _mockEmailDomainChecker.Object);
 
         // Act
         await service.SendMonitoringReportAsync(integrationName, "Report Content", "https://blob.url", CancellationToken.None);
@@ -523,7 +573,11 @@ public class EmailNotificationServiceTests
                 It.IsAny<Dictionary<string, dynamic>>()))
             .ReturnsAsync(mockResponse);
 
-        var service = new EmailNotificationService(_configuration, _mockLogger.Object, _mockNotificationClient.Object);
+        _mockEmailDomainChecker
+            .Setup(x => x.IsValidDomainAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+
+        var service = new EmailNotificationService(_configuration, _mockLogger.Object, _mockNotificationClient.Object, _mockEmailDomainChecker.Object);
 
         // Act
         await service.SendMonitoringReportAsync("TestIntegration", "Report Content", "https://blob.url", CancellationToken.None);
@@ -567,7 +621,11 @@ public class EmailNotificationServiceTests
             })
             .ReturnsAsync(mockResponse);
 
-        var service = new EmailNotificationService(_configuration, _mockLogger.Object, _mockNotificationClient.Object);
+        _mockEmailDomainChecker
+            .Setup(x => x.IsValidDomainAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+
+        var service = new EmailNotificationService(_configuration, _mockLogger.Object, _mockNotificationClient.Object, _mockEmailDomainChecker.Object);
 
         // Act
         await service.SendMonitoringReportAsync("TestIntegration", "Report Content", "https://blob.url", CancellationToken.None);
@@ -604,7 +662,7 @@ public class EmailNotificationServiceTests
         // Arrange - single recipient that is whitespace
         _configuration.RecipientEmailAddresses = new List<string> { "   " };
 
-        var service = new EmailNotificationService(_configuration, _mockLogger.Object, _mockNotificationClient.Object);
+        var service = new EmailNotificationService(_configuration, _mockLogger.Object, _mockNotificationClient.Object, _mockEmailDomainChecker.Object);
 
         // Act
         await service.SendMonitoringReportAsync("MyIntegration", "report", "https://blob.url", CancellationToken.None);

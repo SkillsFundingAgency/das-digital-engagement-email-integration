@@ -227,7 +227,7 @@ namespace DAS.DigitalEngagement.Application.Services
             return VerificationResult.Failed;
         }
 
-        private bool IsStillProcessing(string importStatus)
+        private bool IsStillProcessing(string? importStatus)
         {
             return importStatus == "Waiting" || importStatus == "Processing";
         }
