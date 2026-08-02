@@ -41,15 +41,15 @@ public class EmailNotificationServiceTests
     public void Constructor_WhenConfigurationIsNull_ThrowsArgumentNullException()
     {
         // Act & Assert
-        Assert.Throws<ArgumentNullException>(() => 
+        Assert.Throws<ArgumentNullException>(() =>
             new EmailNotificationService(null, _mockLogger.Object, _mockNotificationClient.Object, _mockEmailDomainChecker.Object));
     }
 
-    [Test]  
+    [Test]
     public void Constructor_WhenLoggerIsNull_ThrowsArgumentNullException()
     {
         // Act & Assert
-        Assert.Throws<ArgumentNullException>(() => 
+        Assert.Throws<ArgumentNullException>(() =>
             new EmailNotificationService(_configuration, null, _mockNotificationClient.Object, _mockEmailDomainChecker.Object));
     }
 
@@ -57,7 +57,7 @@ public class EmailNotificationServiceTests
     public void Constructor_WhenNotificationClientIsNull_ThrowsArgumentNullException()
     {
         // Act & Assert
-        Assert.Throws<ArgumentNullException>(() => 
+        Assert.Throws<ArgumentNullException>(() =>
             new EmailNotificationService(_configuration, _mockLogger.Object, null, _mockEmailDomainChecker.Object));
     }
 
@@ -68,9 +68,9 @@ public class EmailNotificationServiceTests
         _configuration.ApiKey = null;
 
         // Act & Assert
-        var ex = Assert.Throws<InvalidOperationException>(() => 
+        var ex = Assert.Throws<InvalidOperationException>(() =>
             new EmailNotificationService(_configuration, _mockLogger.Object, _mockNotificationClient.Object, _mockEmailDomainChecker.Object));
-        
+
         Assert.That(ex.Message, Is.EqualTo("GovUK Notify API Key is not configured"));
     }
 
@@ -81,9 +81,9 @@ public class EmailNotificationServiceTests
         _configuration.ApiKey = string.Empty;
 
         // Act & Assert
-        var ex = Assert.Throws<InvalidOperationException>(() => 
+        var ex = Assert.Throws<InvalidOperationException>(() =>
             new EmailNotificationService(_configuration, _mockLogger.Object, _mockNotificationClient.Object, _mockEmailDomainChecker.Object));
-        
+
         Assert.That(ex.Message, Is.EqualTo("GovUK Notify API Key is not configured"));
     }
 
@@ -94,9 +94,9 @@ public class EmailNotificationServiceTests
         _configuration.ApiKey = "   ";
 
         // Act & Assert
-        var ex = Assert.Throws<InvalidOperationException>(() => 
+        var ex = Assert.Throws<InvalidOperationException>(() =>
             new EmailNotificationService(_configuration, _mockLogger.Object, _mockNotificationClient.Object, _mockEmailDomainChecker.Object));
-        
+
         Assert.That(ex.Message, Is.EqualTo("GovUK Notify API Key is not configured"));
     }
 
@@ -104,7 +104,7 @@ public class EmailNotificationServiceTests
     public void Constructor_WhenValidConfiguration_CreatesInstance()
     {
         // Act & Assert
-        Assert.DoesNotThrow(() => 
+        Assert.DoesNotThrow(() =>
             new EmailNotificationService(_configuration, _mockLogger.Object, _mockNotificationClient.Object, _mockEmailDomainChecker.Object));
     }
 
@@ -131,7 +131,7 @@ public class EmailNotificationServiceTests
                 It.IsAny<Exception>(),
                 It.IsAny<Func<It.IsAnyType, Exception, string>>()),
             Times.Once);
-        
+
         _mockNotificationClient.Verify(
             x => x.SendEmailAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<Dictionary<string, dynamic>>()),
             Times.Never);
@@ -156,7 +156,7 @@ public class EmailNotificationServiceTests
                 It.IsAny<Exception>(),
                 It.IsAny<Func<It.IsAnyType, Exception, string>>()),
             Times.Once);
-        
+
         _mockNotificationClient.Verify(
             x => x.SendEmailAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<Dictionary<string, dynamic>>()),
             Times.Never);
@@ -174,11 +174,11 @@ public class EmailNotificationServiceTests
         {
             id = "notification-id-123"
         };
-        
+
         _mockNotificationClient
             .Setup(x => x.SendEmailAsync(
-                It.IsAny<string>(), 
-                It.IsAny<string>(), 
+                It.IsAny<string>(),
+                It.IsAny<string>(),
                 It.IsAny<Dictionary<string, dynamic>>()))
             .ReturnsAsync(mockResponse);
 
@@ -205,7 +205,7 @@ public class EmailNotificationServiceTests
             x => x.Log(
                 LogLevel.Information,
                 It.IsAny<EventId>(),
-                It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("Monitoring report email sent to") && 
+                It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("Monitoring report email sent to") &&
                                           v.ToString().Contains("notification-id-123")),
                 It.IsAny<Exception>(),
                 It.IsAny<Func<It.IsAnyType, Exception, string>>()),
@@ -225,19 +225,19 @@ public class EmailNotificationServiceTests
     public async Task SendMonitoringReportAsync_WhenMultipleRecipients_SendsToAll()
     {
         // Arrange
-        _configuration.RecipientEmailAddresses = new List<string> 
-        { 
-            "test1@example.com", 
+        _configuration.RecipientEmailAddresses = new List<string>
+        {
+            "test1@example.com",
             "test2@example.com",
             "test3@example.com"
         };
 
         var mockResponse = new EmailNotificationResponse { id = "notification-id-123" };
-        
+
         _mockNotificationClient
             .Setup(x => x.SendEmailAsync(
-                It.IsAny<string>(), 
-                It.IsAny<string>(), 
+                It.IsAny<string>(),
+                It.IsAny<string>(),
                 It.IsAny<Dictionary<string, dynamic>>()))
             .ReturnsAsync(mockResponse);
 
@@ -275,11 +275,11 @@ public class EmailNotificationServiceTests
         // Arrange
         var mockResponse = new EmailNotificationResponse { id = "notification-id-123" };
         Dictionary<string, dynamic> capturedPersonalisation = null;
-        
+
         _mockNotificationClient
             .Setup(x => x.SendEmailAsync(
-                It.IsAny<string>(), 
-                It.IsAny<string>(), 
+                It.IsAny<string>(),
+                It.IsAny<string>(),
                 It.IsAny<Dictionary<string, dynamic>>()))
             .Callback<string, string, Dictionary<string, dynamic>>((email, template, personalisation) =>
             {
@@ -311,19 +311,19 @@ public class EmailNotificationServiceTests
     public async Task SendMonitoringReportAsync_WhenSomeRecipientsFail_LogsErrorsAndContinues()
     {
         // Arrange
-        _configuration.RecipientEmailAddresses = new List<string> 
-        { 
-            "test1@example.com", 
+        _configuration.RecipientEmailAddresses = new List<string>
+        {
+            "test1@example.com",
             "test2@example.com",
             "test3@example.com"
         };
 
         var mockResponse = new EmailNotificationResponse { id = "notification-id-123" };
-        
+
         _mockNotificationClient
             .SetupSequence(x => x.SendEmailAsync(
-                It.IsAny<string>(), 
-                It.IsAny<string>(), 
+                It.IsAny<string>(),
+                It.IsAny<string>(),
                 It.IsAny<Dictionary<string, dynamic>>()))
             .ReturnsAsync(mockResponse)
             .ThrowsAsync(new Exception("Failed to send"))
@@ -359,12 +359,10 @@ public class EmailNotificationServiceTests
             Times.Once);
     }
 
-    #endregion
-
     [Test]
     public async Task SendMonitoringReportAsync_WhenAllRecipientsFail_LogsError()
     {
-        // Arrange - multiple recipients but Notify client always fails
+
         _configuration.RecipientEmailAddresses = new List<string> { "fail1@example.com", "fail2@example.com" };
 
         _mockNotificationClient
@@ -374,17 +372,16 @@ public class EmailNotificationServiceTests
                 It.IsAny<Dictionary<string, dynamic>>()))
             .ThrowsAsync(new Exception("Failed to send"));
 
-        // Ensure domain check passes (so failures are simulated by client)
         _mockEmailDomainChecker
             .Setup(x => x.IsValidDomainAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
 
         var service = new EmailNotificationService(_configuration, _mockLogger.Object, _mockNotificationClient.Object, _mockEmailDomainChecker.Object);
 
-        // Act
+
         await service.SendMonitoringReportAsync("MyIntegration", "report", "https://blob.url", CancellationToken.None);
 
-        // Assert - SendEmailAsync attempted for each recipient
+
         _mockNotificationClient.Verify(
             x => x.SendEmailAsync(
                 It.IsAny<string>(),
@@ -392,7 +389,6 @@ public class EmailNotificationServiceTests
                 It.IsAny<Dictionary<string, dynamic>>()),
             Times.Exactly(2));
 
-        // Assert - final error logged when all recipients fail, includes integration name
         _mockLogger.Verify(
             x => x.Log(
                 LogLevel.Error,
@@ -408,12 +404,12 @@ public class EmailNotificationServiceTests
     {
         // Arrange
         var mockResponse = new EmailNotificationResponse { id = "notification-id-123" };
-        
+
         _mockNotificationClient
             .Setup(x => x.SendEmailAsync(
-                It.IsAny<string>(), 
-                It.IsAny<string>(), 
-                It.IsAny<Dictionary<string, dynamic>>() ))
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<Dictionary<string, dynamic>>()))
             .ReturnsAsync(mockResponse);
 
         // Ensure domain check passes
@@ -424,8 +420,8 @@ public class EmailNotificationServiceTests
         var service = new EmailNotificationService(_configuration, _mockLogger.Object, _mockNotificationClient.Object, _mockEmailDomainChecker.Object);
 
         // Act & Assert
-         Assert.DoesNotThrowAsync(async () =>
-            await service.SendMonitoringReportAsync(null, "Report Content", "https://blob.url", CancellationToken.None));
+        Assert.DoesNotThrowAsync(async () =>
+           await service.SendMonitoringReportAsync(null, "Report Content", "https://blob.url", CancellationToken.None));
 
         _mockNotificationClient.Verify(
             x => x.SendEmailAsync(
@@ -440,12 +436,12 @@ public class EmailNotificationServiceTests
     {
         // Arrange
         var mockResponse = new EmailNotificationResponse { id = "notification-id-123" };
-        
+
         _mockNotificationClient
             .Setup(x => x.SendEmailAsync(
-                It.IsAny<string>(), 
-                It.IsAny<string>(), 
-                It.IsAny<Dictionary<string, dynamic>>() ))
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<Dictionary<string, dynamic>>()))
             .ReturnsAsync(mockResponse);
 
         // Ensure domain check passes
@@ -456,8 +452,8 @@ public class EmailNotificationServiceTests
         var service = new EmailNotificationService(_configuration, _mockLogger.Object, _mockNotificationClient.Object, _mockEmailDomainChecker.Object);
 
         // Act & Assert
-         Assert.DoesNotThrowAsync(async () =>
-            await service.SendMonitoringReportAsync("TestIntegration", null, "https://blob.url", CancellationToken.None));
+        Assert.DoesNotThrowAsync(async () =>
+           await service.SendMonitoringReportAsync("TestIntegration", null, "https://blob.url", CancellationToken.None));
 
         _mockNotificationClient.Verify(
             x => x.SendEmailAsync(
@@ -472,12 +468,12 @@ public class EmailNotificationServiceTests
     {
         // Arrange
         var mockResponse = new EmailNotificationResponse { id = "notification-id-123" };
-        
+
         _mockNotificationClient
             .Setup(x => x.SendEmailAsync(
-                It.IsAny<string>(), 
-                It.IsAny<string>(), 
-                It.IsAny<Dictionary<string, dynamic>>() ))
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<Dictionary<string, dynamic>>()))
             .ReturnsAsync(mockResponse);
 
         // Ensure domain check passes
@@ -488,8 +484,8 @@ public class EmailNotificationServiceTests
         var service = new EmailNotificationService(_configuration, _mockLogger.Object, _mockNotificationClient.Object, _mockEmailDomainChecker.Object);
 
         // Act & Assert
-         Assert.DoesNotThrowAsync(async () =>
-            await service.SendMonitoringReportAsync("TestIntegration", "Report Content", null, CancellationToken.None));
+        Assert.DoesNotThrowAsync(async () =>
+           await service.SendMonitoringReportAsync("TestIntegration", "Report Content", null, CancellationToken.None));
 
         _mockNotificationClient.Verify(
             x => x.SendEmailAsync(
@@ -504,11 +500,11 @@ public class EmailNotificationServiceTests
     {
         // Arrange
         var mockResponse = new EmailNotificationResponse { id = "notification-id-123" };
-        
+
         _mockNotificationClient
             .Setup(x => x.SendEmailAsync(
-                It.IsAny<string>(), 
-                It.IsAny<string>(), 
+                It.IsAny<string>(),
+                It.IsAny<string>(),
                 It.IsAny<Dictionary<string, dynamic>>()))
             .ReturnsAsync(mockResponse);
 
@@ -520,8 +516,8 @@ public class EmailNotificationServiceTests
         var cts = new CancellationTokenSource();
 
         // Act & Assert
-         Assert.DoesNotThrowAsync(async () =>
-            await service.SendMonitoringReportAsync("TestIntegration", "Report Content", "https://blob.url", cts.Token));
+        Assert.DoesNotThrowAsync(async () =>
+           await service.SendMonitoringReportAsync("TestIntegration", "Report Content", "https://blob.url", cts.Token));
     }
 
     [Test]
@@ -530,11 +526,11 @@ public class EmailNotificationServiceTests
         // Arrange
         var integrationName = "CustomIntegration";
         var mockResponse = new EmailNotificationResponse { id = "notification-id-123" };
-        
+
         _mockNotificationClient
             .Setup(x => x.SendEmailAsync(
-                It.IsAny<string>(), 
-                It.IsAny<string>(), 
+                It.IsAny<string>(),
+                It.IsAny<string>(),
                 It.IsAny<Dictionary<string, dynamic>>()))
             .ReturnsAsync(mockResponse);
 
@@ -565,11 +561,11 @@ public class EmailNotificationServiceTests
         var recipientEmail = "specific@example.com";
         _configuration.RecipientEmailAddresses = new List<string> { recipientEmail };
         var mockResponse = new EmailNotificationResponse { id = "notification-id-123" };
-        
+
         _mockNotificationClient
             .Setup(x => x.SendEmailAsync(
-                It.IsAny<string>(), 
-                It.IsAny<string>(), 
+                It.IsAny<string>(),
+                It.IsAny<string>(),
                 It.IsAny<Dictionary<string, dynamic>>()))
             .ReturnsAsync(mockResponse);
 
@@ -592,8 +588,8 @@ public class EmailNotificationServiceTests
                 It.IsAny<Func<It.IsAnyType, Exception, string>>()),
             Times.AtLeastOnce);
     }
-    
-   
+
+
 
     [Test]
     public async Task SendMonitoringReportAsync_WhenRecipientsContainInvalidEmails_SkipsInvalidAddressesAndLogsWarnings()
@@ -643,7 +639,7 @@ public class EmailNotificationServiceTests
                 It.IsAny<EventId>(),
                 It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("invalid-email")),
                 It.IsAny<Exception>(),
-                It.IsAny<Func<It.IsAnyType, Exception, string>>() ),
+                It.IsAny<Func<It.IsAnyType, Exception, string>>()),
             Times.AtLeastOnce);
 
         // Assert - SendEmailAsync invoked exactly for the two valid recipients
@@ -682,4 +678,175 @@ public class EmailNotificationServiceTests
             x => x.SendEmailAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<Dictionary<string, dynamic>>()),
             Times.Never);
     }
+
+    [Test]
+    public async Task SendMonitoringReportAsync_DomainLookupThrows_LogsWarningAndSkipsRecipient()
+    {
+        // Arrange
+        _configuration.RecipientEmailAddresses = new List<string> { "test@example.com" };
+        var dnsEx = new Exception("dns lookup failed");
+
+        _mockEmailDomainChecker
+            .Setup(x => x.IsValidDomainAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(dnsEx);
+
+        var service = new EmailNotificationService(_configuration, _mockLogger.Object, _mockNotificationClient.Object, _mockEmailDomainChecker.Object);
+
+        // Act
+        await service.SendMonitoringReportAsync("IntegrationDomainThrow", "Report Content", "https://blob.url", CancellationToken.None);
+
+        // Assert - domain lookup exception logged as a warning and contains the email
+        _mockLogger.Verify(
+            x => x.Log(
+                LogLevel.Warning,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("Domain lookup failed validating email") && v.ToString().Contains("test@example.com")),
+                dnsEx,
+                It.IsAny<Func<It.IsAnyType, Exception, string>>()),
+            Times.Once);
+
+        // Assert - no attempt to send email
+        _mockNotificationClient.Verify(
+            x => x.SendEmailAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<Dictionary<string, dynamic>>()),
+            Times.Never);
+
+        // Assert - batch summary logged with Sent: 0, Failed: 1
+        _mockLogger.Verify(
+            x => x.Log(
+                LogLevel.Information,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("Sent: 0, Failed: 1")),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception, string>>()),
+            Times.Once);
+
+        // Assert - final error logged because all recipients failed
+        _mockLogger.Verify(
+            x => x.Log(
+                LogLevel.Error,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("Failed to send monitoring report to all recipients for integration") && v.ToString().Contains("IntegrationDomainThrow")),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception, string>>()),
+            Times.Once);
+    }
+
+    [Test]
+    public async Task SendMonitoringReportAsync_DomainInvalid_LogsWarningAndSkipsRecipient()
+    {
+        // Arrange
+        _configuration.RecipientEmailAddresses = new List<string> { "test@example.com" };
+
+        _mockEmailDomainChecker
+            .Setup(x => x.IsValidDomainAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+
+        var service = new EmailNotificationService(_configuration, _mockLogger.Object, _mockNotificationClient.Object, _mockEmailDomainChecker.Object);
+
+        // Act
+        await service.SendMonitoringReportAsync("IntegrationDomainInvalid", "Report Content", "https://blob.url", CancellationToken.None);
+
+        // Assert - invalid domain warning logged and contains the email
+        _mockLogger.Verify(
+            x => x.Log(
+                LogLevel.Warning,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("Email domain appears invalid for") && v.ToString().Contains("test@example.com")),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception, string>>()),
+            Times.Once);
+
+        // Assert - no attempt to send email
+        _mockNotificationClient.Verify(
+            x => x.SendEmailAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<Dictionary<string, dynamic>>()),
+            Times.Never);
+
+        // Assert - batch summary logged with Sent: 0, Failed: 1
+        _mockLogger.Verify(
+            x => x.Log(
+                LogLevel.Information,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("Sent: 0, Failed: 1")),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception, string>>()),
+            Times.Once);
+
+        // Assert - final error logged because all recipients failed
+        _mockLogger.Verify(
+            x => x.Log(
+                LogLevel.Error,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("Failed to send monitoring report to all recipients for integration") && v.ToString().Contains("IntegrationDomainInvalid")),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception, string>>()),
+            Times.Once);
+    }
+
+    [Test]
+    public async Task SendMonitoringReportAsync_WhenNotificationResponseHasNoId_LogsErrorAndCountsFail()
+    {
+        // Arrange
+        _configuration.RecipientEmailAddresses = new List<string> { "test@example.com" };
+
+        var mockResponse = new EmailNotificationResponse
+        {
+            id = "" // simulate missing notification id (empty/whitespace)
+        };
+
+        _mockNotificationClient
+            .Setup(x => x.SendEmailAsync(
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<Dictionary<string, dynamic>>()))
+            .ReturnsAsync(mockResponse);
+
+        // Ensure domain check passes so SendEmailAsync is invoked
+        _mockEmailDomainChecker
+            .Setup(x => x.IsValidDomainAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+
+        var service = new EmailNotificationService(_configuration, _mockLogger.Object, _mockNotificationClient.Object, _mockEmailDomainChecker.Object);
+
+        // Act
+        await service.SendMonitoringReportAsync("IntegrationNoId", "Report Content", "https://blob.url", CancellationToken.None);
+
+        // Assert - SendEmailAsync was called once
+        _mockNotificationClient.Verify(
+            x => x.SendEmailAsync(
+                "test@example.com",
+                "template-id-123",
+                It.IsAny<Dictionary<string, dynamic>>()),
+            Times.Once);
+
+        // Assert - specific error logged for missing notification id
+        _mockLogger.Verify(
+            x => x.Log(
+                LogLevel.Error,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("no notification id") && v.ToString().Contains("test@example.com") && v.ToString().Contains("IntegrationNoId")),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception, string>>()),
+            Times.Once);
+
+        // Assert - batch summary logged with Sent: 0, Failed: 1
+        _mockLogger.Verify(
+            x => x.Log(
+                LogLevel.Information,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("Sent: 0, Failed: 1")),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception, string>>()),
+            Times.Once);
+
+        // Assert - final error logged because all recipients failed
+        _mockLogger.Verify(
+            x => x.Log(
+                LogLevel.Error,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("Failed to send monitoring report to all recipients for integration") && v.ToString().Contains("IntegrationNoId")),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception, string>>()),
+            Times.Once);
+    }
+    #endregion
 }

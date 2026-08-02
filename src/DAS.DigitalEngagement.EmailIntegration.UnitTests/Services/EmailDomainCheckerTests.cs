@@ -21,10 +21,8 @@ namespace DAS.DigitalEngagement.Tests.Services
         {
             var checker = new EmailDomainChecker();
 
-            // No domain part
             Assert.That(await checker.IsValidDomainAsync("@"), Is.False);
             Assert.That(await checker.IsValidDomainAsync("localpart@"), Is.False);
-            // Treats whole string as domain when no '@' present; unlikely to have MX
             Assert.That(await checker.IsValidDomainAsync("not-a-real-domain-should-not-exist-xyz-12345"), Is.False);
         }
 
@@ -33,10 +31,28 @@ namespace DAS.DigitalEngagement.Tests.Services
         {
             var checker = new EmailDomainChecker();
 
-            // Uses a widely-known domain that should have MX records.
-            // This test requires network/DNS access in the execution environment.
             var result = await checker.IsValidDomainAsync("test@gmail.com");
             Assert.That(result, Is.True, "Expected gmail.com to have MX records.");
+        }
+
+        [Test]
+        public async Task IsValidDomainAsync_LookupThrows_CachesFalseAndReturnsFalse()
+        {
+            var checker = new EmailDomainChecker();
+
+            var lookupField = typeof(EmailDomainChecker).GetField("_lookupClient", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+            Assert.That(lookupField, Is.Not.Null, "Unable to locate private field '_lookupClient' via reflection.");
+            lookupField.SetValue(checker, null);
+
+            var testEmail = "user@domain-that-will-cause-exception.test";
+
+            var first = await checker.IsValidDomainAsync(testEmail);
+
+            Assert.That(first, Is.False, "Expected IsValidDomainAsync to return false when lookup throws.");
+
+            var second = await checker.IsValidDomainAsync(testEmail);
+
+            Assert.That(second, Is.False, "Expected cached value (false) to be returned on subsequent calls.");
         }
     }
 }
