@@ -192,7 +192,7 @@ namespace DAS.DigitalEngagement.Application.Services
                 }
 
                 PopulateImportResult(importResult, node);
-                SetFinalStatus(importResult, batchIndex, importStatus);
+                SetFinalStatus(importResult, batchIndex, importStatus ?? string.Empty);
 
                 return VerificationResult.Success;
             }
@@ -200,14 +200,14 @@ namespace DAS.DigitalEngagement.Application.Services
             {
                 _logger.LogError(ex, "Batch {BatchId}: Attempt {Attempt}/{MaxRetries} - Error verifying contact import", 
                     batchIndex, attempt, maxRetries);
-                
+
                 if (attempt >= maxRetries)
                 {
                     importResult.Status = BatchStatus.Failed;
                     importResult.Error = "Failed to verify import status";
                     return VerificationResult.Failed;
                 }
-                
+
                 return VerificationResult.Retry;
             }
         }
