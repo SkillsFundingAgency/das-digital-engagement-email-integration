@@ -185,15 +185,15 @@ namespace DAS.DigitalEngagement.Application.Services
                 }
 
                 var importStatus = node["ImportStatus"]?.GetValue<string>();
-                
+
                 if (IsStillProcessing(importStatus))
                 {
-                    return HandleProcessingStatus(batchIndex, attempt, maxRetries, importStatus);
+                    return HandleProcessingStatus(batchIndex, attempt, maxRetries, importStatus ?? string.Empty);
                 }
 
                 PopulateImportResult(importResult, node);
                 SetFinalStatus(importResult, batchIndex, importStatus);
-                
+
                 return VerificationResult.Success;
             }
             catch (Exception ex)

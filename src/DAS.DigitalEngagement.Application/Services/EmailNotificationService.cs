@@ -50,77 +50,13 @@ public class EmailNotificationService : IEmailNotificationService
 
         foreach (var recipient in _configuration.RecipientEmailAddresses)
         {
-            var trimmedRecipient = recipient?.Trim();
-
-            if (string.IsNullOrWhiteSpace(trimmedRecipient))
+            var success = await TrySendMonitoringReportToRecipientAsync(recipient, personalisation, integrationName, cancellationToken);
+            if (success)
             {
-                _logger.LogWarning("Skipping empty recipient address configured for integration {IntegrationName}", integrationName);
-                failedCount++;
-                continue;
+                sentCount++;
             }
-
-            if (!MailAddress.TryCreate(trimmedRecipient, out _))
+            else
             {
-                _logger.LogWarning(
-                    "Invalid email address '{EmailAddress}' configured for integration {IntegrationName}. Skipping.",
-                    trimmedRecipient,
-                    integrationName);
-                failedCount++;
-                continue;
-            }
-
-            bool domainValid;
-            try
-            {
-                domainValid = await _emailDomainChecker.IsValidDomainAsync(trimmedRecipient, cancellationToken);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex,
-                    "Domain lookup failed validating email '{EmailAddress}' for integration {IntegrationName}. Skipping.",
-                    trimmedRecipient, integrationName);
-                failedCount++;
-                continue;
-            }
-
-            if (!domainValid)
-            {
-                _logger.LogWarning(
-                    "Email domain appears invalid for '{EmailAddress}' for integration {IntegrationName}. Skipping.",
-                    trimmedRecipient,
-                    integrationName);
-                failedCount++;
-                continue;
-            }
-
-            try
-            {
-                var response = await _notificationClient.SendEmailAsync(
-                    trimmedRecipient,
-                    _configuration.MonitoringReportTemplateId,
-                    personalisation);
-
-                if (response == null || string.IsNullOrWhiteSpace(response.id))
-                {
-                    _logger.LogError(
-                        "Failed to send monitoring report email to {EmailAddress} for integration {IntegrationName} (no notification id).",
-                        trimmedRecipient, integrationName);
-                    failedCount++;
-                }
-                else
-                {
-                    _logger.LogInformation(
-                        "Monitoring report email sent to {EmailAddress} for integration {IntegrationName}. Notification ID: {NotificationId}",
-                        trimmedRecipient, integrationName, response.id);
-
-                    sentCount++;
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex,
-                    "Failed to send monitoring report email to {EmailAddress} for integration {IntegrationName}",
-                    trimmedRecipient, integrationName);
                 failedCount++;
             }
         }
@@ -132,6 +68,82 @@ public class EmailNotificationService : IEmailNotificationService
         if (failedCount == _configuration.RecipientEmailAddresses.Count)
         {
             _logger.LogError("Failed to send monitoring report to all recipients for integration {IntegrationName}", integrationName);
+        }
+    }
+
+    private async Task<bool> TrySendMonitoringReportToRecipientAsync(string recipient, IDictionary<string, dynamic> personalisation,
+        string integrationName, CancellationToken cancellationToken)
+    {
+        var trimmedRecipient = recipient?.Trim();
+
+        if (string.IsNullOrWhiteSpace(trimmedRecipient))
+        {
+            _logger.LogWarning("Skipping empty recipient address configured for integration {IntegrationName}", integrationName);
+            return false;
+        }
+
+        if (!MailAddress.TryCreate(trimmedRecipient, out _))
+        {
+            _logger.LogWarning(
+                "Invalid email address '{EmailAddress}' configured for integration {IntegrationName}. Skipping.",
+                trimmedRecipient,
+                integrationName);
+            return false;
+        }
+
+        bool domainValid;
+        try
+        {
+            domainValid = await _emailDomainChecker.IsValidDomainAsync(trimmedRecipient, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex,
+                "Domain lookup failed validating email '{EmailAddress}' for integration {IntegrationName}. Skipping.",
+                trimmedRecipient, integrationName);
+            return false;
+        }
+
+        if (!domainValid)
+        {
+            _logger.LogWarning(
+                "Email domain appears invalid for '{EmailAddress}' for integration {IntegrationName}. Skipping.",
+                trimmedRecipient,
+                integrationName);
+            return false;
+        }
+
+        try
+        {
+            // Fix: Convert personalisation to Dictionary<string, dynamic> as required by SendEmailAsync
+            var personalisationDict = personalisation as Dictionary<string, dynamic> 
+                                      ?? new Dictionary<string, dynamic>(personalisation);
+
+            var response = await _notificationClient.SendEmailAsync(
+                trimmedRecipient,
+                _configuration.MonitoringReportTemplateId,
+                personalisationDict);
+
+            if (response == null || string.IsNullOrWhiteSpace(response.id))
+            {
+                _logger.LogError(
+                    "Failed to send monitoring report email to {EmailAddress} for integration {IntegrationName} (no notification id).",
+                    trimmedRecipient, integrationName);
+                return false;
+            }
+
+            _logger.LogInformation(
+                "Monitoring report email sent to {EmailAddress} for integration {IntegrationName}. Notification ID: {NotificationId}",
+                trimmedRecipient, integrationName, response.id);
+
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex,
+                "Failed to send monitoring report email to {EmailAddress} for integration {IntegrationName}",
+                trimmedRecipient, integrationName);
+            return false;
         }
     }
 }
