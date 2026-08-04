@@ -186,7 +186,6 @@ namespace DAS.DigitalEngagement.Application.Services
             try
             {
                 await _emailNotificationService.SendMonitoringReportAsync(integrationName, reportContent, blobUrl);
-                _logger.LogInformation("Monitoring report email sent for integration: {IntegrationName}, Blob: {BlobUrl}", integrationName, blobUrl);
             }
             catch (Exception ex)
             {

@@ -906,14 +906,6 @@ namespace DAS.DigitalEngagement.Application.Services.UnitTests
                     It.Is<string>(url => url.Contains("test-report.report.txt")),
                     It.IsAny<CancellationToken>()),
                 Times.Once);
-            mockLogger.Verify(
-                x => x.Log(
-                    LogLevel.Information,
-                    It.IsAny<EventId>(),
-                    It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("Monitoring report email sent")),
-                    It.IsAny<Exception>(),
-                    It.IsAny<Func<It.IsAnyType, Exception, string>>()),
-                Times.Once);
         }
 
         [Test]
