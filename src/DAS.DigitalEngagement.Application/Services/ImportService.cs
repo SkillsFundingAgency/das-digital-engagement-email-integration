@@ -185,29 +185,29 @@ namespace DAS.DigitalEngagement.Application.Services
                 }
 
                 var importStatus = node["ImportStatus"]?.GetValue<string>();
-                
+
                 if (IsStillProcessing(importStatus))
                 {
-                    return HandleProcessingStatus(batchIndex, attempt, maxRetries, importStatus);
+                    return HandleProcessingStatus(batchIndex, attempt, maxRetries, importStatus ?? string.Empty);
                 }
 
                 PopulateImportResult(importResult, node);
-                SetFinalStatus(importResult, batchIndex, importStatus);
-                
+                SetFinalStatus(importResult, batchIndex, importStatus ?? string.Empty);
+
                 return VerificationResult.Success;
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Batch {BatchId}: Attempt {Attempt}/{MaxRetries} - Error verifying contact import", 
                     batchIndex, attempt, maxRetries);
-                
+
                 if (attempt >= maxRetries)
                 {
                     importResult.Status = BatchStatus.Failed;
                     importResult.Error = "Failed to verify import status";
                     return VerificationResult.Failed;
                 }
-                
+
                 return VerificationResult.Retry;
             }
         }
@@ -227,7 +227,7 @@ namespace DAS.DigitalEngagement.Application.Services
             return VerificationResult.Failed;
         }
 
-        private bool IsStillProcessing(string importStatus)
+        private bool IsStillProcessing(string? importStatus)
         {
             return importStatus == "Waiting" || importStatus == "Processing";
         }

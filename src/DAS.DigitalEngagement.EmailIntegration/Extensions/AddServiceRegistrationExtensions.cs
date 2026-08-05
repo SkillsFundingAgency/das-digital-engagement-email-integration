@@ -30,6 +30,7 @@ namespace DAS.DigitalEngagement.EmailIntegration.Extensions
             services.AddTransient<IImportDataMartHandler, ImportDataMartHandler>();
             services.AddTransient<IImportService, ImportService>();
             services.AddTransient<IPayLoadMapper, PayLoadMapper>();
+            services.AddTransient<IEmailDomainChecker, EmailDomainChecker>();
 
             services.AddTransient<IImportCampaignPerformanceHandler, ImportCampaignPerformanceHandler>();
             services.AddTransient<IUnitOfWork, UnitOfWork>();
