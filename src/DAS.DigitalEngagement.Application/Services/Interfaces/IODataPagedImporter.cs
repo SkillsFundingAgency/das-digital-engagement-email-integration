@@ -2,6 +2,6 @@
 {
     public interface IODataPagedImporter
     {
-        Task<long> ImportEndpointToTableAsync(string endpointTemplate, string destinationTable, string connectionString, CancellationToken cancellationToken = default);
+        Task<long> ImportEndpointToTableAsync(string endpointTemplate, string[] destinationTable, CancellationToken cancellationToken = default);
     }
 }

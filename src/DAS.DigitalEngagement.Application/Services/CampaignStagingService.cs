@@ -16,6 +16,7 @@ public class CampaignStagingService(IExternalApiService externalApiService,
     ICampaignImportMetadataRepository campaignImportMetadataRepository,
     ISqlBulkInserter sqlBulkInserter,
     IJsonToDataTableConverter jsonToDataTableConverter,
+    IODataPagedImporter oDataPagedImporter,
     ILogger<CampaignStagingService> logger, IOptions<EmailMarketingApi> apiConfig)
     : ICampaignStagingService
 {
@@ -130,6 +131,12 @@ public class CampaignStagingService(IExternalApiService externalApiService,
         logger.LogInformation("Retrieved {SendCount} Sends with campaign data", dsSendCampaign?.Tables[0].Rows.Count ?? 0);
 
         return dsSendCampaign;
+    }
+
+    public async Task ImportSendsAndCampaign(List<long> sendIds, DateTime importStartDateTime)
+    {
+        var endpoint = $"Sends?$expand=Campaign&$filter=ID in ({string.Join(",", sendIds)})";
+        await oDataPagedImporter.ImportEndpointToTableAsync(endpoint, ["import.Sends", "import.Campaigns"]);
     }
 
     public DataTable PrepareImportMetaData(DataTable value)
@@ -382,4 +389,6 @@ public class CampaignStagingService(IExternalApiService externalApiService,
         var valueArray = jsonNode?["value"]?.AsArray();
         return valueArray;
     }
+
+ 
 }

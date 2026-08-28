@@ -31,9 +31,7 @@ namespace DAS.DigitalEngagement.Application.Services
             if (table == null) throw new ArgumentNullException(nameof(table));
 
             var effectiveBatchSize = Math.Min(batchSize < 1 ? 1 : batchSize, Math.Max(1, table.Rows.Count));
-            _logger.LogInformation("Preparing bulk insert into {Table}. SourceRows: {Rows}. RequestedBatchSize: {RequestedBatch}. EffectiveBatchSize: {Batch}. TimeoutSeconds: {Timeout}.",
-                destinationTable, table.Rows.Count, batchSize, effectiveBatchSize, timeoutSeconds);
-
+         
             await using var conn = new SqlConnection(_connectionString);
             await conn.OpenAsync(cancellationToken).ConfigureAwait(false);
 

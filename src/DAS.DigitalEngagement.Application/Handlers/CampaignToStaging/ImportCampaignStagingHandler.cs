@@ -18,24 +18,14 @@ namespace DAS.DigitalEngagement.Application.Handlers.CampaignToStaging
             }
 
             var sendIds = eligibleSends.Rows.Cast<System.Data.DataRow>().Select(row => row.Field<long>("Id")).ToList();
-            var eliSendsWithCampaign = await campaignStagingService.GetSendsAndCampaign(sendIds, cancellationToken);
-            var insertedImportMetaData =new DataTable();
 
-            // store all sends to sends table using bulk inserter
+         
+
             try
             {
-                // If the service expects a concrete list, materialize it
-                //var sendsList = eligibleSends.ToList();
-                 insertedImportMetaData = campaignStagingService.PrepareImportMetaData(eliSendsWithCampaign?.Tables[0]);
+                var importStartDateTime = DateTime.Now;
+                await campaignStagingService.ImportSendsAndCampaign(sendIds, importStartDateTime);
 
-
-                int insertedSendCount = await campaignStagingService.BulkInsertSendsAsync(eliSendsWithCampaign?.Tables[0], cancellationToken);
-                int insertedCampaignCount = await campaignStagingService.BulkInsertCampaignAsync(eliSendsWithCampaign?.Tables[1], cancellationToken);
-
-
-                insertedImportMetaData =  campaignStagingService.UpdateImportMetaData(insertedImportMetaData);
-
-                // logger.LogInformation("Bulk inserted {Count} sends into staging table", insertedCount);
             }
             catch (OperationCanceledException)
             {
@@ -47,52 +37,7 @@ namespace DAS.DigitalEngagement.Application.Handlers.CampaignToStaging
                 logger.LogError(ex, "Failed to bulk insert eligible sends into staging table");
                 return;
             }
-            finally
-            {
-                var count = await campaignStagingService.BulkInsertCampaignImportMetadataAsync(insertedImportMetaData, cancellationToken);
-            }
-
-            // long campaignId;
-
-            //foreach (var send in eligibleSends)
-            //{
-            //    logger.LogInformation("Processing Send {SendId} for sub-account {Account}", send.ID, send.Account);
-
-            //    // campaignId = await campaignStagingService.SaveCampaignDetailsAsync(BuildCampaignObject(send), cancellationToken);
-            //    //// write Campaign / Send info to db
-            //    //if (campaignId == 0)
-            //    //{
-            //    //    logger.LogError("Failed to save campaign details for Send {SendId}, sub-account {Account}", send.ID, send.Account);
-            //    //    continue;
-            //    //}
-
-            //    //// write import meta data to db to track import status, start time etc.
-            //    //var metadata = BuildCampaignImportMetadataObject(campaignId, send.ID);
-            //    //int sendId = await campaignService.UpsertCampaignImportMetadataAsync(metadata, cancellationToken);
-            //    //if (sendId == 0)
-            //    //{
-            //    //    logger.LogError("Failed to upsert campaign import metadata for Send {SendId}, sub-account {Account}", send.ID, send.Account);
-            //    //    continue;
-            //    //}
-
-            //    //var userAgentInfo = await campaignService.GetUserAgentInfoForSendAsync(send.ID, cancellationToken);
-
-            //    //await ProcessDisplayedAndClickedContactsFromEShot(campaignService, logger, send, userAgentInfo, cancellationToken);
-
-            //    //await ProcessBouncedAndUnScrubsibedContactsFromEShot(campaignService, logger, send, cancellationToken);
-
-            //    // write import meta data to db to track import status, end time, etc.
-            //    metadata.IsImportComplete = true;
-            //    metadata.ImportEndDate = DateTime.UtcNow;
-            //    sendId = await campaignService.UpsertCampaignImportMetadataAsync(metadata, cancellationToken);
-            //    if (sendId == 0)
-            //    {
-            //        logger.LogError("Failed to mark campaign import complete for Send {SendId}, sub-account {Account}", send.ID, send.Account);
-            //        continue;
-            //    }
-
-            //    logger.LogInformation("Processing complete for Send {SendId}, sub-account {Account}", send.ID, send.Account);
-            //}
+          
         }
     }
 }
