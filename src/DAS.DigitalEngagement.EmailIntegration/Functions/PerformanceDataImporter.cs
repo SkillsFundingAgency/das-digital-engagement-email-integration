@@ -1,4 +1,4 @@
-//using DAS.DigitalEngagement.Application.Handlers.Campaigns;
+﻿//using DAS.DigitalEngagement.Application.Handlers.Campaigns;
 using DAS.DigitalEngagement.Application.Handlers.CampaignToStaging;
 using DAS.DigitalEngagement.Models.Infrastructure;
 using Microsoft.Azure.Functions.Worker;
@@ -13,12 +13,16 @@ public class PerformanceDataImporter(
     ILogger<PerformanceDataImporter> logger)
 {
     [Function("PerformanceDataImporter")]
-    public async Task Run([TimerTrigger("%PerformanceDataImportSchedule%")] TimerInfo myTimer)
+    public async Task Run(
+        [TimerTrigger("%PerformanceDataImportSchedule%", RunOnStartup = true)] TimerInfo myTimer,
+        CancellationToken cancellationToken)
     {
-        logger.LogInformation("Performance Data Importer started at: {DateTime}", DateTime.Now);
+        var startedAt = DateTimeOffset.UtcNow;
         logger.LogInformation(
-            "Connection string: {ConnectionString}, API Base URL: {ApiBaseUrl}",
-            configuration.ConnectionString.CampaignsDatabase,
+            "Performance data import started at {StartedAt}.",
+            startedAt);
+        logger.LogInformation(
+            "Performance data import using API base URL {ApiBaseUrl}.",
             configuration.EmailMarketingApi?.ApiBaseUrl
         );
 
@@ -26,26 +30,23 @@ public class PerformanceDataImporter(
 
         try
         {
-            await importCampaignStagingHandler.Handle();
-            logger.LogInformation("Performance data import ran successfully.");
+            await importCampaignStagingHandler.Handle(cancellationToken);
+            logger.LogInformation("Performance data import completed successfully.");
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error importing performance data");
+            logger.LogError(ex, "Performance data import failed after {ElapsedSeconds} seconds.", stopwatch.Elapsed.TotalSeconds);
+            throw;
         }
         finally
         {
             stopwatch.Stop();
 
             logger.LogInformation(
-                "Performance data import finished in {ElapsedMs} ms ({ElapsedSeconds} seconds).",
+                "Performance data import finished at {FinishedAt} in {ElapsedMs} ms ({ElapsedSeconds} seconds).",
+                startedAt.Add(stopwatch.Elapsed),
                 stopwatch.ElapsedMilliseconds,
                 stopwatch.Elapsed.TotalSeconds);
-        }
-
-        if (myTimer.IsPastDue)
-        {
-            logger.LogWarning("Timer schedule status: overdue");
         }
     }
 }

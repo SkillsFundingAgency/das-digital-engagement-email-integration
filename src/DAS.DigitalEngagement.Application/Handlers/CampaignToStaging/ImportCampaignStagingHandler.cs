@@ -1,42 +1,33 @@
-﻿// using DAS.DigitalEngagement.Application.Handlers.Campaigns;
-using DAS.DigitalEngagement.Application.Services.Interfaces;
+﻿using DAS.DigitalEngagement.Application.PerformanceImport.Services;
 using Microsoft.Extensions.Logging;
-using System.Data;
 
 namespace DAS.DigitalEngagement.Application.Handlers.CampaignToStaging
 {
-    public class ImportCampaignStagingHandler(ICampaignStagingService campaignStagingService, ILogger<ImportCampaignStagingHandler> logger) : IImportCampaignStagingHandler
+    public class ImportCampaignStagingHandler(
+        ISendEligibilityService sendEligibilityService,
+        IPerformanceImportService performanceImportService,
+        ILogger<ImportCampaignStagingHandler> logger) : IImportCampaignStagingHandler
     {
         public async Task Handle(CancellationToken cancellationToken = default)
         {
+            logger.LogInformation("Performance import handler started.");
+
             // Set subAccountId = null for production. For local/testing, use sub-account 3 for lots of small sends, 5 for one huge send
-            var eligibleSends = await campaignStagingService.GetEligibleSendsAsync(subAccountId: null, cancellationToken: cancellationToken);
-            if (eligibleSends.Rows.Count == 0)
+            var eligibleSends = await sendEligibilityService.GetEligibleSendRecordsAsync(subAccountId: null, cancellationToken: cancellationToken);
+            logger.LogInformation("Eligibility check returned {EligibleSendCount} sends.", eligibleSends.Count);
+
+            if (eligibleSends.Count == 0)
             {
-                logger.LogWarning("No eligible sends found for import");
+                logger.LogInformation("No eligible sends found; performance import will finish without processing.");
                 return;
             }
 
-            var sendIds = eligibleSends.Rows.Cast<System.Data.DataRow>().Select(row => row.Field<long>("Id")).ToList();
+            await performanceImportService.ImportAsync(
+                eligibleSends,
+                DateTimeOffset.UtcNow,
+                cancellationToken);
 
-         
-
-            try
-            {
-                var importStartDateTime = DateTime.Now;
-                await campaignStagingService.ImportSendsAndCampaign(sendIds, importStartDateTime);
-
-            }
-            catch (OperationCanceledException)
-            {
-                logger.LogWarning("Bulk insert operation was cancelled");
-                return;
-            }
-            catch (Exception ex)
-            {
-                logger.LogError(ex, "Failed to bulk insert eligible sends into staging table");
-                return;
-            }
+            logger.LogInformation("Performance import handler completed for {EligibleSendCount} sends.", eligibleSends.Count);
           
         }
     }
