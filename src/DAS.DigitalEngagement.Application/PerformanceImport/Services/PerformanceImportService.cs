@@ -239,7 +239,7 @@ public sealed class PerformanceImportService(
 
     private InvalidOperationException LogSendContactGroupFailure(
         int batchNumber,
-        IReadOnlyCollection<Send> sendBatch,
+        Send[] sendBatch,
         Exception exception)
     {
         // Log the Send IDs in this failed group and continue; report failures together after all groups run.
@@ -248,7 +248,7 @@ public sealed class PerformanceImportService(
             exception,
             "Performance import failed for SendContacts batch {BatchNumber} containing {SendCount} Sends (IDs: {SendIds}). Error: {ErrorMessage}. Continuing with the next batch.",
             batchNumber,
-            sendBatch.Count,
+            sendBatch.Length,
             sendIdList,
             exception.Message);
 
