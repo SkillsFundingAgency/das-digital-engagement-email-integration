@@ -5,64 +5,110 @@ namespace DAS.DigitalEngagement.Application.PerformanceImport.Mappers;
 
 public static class SendCampaignDataTableMapper
 {
+    private static class Columns
+    {
+        public const string Id = "ID";
+        public const string Name = "Name";
+        public const string SubaccountId = "SubaccountID";
+        public const string CampaignId = "CampaignID";
+        public const string SendId = "SendID";
+        public const string SendTypeId = "SendTypeID";
+        public const string MessageDesignId = "MessageDesignID";
+        public const string SendType = "SendType";
+        public const string Status = "Status";
+        public const string SubStatus = "SubStatus";
+        public const string SendDate = "SendDate";
+        public const string SendCompletedDate = "SendCompletedDate";
+        public const string IsOutbox = "IsOutbox";
+        public const string CampaignType = "CampaignType";
+        public const string CampaignTypeId = "CampaignTypeID";
+        public const string MessageType = "MessageType";
+        public const string Type = "Type";
+        public const string ContactCount = "ContactCount";
+        public const string CreatedBy = "CreatedBy";
+        public const string CreatedByUserId = "CreatedByUserID";
+        public const string ConfirmedByUserId = "ConfirmedByUserID";
+        public const string IsArchived = "IsArchived";
+        public const string Sequence = "Sequence";
+        public const string CreatedDate = "CreatedDate";
+        public const string ModifiedBy = "ModifiedBy";
+        public const string ModifiedByUserId = "ModifiedByUserID";
+        public const string ModifiedDate = "ModifiedDate";
+        public const string DeletedDate = "DeletedDate";
+        public const string ReportDeletedDate = "ReportDeletedDate";
+        public const string IsSetup = "IsSetup";
+        public const string FirstSendDate = "FirstSendDate";
+        public const string LastSendDate = "LastSendDate";
+        public const string TotalSent = "TotalSent";
+        public const string CanBeModified = "CanBeModified";
+        public const string CanBeReported = "CanBeReported";
+        public const string FromEmail = "FromEmail";
+        public const string FromName = "FromName";
+        public const string ReplyEmail = "ReplyEmail";
+        public const string SubjectLine = "SubjectLine";
+        public const string IsImportComplete = "IsImportComplete";
+        public const string ImportStartDate = "ImportStartDate";
+        public const string ImportEndDate = "ImportEndDate";
+    }
+
     public static DataTable CreateSends(IReadOnlyCollection<Send> sends)
     {
         var table = new DataTable("Sends");
         AddColumns(table,
-            ("ID", typeof(int)),
-            ("Name", typeof(string)),
-            ("SubaccountID", typeof(int)),
-            ("CampaignID", typeof(int)),
-            ("SendTypeID", typeof(int)),
-            ("MessageDesignID", typeof(int)),
-            ("SendType", typeof(string)),
-            ("Status", typeof(string)),
-            ("SubStatus", typeof(string)),
-            ("SendDate", typeof(DateTime)),
-            ("SendCompletedDate", typeof(DateTime)),
-            ("IsOutbox", typeof(bool)),
-            ("CampaignType", typeof(string)),
-            ("MessageType", typeof(string)),
-            ("ContactCount", typeof(int)),
-            ("CreatedBy", typeof(string)),
-            ("CreatedByUserID", typeof(int)),
-            ("ConfirmedByUserID", typeof(int)),
-            ("IsArchived", typeof(bool)),
-            ("Sequence", typeof(int)),
-            ("CreatedDate", typeof(DateTime)),
-            ("FromEmail", typeof(string)),
-            ("FromName", typeof(string)),
-            ("ReplyEmail", typeof(string)),
-            ("SubjectLine", typeof(string)));
+            (Columns.Id, typeof(int)),
+            (Columns.Name, typeof(string)),
+            (Columns.SubaccountId, typeof(int)),
+            (Columns.CampaignId, typeof(int)),
+            (Columns.SendTypeId, typeof(int)),
+            (Columns.MessageDesignId, typeof(int)),
+            (Columns.SendType, typeof(string)),
+            (Columns.Status, typeof(string)),
+            (Columns.SubStatus, typeof(string)),
+            (Columns.SendDate, typeof(DateTime)),
+            (Columns.SendCompletedDate, typeof(DateTime)),
+            (Columns.IsOutbox, typeof(bool)),
+            (Columns.CampaignType, typeof(string)),
+            (Columns.MessageType, typeof(string)),
+            (Columns.ContactCount, typeof(int)),
+            (Columns.CreatedBy, typeof(string)),
+            (Columns.CreatedByUserId, typeof(int)),
+            (Columns.ConfirmedByUserId, typeof(int)),
+            (Columns.IsArchived, typeof(bool)),
+            (Columns.Sequence, typeof(int)),
+            (Columns.CreatedDate, typeof(DateTime)),
+            (Columns.FromEmail, typeof(string)),
+            (Columns.FromName, typeof(string)),
+            (Columns.ReplyEmail, typeof(string)),
+            (Columns.SubjectLine, typeof(string)));
 
         foreach (var send in sends)
         {
             var row = table.NewRow();
-            Set(row, "ID", ToInt32(send.Id));
-            Set(row, "Name", send.Name);
-            Set(row, "SubaccountID", ToInt32(send.SubaccountId));
-            Set(row, "CampaignID", ToInt32(send.CampaignId));
-            Set(row, "SendTypeID", ToInt32(send.SendTypeId));
-            Set(row, "MessageDesignID", ToInt32(send.MessageDesignId));
-            Set(row, "SendType", send.SendType);
-            Set(row, "Status", send.Status);
-            Set(row, "SubStatus", send.SubStatus);
-            Set(row, "SendDate", ToDateTime(send.SendDate));
-            Set(row, "SendCompletedDate", ToDateTime(send.SendCompletedDate));
-            Set(row, "IsOutbox", send.IsOutbox);
-            Set(row, "CampaignType", send.CampaignType);
-            Set(row, "MessageType", send.MessageType);
-            Set(row, "ContactCount", send.ContactCount);
-            Set(row, "CreatedBy", send.CreatedBy);
-            Set(row, "CreatedByUserID", ToInt32(send.CreatedByUserId));
-            Set(row, "ConfirmedByUserID", ToInt32(send.ConfirmedByUserId));
-            Set(row, "IsArchived", send.IsArchived);
-            Set(row, "Sequence", send.Sequence);
-            Set(row, "CreatedDate", ToDateTime(send.CreatedDate));
-            Set(row, "FromEmail", send.FromEmail);
-            Set(row, "FromName", send.FromName);
-            Set(row, "ReplyEmail", send.ReplyEmail);
-            Set(row, "SubjectLine", send.SubjectLine);
+            Set(row, Columns.Id, ToInt32(send.Id));
+            Set(row, Columns.Name, send.Name);
+            Set(row, Columns.SubaccountId, ToInt32(send.SubaccountId));
+            Set(row, Columns.CampaignId, ToInt32(send.CampaignId));
+            Set(row, Columns.SendTypeId, ToInt32(send.SendTypeId));
+            Set(row, Columns.MessageDesignId, ToInt32(send.MessageDesignId));
+            Set(row, Columns.SendType, send.SendType);
+            Set(row, Columns.Status, send.Status);
+            Set(row, Columns.SubStatus, send.SubStatus);
+            Set(row, Columns.SendDate, ToDateTime(send.SendDate));
+            Set(row, Columns.SendCompletedDate, ToDateTime(send.SendCompletedDate));
+            Set(row, Columns.IsOutbox, send.IsOutbox);
+            Set(row, Columns.CampaignType, send.CampaignType);
+            Set(row, Columns.MessageType, send.MessageType);
+            Set(row, Columns.ContactCount, send.ContactCount);
+            Set(row, Columns.CreatedBy, send.CreatedBy);
+            Set(row, Columns.CreatedByUserId, ToInt32(send.CreatedByUserId));
+            Set(row, Columns.ConfirmedByUserId, ToInt32(send.ConfirmedByUserId));
+            Set(row, Columns.IsArchived, send.IsArchived);
+            Set(row, Columns.Sequence, send.Sequence);
+            Set(row, Columns.CreatedDate, ToDateTime(send.CreatedDate));
+            Set(row, Columns.FromEmail, send.FromEmail);
+            Set(row, Columns.FromName, send.FromName);
+            Set(row, Columns.ReplyEmail, send.ReplyEmail);
+            Set(row, Columns.SubjectLine, send.SubjectLine);
             table.Rows.Add(row);
         }
 
@@ -73,60 +119,60 @@ public static class SendCampaignDataTableMapper
     {
         var table = new DataTable("Campaigns");
         AddColumns(table,
-            ("ID", typeof(int)),
-            ("SubaccountID", typeof(int)),
-            ("Name", typeof(string)),
-            ("CampaignTypeID", typeof(int)),
-            ("Type", typeof(string)),
-            ("CreatedBy", typeof(string)),
-            ("CreatedByUserID", typeof(int)),
-            ("CreatedDate", typeof(DateTime)),
-            ("ModifiedBy", typeof(string)),
-            ("ModifiedByUserID", typeof(int)),
-            ("ModifiedDate", typeof(DateTime)),
-            ("DeletedDate", typeof(DateTime)),
-            ("ReportDeletedDate", typeof(DateTime)),
-            ("IsSetup", typeof(bool)),
-            ("Status", typeof(string)),
-            ("FirstSendDate", typeof(DateTime)),
-            ("LastSendDate", typeof(DateTime)),
-            ("TotalSent", typeof(int)),
-            ("CanBeModified", typeof(bool)),
-            ("CanBeReported", typeof(bool)),
-            ("SendDate", typeof(DateTime)),
-            ("FromEmail", typeof(string)),
-            ("FromName", typeof(string)),
-            ("ReplyEmail", typeof(string)),
-            ("SubjectLine", typeof(string)));
+            (Columns.Id, typeof(int)),
+            (Columns.SubaccountId, typeof(int)),
+            (Columns.Name, typeof(string)),
+            (Columns.CampaignTypeId, typeof(int)),
+            (Columns.Type, typeof(string)),
+            (Columns.CreatedBy, typeof(string)),
+            (Columns.CreatedByUserId, typeof(int)),
+            (Columns.CreatedDate, typeof(DateTime)),
+            (Columns.ModifiedBy, typeof(string)),
+            (Columns.ModifiedByUserId, typeof(int)),
+            (Columns.ModifiedDate, typeof(DateTime)),
+            (Columns.DeletedDate, typeof(DateTime)),
+            (Columns.ReportDeletedDate, typeof(DateTime)),
+            (Columns.IsSetup, typeof(bool)),
+            (Columns.Status, typeof(string)),
+            (Columns.FirstSendDate, typeof(DateTime)),
+            (Columns.LastSendDate, typeof(DateTime)),
+            (Columns.TotalSent, typeof(int)),
+            (Columns.CanBeModified, typeof(bool)),
+            (Columns.CanBeReported, typeof(bool)),
+            (Columns.SendDate, typeof(DateTime)),
+            (Columns.FromEmail, typeof(string)),
+            (Columns.FromName, typeof(string)),
+            (Columns.ReplyEmail, typeof(string)),
+            (Columns.SubjectLine, typeof(string)));
 
         foreach (var campaign in campaigns)
         {
             var row = table.NewRow();
-            Set(row, "ID", ToInt32(campaign.Id));
-            Set(row, "SubaccountID", ToInt32(campaign.SubaccountId));
-            Set(row, "Name", campaign.Name);
-            Set(row, "CampaignTypeID", ToInt32(campaign.CampaignTypeId));
-            Set(row, "Type", campaign.Type);
-            Set(row, "CreatedBy", campaign.CreatedBy);
-            Set(row, "CreatedByUserID", ToInt32(campaign.CreatedByUserId));
-            Set(row, "CreatedDate", ToDateTime(campaign.CreatedDate));
-            Set(row, "ModifiedBy", campaign.ModifiedBy);
-            Set(row, "ModifiedByUserID", ToInt32(campaign.ModifiedByUserId));
-            Set(row, "ModifiedDate", ToDateTime(campaign.ModifiedDate));
-            Set(row, "DeletedDate", ToDateTime(campaign.DeletedDate));
-            Set(row, "ReportDeletedDate", ToDateTime(campaign.ReportDeletedDate));
-            Set(row, "IsSetup", campaign.IsSetup);
-            Set(row, "Status", campaign.Status);
-            Set(row, "FirstSendDate", ToDateTime(campaign.FirstSendDate));
-            Set(row, "LastSendDate", ToDateTime(campaign.LastSendDate));
-            Set(row, "TotalSent", ToInt32(campaign.TotalSent));
-            Set(row, "CanBeModified", campaign.CanBeModified);
-            Set(row, "CanBeReported", campaign.CanBeReported);
-            Set(row, "SendDate", ToDateTime(campaign.SendDate));
-            Set(row, "FromEmail", campaign.FromEmail);
-            Set(row, "FromName", campaign.FromName);
-            Set(row, "ReplyEmail", campaign.ReplyEmail);
-            Set(row, "SubjectLine", campaign.SubjectLine);
+            Set(row, Columns.Id, ToInt32(campaign.Id));
+            Set(row, Columns.SubaccountId, ToInt32(campaign.SubaccountId));
+            Set(row, Columns.Name, campaign.Name);
+            Set(row, Columns.CampaignTypeId, ToInt32(campaign.CampaignTypeId));
+            Set(row, Columns.Type, campaign.Type);
+            Set(row, Columns.CreatedBy, campaign.CreatedBy);
+            Set(row, Columns.CreatedByUserId, ToInt32(campaign.CreatedByUserId));
+            Set(row, Columns.CreatedDate, ToDateTime(campaign.CreatedDate));
+            Set(row, Columns.ModifiedBy, campaign.ModifiedBy);
+            Set(row, Columns.ModifiedByUserId, ToInt32(campaign.ModifiedByUserId));
+            Set(row, Columns.ModifiedDate, ToDateTime(campaign.ModifiedDate));
+            Set(row, Columns.DeletedDate, ToDateTime(campaign.DeletedDate));
+            Set(row, Columns.ReportDeletedDate, ToDateTime(campaign.ReportDeletedDate));
+            Set(row, Columns.IsSetup, campaign.IsSetup);
+            Set(row, Columns.Status, campaign.Status);
+            Set(row, Columns.FirstSendDate, ToDateTime(campaign.FirstSendDate));
+            Set(row, Columns.LastSendDate, ToDateTime(campaign.LastSendDate));
+            Set(row, Columns.TotalSent, ToInt32(campaign.TotalSent));
+            Set(row, Columns.CanBeModified, campaign.CanBeModified);
+            Set(row, Columns.CanBeReported, campaign.CanBeReported);
+            Set(row, Columns.SendDate, ToDateTime(campaign.SendDate));
+            Set(row, Columns.FromEmail, campaign.FromEmail);
+            Set(row, Columns.FromName, campaign.FromName);
+            Set(row, Columns.ReplyEmail, campaign.ReplyEmail);
+            Set(row, Columns.SubjectLine, campaign.SubjectLine);
 
             table.Rows.Add(row);
         }
@@ -138,20 +184,20 @@ public static class SendCampaignDataTableMapper
     {
         var table = new DataTable("CampaignImportMetadata");
         AddColumns(table,
-            ("SendID", typeof(int)),
-            ("CampaignID", typeof(int)),
-            ("IsImportComplete", typeof(bool)),
-            ("ImportStartDate", typeof(DateTime)),
-            ("ImportEndDate", typeof(DateTime)));
+            (Columns.SendId, typeof(int)),
+            (Columns.CampaignId, typeof(int)),
+            (Columns.IsImportComplete, typeof(bool)),
+            (Columns.ImportStartDate, typeof(DateTime)),
+            (Columns.ImportEndDate, typeof(DateTime)));
 
         foreach (var send in sends)
         {
             var row = table.NewRow();
-            Set(row, "SendID", ToInt32(send.Id));
-            Set(row, "CampaignID", ToInt32(send.CampaignId));
-            Set(row, "IsImportComplete", true);
-            Set(row, "ImportStartDate", importStart.UtcDateTime);
-            Set(row, "ImportEndDate", DateTime.UtcNow);
+            Set(row, Columns.SendId, ToInt32(send.Id));
+            Set(row, Columns.CampaignId, ToInt32(send.CampaignId));
+            Set(row, Columns.IsImportComplete, true);
+            Set(row, Columns.ImportStartDate, importStart.UtcDateTime);
+            Set(row, Columns.ImportEndDate, DateTime.UtcNow);
             table.Rows.Add(row);
         }
 

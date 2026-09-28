@@ -230,7 +230,7 @@ public sealed class PerformanceImportService(
     }
 
     private async Task ProcessSendContactBatchAsync(
-        IReadOnlyCollection<long> sendContactIds,
+        long[] sendContactIds,
         CancellationToken cancellationToken)
     {
         // These IDs are already within the API filter limit; stream event results into SQL-sized writes.
@@ -241,7 +241,7 @@ public sealed class PerformanceImportService(
             cancellationToken);
         logger.LogInformation(
             "Processed send-contact batch of {SendContactCount}: wrote {UserAgentCount} user agents.",
-            sendContactIds.Count,
+            sendContactIds.Length,
             userAgentCount);
 
         var displayedContactCount = await WriteApiRecordsAsync(
@@ -251,7 +251,7 @@ public sealed class PerformanceImportService(
             cancellationToken);
         logger.LogInformation(
             "Processed send-contact batch of {SendContactCount}: wrote {DisplayedContactCount} displayed contacts.",
-            sendContactIds.Count,
+            sendContactIds.Length,
             displayedContactCount);
 
         var clickedContactCount = await WriteApiRecordsAsync(
@@ -261,7 +261,7 @@ public sealed class PerformanceImportService(
             cancellationToken);
         logger.LogInformation(
             "Processed send-contact batch of {SendContactCount}: wrote {ClickedContactCount} clicked contacts.",
-            sendContactIds.Count,
+            sendContactIds.Length,
             clickedContactCount);
 
         var bouncedContactCount = await WriteApiRecordsAsync(
@@ -271,7 +271,7 @@ public sealed class PerformanceImportService(
             cancellationToken);
         logger.LogInformation(
             "Processed send-contact batch of {SendContactCount}: wrote {BouncedContactCount} bounced contacts.",
-            sendContactIds.Count,
+            sendContactIds.Length,
             bouncedContactCount);
 
         var unsubscribedContactCount = await WriteApiRecordsAsync(
@@ -281,11 +281,11 @@ public sealed class PerformanceImportService(
             cancellationToken);
         logger.LogInformation(
             "Processed send-contact batch of {SendContactCount}: wrote {UnsubscribedContactCount} unsubscribed contacts.",
-            sendContactIds.Count,
+            sendContactIds.Length,
             unsubscribedContactCount);
     }
 
-    private async Task<int> WriteApiRecordsAsync<T>(
+    private static async Task<int> WriteApiRecordsAsync<T>(
         IAsyncEnumerable<T> source,
         Func<IReadOnlyCollection<T>, CancellationToken, Task> writer,
         int writeBatchSize,
@@ -356,7 +356,7 @@ public sealed class PerformanceImportService(
         IReadOnlyCollection<Send> sends,
         HashSet<long> campaignIdsNotReturnedByApi)
     {
-        // TODO: Missing campaigns were observed from the API in test; remove this skip/log workaround if production does not require it.
+        // Skip Sends with unavailable Campaign records to prevent a possible FK violation when writing import.Sends.
         var returnedCampaignIds = campaigns.Select(campaign => campaign.Id).ToHashSet();
         campaignIdsNotReturnedByApi.UnionWith(
             requestedCampaignIds.Where(campaignId => !returnedCampaignIds.Contains(campaignId)));

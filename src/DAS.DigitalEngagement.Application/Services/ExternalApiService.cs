@@ -97,12 +97,9 @@ namespace DAS.DigitalEngagement.Application.Services
                 exception is HttpRequestException ||
                 exception is TaskCanceledException && !cancellationToken.IsCancellationRequested)
             {
-                _logger.LogError(
-                    exception,
-                    "GET request to {RequestUrl} failed after {AttemptCount} attempts.",
-                    requestUrl,
-                    _apiRetryCount + 1);
-                throw;
+                throw new HttpRequestException(
+                    $"GET request to '{requestUrl}' failed after {_apiRetryCount + 1} attempts.",
+                    exception);
             }
 
             using (response)

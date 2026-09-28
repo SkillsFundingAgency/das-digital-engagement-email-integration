@@ -1,5 +1,4 @@
-﻿//using DAS.DigitalEngagement.Application.Handlers.Campaigns;
-using DAS.DigitalEngagement.Application.Handlers.CampaignToStaging;
+﻿using DAS.DigitalEngagement.Application.Handlers.CampaignToStaging;
 using DAS.DigitalEngagement.Models.Infrastructure;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging;
@@ -35,8 +34,9 @@ public class PerformanceDataImporter(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Performance data import failed after {ElapsedSeconds} seconds.", stopwatch.Elapsed.TotalSeconds);
-            throw;
+            throw new InvalidOperationException(
+                $"Performance data import failed after {stopwatch.Elapsed.TotalSeconds:F2} seconds.",
+                ex);
         }
         finally
         {

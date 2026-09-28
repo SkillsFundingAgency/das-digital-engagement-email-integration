@@ -52,8 +52,8 @@ public sealed class SqlBulkInserter(
             table,
             batchSize,
             timeoutSeconds,
-            cancellationToken,
-            ignoreDuplicates: false);
+            ignoreDuplicates: false,
+            cancellationToken: cancellationToken);
     }
 
     public async Task BulkInsertIgnoringDuplicatesAsync(
@@ -68,8 +68,8 @@ public sealed class SqlBulkInserter(
             table,
             batchSize,
             timeoutSeconds,
-            cancellationToken,
-            ignoreDuplicates: true);
+            ignoreDuplicates: true,
+            cancellationToken: cancellationToken);
     }
 
     private async Task InsertAsync(
@@ -77,8 +77,8 @@ public sealed class SqlBulkInserter(
         DataTable table,
         int batchSize,
         int timeoutSeconds,
-        CancellationToken cancellationToken,
-        bool ignoreDuplicates)
+        bool ignoreDuplicates,
+        CancellationToken cancellationToken)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(destinationTable);
         ArgumentNullException.ThrowIfNull(table);
@@ -117,8 +117,9 @@ public sealed class SqlBulkInserter(
         }
         catch (Exception ex) when (ex is not OperationCanceledException || !cancellationToken.IsCancellationRequested)
         {
-            logger.LogError(ex, "Bulk insert failed for {Table}.", destinationTable);
-            throw;
+            throw new InvalidOperationException(
+                $"Bulk insert failed for destination table '{destinationTable}'.",
+                ex);
         }
     }
 
@@ -211,7 +212,7 @@ public sealed class SqlBulkInserter(
         var quotedTemporaryTable = QuoteIdentifier(temporaryTable);
 
         await using (var createTable = new SqlCommand(
-            $"SELECT TOP (0) * INTO {quotedTemporaryTable} FROM {quotedDestination};",
+            $"SELECT TOP (0) * INTO {quotedTemporaryTable} FROM {quotedDestination};", // NOSONAR: SQL parameters cannot bind identifiers; both identifiers are quoted and escaped.
             connection,
             transaction))
         {
@@ -242,7 +243,7 @@ public sealed class SqlBulkInserter(
             DROP TABLE {quotedTemporaryTable};
             """;
 
-        await using var insertCommand = new SqlCommand(sql, connection, transaction);
+        await using var insertCommand = new SqlCommand(sql, connection, transaction); // NOSONAR: SQL parameters cannot bind identifiers; all table and column names are quoted and escaped.
         insertCommand.CommandTimeout = Math.Max(1, timeoutSeconds);
         await insertCommand.ExecuteNonQueryAsync(cancellationToken);
     }
