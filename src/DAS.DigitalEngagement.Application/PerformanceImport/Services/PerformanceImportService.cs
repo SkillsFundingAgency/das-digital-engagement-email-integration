@@ -149,7 +149,7 @@ public sealed class PerformanceImportService(
     }
 
     private async Task<(int PageCount, int SendContactCount, int ContactCount)> ImportSendContactGroupAsync(
-        IReadOnlyCollection<Send> sendBatch,
+        Send[] sendBatch,
         int batchNumber,
         DateTimeOffset importStart,
         CancellationToken cancellationToken)
@@ -178,7 +178,7 @@ public sealed class PerformanceImportService(
                 "Completed SendContacts page {PageNumber} for batch {BatchNumber} ({SendCount} sends): {SendContactCount} send contacts, {ContactCount} contacts.",
                 pageCount,
                 batchNumber,
-                sendBatch.Count,
+                sendBatch.Length,
                 pageResult.SendContactCount,
                 pageResult.ContactCount);
         }
@@ -189,7 +189,7 @@ public sealed class PerformanceImportService(
         logger.LogInformation(
             "Completed SendContacts batch {BatchNumber} for {SendCount} sends: {PageCount} pages, {SendContactCount} send contacts, {ContactCount} contacts, {LinkCount} links.",
             batchNumber,
-            sendBatch.Count,
+            sendBatch.Length,
             pageCount,
             sendContactCount,
             contactCount,
@@ -237,7 +237,7 @@ public sealed class PerformanceImportService(
         return (contactCount, validSendContactPage.Count);
     }
 
-    private Exception LogSendContactGroupFailure(
+    private InvalidOperationException LogSendContactGroupFailure(
         int batchNumber,
         IReadOnlyCollection<Send> sendBatch,
         Exception exception)

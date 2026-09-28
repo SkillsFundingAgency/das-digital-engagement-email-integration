@@ -104,8 +104,8 @@ public sealed class SqlBulkInserter(
                     table,
                     effectiveBatchSize,
                     timeoutSeconds,
-                    token,
-                    ignoreDuplicates),
+                    ignoreDuplicates,
+                    token),
                 cancellationToken);
 
             stopwatch.Stop();
@@ -128,8 +128,8 @@ public sealed class SqlBulkInserter(
         DataTable table,
         int batchSize,
         int timeoutSeconds,
-        CancellationToken cancellationToken,
-        bool ignoreDuplicates)
+        bool ignoreDuplicates,
+        CancellationToken cancellationToken)
     {
         await using var connection = await connectionFactory.CreateConnectionAsync(cancellationToken);
         await connection.OpenAsync(cancellationToken);
