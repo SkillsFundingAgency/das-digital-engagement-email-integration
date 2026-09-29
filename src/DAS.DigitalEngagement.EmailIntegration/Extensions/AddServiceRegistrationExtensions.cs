@@ -44,12 +44,14 @@ namespace DAS.DigitalEngagement.EmailIntegration.Extensions
             services.AddTransient<IPerformanceDataWriter, PerformanceDataWriter>();
             services.AddTransient<IPerformanceImportService, PerformanceImportService>();
             services.AddTransient<ISqlBulkInserter,SqlBulkInserter>();
-            services.AddTransient<ISqlConnectionFactory>(_ =>
+            services.AddTransient<ISqlConnectionFactory>(sp =>
             {
                 var connectionString = configuration.GetSection("ConnectionString")["CampaignsDatabase"]
                     ?? throw new ConfigurationErrorsException("CampaignsDatabase connection string is not configured");
 
-                return new SqlConnectionFactory(connectionString);
+                var tokenCredential = sp.GetService<TokenCredential>();
+
+                return new SqlConnectionFactory(connectionString, tokenCredential);
             });
            
             //services.AddTransient<IUnitOfWork, UnitOfWork>();
