@@ -78,7 +78,7 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Repositories
         }
 
         [Test]
-        public void RetrieveEmployeeRegistrationData_Throws_WhenTokenAcquisitionFails()
+        public async Task RetrieveEmployeeRegistrationData_Throws_WhenTokenAcquisitionFails()
         {
             // Arrange
             var failingToken = new Mock<TokenCredential>();
@@ -100,14 +100,14 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Repositories
                 () => connection);
 
             // Act & Assert
-            var ex = Assert.ThrowsAsync<InvalidOperationException>(() => repo.RetrieveEmployeeRegistrationData());
+            var ex = await Assert.ThrowsAsync<InvalidOperationException>(async () => await repo.RetrieveEmployeeRegistrationData());
             Assert.That(ex.Message, Is.EqualTo("Token acquisition failed"));
 
             failingToken.Verify(t => t.GetTokenAsync(It.IsAny<TokenRequestContext>(), It.IsAny<CancellationToken>()), Times.Once);
         }
 
         [Test]
-        public void RetrieveEmployeeRegistrationData_Throws_WhenConnectionOpenFails()
+        public async Task RetrieveEmployeeRegistrationData_Throws_WhenConnectionOpenFails()
         {
             // Arrange
             var token = new Mock<TokenCredential>();
@@ -130,14 +130,14 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Repositories
                 () => mockConnection.Object);
 
             // Act & Assert
-            var ex = Assert.ThrowsAsync<InvalidOperationException>(() => repo.RetrieveEmployeeRegistrationData());
+            var ex = await Assert.ThrowsAsync<InvalidOperationException>(async () => await repo.RetrieveEmployeeRegistrationData());
             Assert.That(ex.Message, Is.EqualTo("Open failed"));
 
             mockConnection.Verify(c => c.OpenAsync(It.IsAny<CancellationToken>()), Times.Once);
         }
 
         [Test]
-        public void RetrieveEmployeeRegistrationData_Throws_WhenExecuteReaderFails()
+        public async Task RetrieveEmployeeRegistrationData_Throws_WhenExecuteReaderFails()
         {
             // Arrange
             var token = new Mock<TokenCredential>();
@@ -162,8 +162,7 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Repositories
                 () => connection);
 
             // Act + Assert
-            var ex = Assert.ThrowsAsync<InvalidOperationException>(
-                () => repo.RetrieveEmployeeRegistrationData());
+            var ex = await Assert.ThrowsAsync<InvalidOperationException>(async () => await repo.RetrieveEmployeeRegistrationData());
 
             Assert.That(ex!.Message, Is.EqualTo("ExecuteReader failed"));
         }
