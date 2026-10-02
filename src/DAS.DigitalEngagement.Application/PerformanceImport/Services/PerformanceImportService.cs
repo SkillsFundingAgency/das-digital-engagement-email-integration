@@ -56,7 +56,8 @@ public sealed class PerformanceImportService(
 
         // Campaigns may be shared by sends; fetch each campaign ID once per import run.
         var importedCampaignIds = new HashSet<long>();
-        var campaignIdsNotReturnedByApi = new HashSet<long>();
+        // Collect failures from outer batches so we can continue processing later batches and report all failures at the end.
+        var outerFailedBatches = new List<Exception>();
         foreach (var eligibleSendBatch in eligibleSends.Chunk(_apiFilterBatchSize))
         {
             batchNumber++;
@@ -76,11 +77,6 @@ public sealed class PerformanceImportService(
                 .Where(importedCampaignIds.Add)
                 .ToArray();
             var campaigns = (await GetCampaignsByIdsAsync(campaignIds, cancellationToken)).ToList();
-            sends = SkipSendsWithMissingCampaignsFromApi(
-                campaignIds,
-                campaigns,
-                sends,
-                campaignIdsNotReturnedByApi);
 
             logger.LogInformation(
                 "Batch {BatchNumber} loaded {SendCount} sends and {CampaignCount} new campaigns.",
@@ -91,9 +87,30 @@ public sealed class PerformanceImportService(
             // Write campaigns and sends before their dependent performance records.
             await WriteCampaignsAsync(campaigns, cancellationToken);
             await WriteSendsAsync(sends, cancellationToken);
-            await ImportSendPerformanceBatchAsync(sends, importStart, cancellationToken);
+
+            try
+            {
+                await ImportSendPerformanceBatchAsync(sends, importStart, cancellationToken);
+            }
+            catch (AggregateException aggregate)
+            {
+                // Collect inner exceptions and continue with next outer batch.
+                outerFailedBatches.AddRange(aggregate.InnerExceptions);
+                logger.LogWarning(aggregate, "One or more SendContacts groups failed in outer batch {BatchNumber}; continuing with next batch.", batchNumber);
+            }
+            catch (Exception ex)
+            {
+                outerFailedBatches.Add(ex);
+                logger.LogWarning(ex, "Send performance import failed for outer batch {BatchNumber}; continuing with next batch.", batchNumber);
+            }
 
             logger.LogInformation("Completed performance import batch {BatchNumber} of {BatchCount}.", batchNumber, totalBatchCount);
+        }
+        if (outerFailedBatches.Count > 0)
+        {
+            throw new AggregateException(
+                $"Performance import failed for {outerFailedBatches.Count} outer batch(es). Failed batches were logged; successful batches were completed.",
+                outerFailedBatches);
         }
 
         stopwatch.Stop();
@@ -224,7 +241,7 @@ public sealed class PerformanceImportService(
                 cancellationToken);
         }
 
-        var validSendContactPage = SkipSendContactsWithMissingContactsFromApi(sendContactPage, returnedContactIds);
+        var validSendContactPage = sendContactPage;
         var sendContactIds = validSendContactPage.Select(record => record.Id).Distinct().ToArray();
 
         // Write SendContacts before processing event datasets that reference these IDs.
@@ -376,73 +393,6 @@ public sealed class PerformanceImportService(
         }
 
         return campaigns;
-    }
-
-    private IReadOnlyCollection<Send> SkipSendsWithMissingCampaignsFromApi(
-        IReadOnlyCollection<long> requestedCampaignIds,
-        IReadOnlyCollection<Campaign> campaigns,
-        IReadOnlyCollection<Send> sends,
-        HashSet<long> campaignIdsNotReturnedByApi)
-    {
-        // Skip Sends with unavailable Campaign records to prevent a possible FK violation when writing import.Sends.
-        var returnedCampaignIds = campaigns.Select(campaign => campaign.Id).ToHashSet();
-        campaignIdsNotReturnedByApi.UnionWith(
-            requestedCampaignIds.Where(campaignId => !returnedCampaignIds.Contains(campaignId)));
-
-        var sendsToSkip = sends
-            .Where(send => send.CampaignId.HasValue && campaignIdsNotReturnedByApi.Contains(send.CampaignId.Value))
-            .ToArray();
-        if (sendsToSkip.Length == 0)
-        {
-            return sends;
-        }
-
-        var skippedCampaignIds = sendsToSkip
-            .Where(send => send.CampaignId.HasValue)
-            .Select(send => send.CampaignId!.Value)
-            .Distinct();
-        var skippedCampaignReferences = sendsToSkip
-            .Select(send => $"{send.Id}->{send.CampaignId}");
-
-        logger.LogWarning(
-            "Skipping {SkippedSendCount} Sends because the campaign API did not return their Campaign IDs: {CampaignIds}. SendID->CampaignID: {SendCampaignReferences}.",
-            sendsToSkip.Length,
-            string.Join(",", skippedCampaignIds),
-            string.Join(",", skippedCampaignReferences));
-
-        return sends
-            .Where(send => !send.CampaignId.HasValue || !campaignIdsNotReturnedByApi.Contains(send.CampaignId.Value))
-            .ToArray();
-    }
-
-    private IReadOnlyCollection<SendContactApiRecord> SkipSendContactsWithMissingContactsFromApi(
-        IReadOnlyCollection<SendContactApiRecord> sendContacts,
-        HashSet<long> returnedContactIds)
-    {
-        //  Missing contacts were observed from the API in test; remove this skip/log workaround if production does not require it.
-        var sendContactsToSkip = sendContacts
-            .Where(sendContact => !returnedContactIds.Contains(sendContact.ContactId))
-            .ToArray();
-        if (sendContactsToSkip.Length == 0)
-        {
-            return sendContacts;
-        }
-
-        var missingContactIds = sendContactsToSkip
-            .Select(sendContact => sendContact.ContactId)
-            .Distinct();
-        var skippedReferences = sendContactsToSkip
-            .Select(sendContact => $"{sendContact.Id}->{sendContact.ContactId}");
-
-        logger.LogWarning(
-            "Skipping {SkippedSendContactCount} SendContacts because the contact API did not return their Contact IDs: {ContactIds}. SendContactID->ContactID: {SendContactReferences}.",
-            sendContactsToSkip.Length,
-            string.Join(",", missingContactIds),
-            string.Join(",", skippedReferences));
-
-        return sendContacts
-            .Where(sendContact => returnedContactIds.Contains(sendContact.ContactId))
-            .ToArray();
     }
 
     private async Task WriteSendsAsync(

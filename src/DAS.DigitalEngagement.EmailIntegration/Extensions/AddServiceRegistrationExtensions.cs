@@ -36,7 +36,6 @@ namespace DAS.DigitalEngagement.EmailIntegration.Extensions
             services.AddTransient<IPayLoadMapper, PayLoadMapper>();
             services.AddTransient<IEmailDomainChecker, EmailDomainChecker>();
 
-            // services.AddTransient<IImportCampaignPerformanceHandler, ImportCampaignPerformanceHandler>();
             services.AddTransient<IImportCampaignStagingHandler, ImportCampaignStagingHandler>();
             services.AddTransient<ISendEligibilityService, SendEligibilityService>();
             services.AddTransient<ICampaignImportMetadataRepository, CampaignImportMetadataRepository>();
@@ -54,8 +53,6 @@ namespace DAS.DigitalEngagement.EmailIntegration.Extensions
                 return new SqlConnectionFactory(connectionString, tokenCredential);
             });
            
-            //services.AddTransient<IUnitOfWork, UnitOfWork>();
-            // services.AddTransient<ICampaignService, CampaignService>();
 
             services.AddTransient<IDataMartRepository, DataMartRepository>();
            

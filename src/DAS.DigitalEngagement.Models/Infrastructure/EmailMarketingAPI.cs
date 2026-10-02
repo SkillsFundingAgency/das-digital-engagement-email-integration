@@ -13,5 +13,5 @@ public class EmailMarketingApi
     public int ApiFilterBatchSize { get; set; } = 100; // Maximum IDs included in one filtered request
     public int SendContactFilterBatchSize { get; set; } = 25; // Maximum Send IDs included in one SendContacts request
     public int SqlWriteBatchSize { get; set; } = 5000; // Maximum rows written to SQL in one batch
-    public int ImportWindowDays { get; set; } = 7; // Only import Sends completed within this many days
+    public int ImportWindowDays { get; set; } = 7; // Minimum age in days for Sends to be imported; only import Sends completed at least this many days ago
 }

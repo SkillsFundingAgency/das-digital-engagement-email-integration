@@ -16,6 +16,22 @@ public sealed class SqlBulkInserter(
     ILogger<SqlBulkInserter> logger,
     ISqlConnectionFactory connectionFactory) : ISqlBulkInserter
 {
+    // Restrict bulk inserts to supported import tables.
+    // Update this list when adding new import targets.
+    private static readonly HashSet<string> AllowedDestinationTables = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "import.Contacts",
+        "import.SendContacts",
+        "import.Links",
+        "import.UserAgents",
+        "import.DisplayedContacts",
+        "import.ClickedContacts",
+        "import.BouncedContacts",
+        "import.UnsubscribedContacts",
+        "import.CampaignImportMetadata",
+        "import.Sends",
+        "import.Campaigns"
+    };
     // Retry allowlisted transient SQL failures up to three times, waiting one second between attempts.
     private const int SqlRetryCount = 3;
     private static readonly TimeSpan SqlRetryDelay = TimeSpan.FromSeconds(1);
@@ -82,6 +98,12 @@ public sealed class SqlBulkInserter(
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(destinationTable);
         ArgumentNullException.ThrowIfNull(table);
+
+        // Enforce an allowlist of destination tables to prevent dynamic writes to arbitrary objects.
+        if (!AllowedDestinationTables.Contains(destinationTable))
+        {
+            throw new ArgumentException($"Destination table '{destinationTable}' is not allowed for bulk inserts.", nameof(destinationTable));
+        }
 
         if (table.Rows.Count == 0)
         {

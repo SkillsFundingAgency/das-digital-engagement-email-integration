@@ -126,6 +126,7 @@ public sealed class PerformanceDataClient(
         var nextEndpoint = AddPaging(initialEndpoint, 0);
         var skip = 0;
         var pageNumber = 0;
+        var serverPaging = false;
         var seenEndpoints = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
         while (!string.IsNullOrWhiteSpace(nextEndpoint))
@@ -155,10 +156,20 @@ public sealed class PerformanceDataClient(
 
             yield return page.Value;
 
+            // If the server has started providing NextLink pagination, continue to follow NextLink
+            // and never fall back to manual $skip pagination. If NextLink is not provided and
+            // server pagination was previously in use, stop paging to avoid requesting stale pages.
             if (!string.IsNullOrWhiteSpace(page.NextLink))
             {
+                serverPaging = true;
                 nextEndpoint = NormalizeNextLink(page.NextLink);
                 continue;
+            }
+
+            if (serverPaging)
+            {
+                // Server pagination ended; stop rather than switching back to $skip which would be stale.
+                yield break;
             }
 
             if (page.Value.Count < _pageSize)
