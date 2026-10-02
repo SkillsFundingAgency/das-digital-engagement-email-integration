@@ -1,5 +1,5 @@
 using Azure.Core;
-using DAS.DigitalEngagement.Application.Repositories;
+using DAS.DigitalEngagement.CampaignInterest.Data.Repositories;
 using DAS.DigitalEngagement.EmailIntegration.UnitTests.Repositories.Helpers;
 using DAS.DigitalEngagement.Models.Infrastructure;
 using Microsoft.Extensions.Logging;

@@ -1,5 +1,5 @@
 ﻿using DAS.DigitalEngagement.Application.Handlers.Import.Interfaces;
-using DAS.DigitalEngagement.Application.Repositories.Interfaces;
+using DAS.DigitalEngagement.CampaignInterest.Data.Repositories.Interfaces;
 using DAS.DigitalEngagement.Application.Services.Interfaces;
 using DAS.DigitalEngagement.Models.Import;
 using DAS.DigitalEngagement.Models.Infrastructure;

@@ -10,5 +10,8 @@ public class EmailMarketingApi
     public required int ApiRetryCount { get; set; }
     public required int ChunkSizeKB { get; set; } = 10240; // Default to 10 MB
     public int PageSize { get; set; } = 5000; // Default page size for OData pagination (max supported by e-shot)
-    public int ImportWindowDays { get; set; } = 7; // Only import Sends completed within this many days
+    public int ApiFilterBatchSize { get; set; } = 100; // Maximum IDs included in one filtered request
+    public int SendContactFilterBatchSize { get; set; } = 25; // Maximum Send IDs included in one SendContacts request
+    public int SqlWriteBatchSize { get; set; } = 5000; // Maximum rows written to SQL in one batch
+    public int ImportWindowDays { get; set; } = 7; // Minimum age in days for Sends to be imported; only import Sends completed at least this many days ago
 }
