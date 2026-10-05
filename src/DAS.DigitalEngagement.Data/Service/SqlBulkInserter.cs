@@ -20,17 +20,17 @@ public sealed class SqlBulkInserter(
     // Update this list when adding new import targets.
     private static readonly HashSet<string> AllowedDestinationTables = new(StringComparer.OrdinalIgnoreCase)
     {
-        "import.Contacts",
-        "import.SendContacts",
-        "import.Links",
-        "import.UserAgents",
-        "import.DisplayedContacts",
-        "import.ClickedContacts",
-        "import.BouncedContacts",
-        "import.UnsubscribedContacts",
-        "import.CampaignImportMetadata",
-        "import.Sends",
-        "import.Campaigns"
+        ImportTableNames.Contacts,
+        ImportTableNames.SendContacts,
+        ImportTableNames.Links,
+        ImportTableNames.UserAgents,
+        ImportTableNames.DisplayedContacts,
+        ImportTableNames.ClickedContacts,
+        ImportTableNames.BouncedContacts,
+        ImportTableNames.UnsubscribedContacts,
+        ImportTableNames.CampaignImportMetadata,
+        ImportTableNames.Sends,
+        ImportTableNames.Campaigns
     };
     // Retry allowlisted transient SQL failures up to three times, waiting one second between attempts.
     private const int SqlRetryCount = 3;
@@ -294,6 +294,56 @@ public sealed class SqlBulkInserter(
         }
 
         return bulkCopy;
+    }
+
+    public async Task<HashSet<long>> QueryExistingIdsAsync(
+        string destinationTable,
+        IReadOnlyCollection<long> ids,
+        CancellationToken cancellationToken = default)
+    {
+        if (ids == null || ids.Count == 0) return new HashSet<long>();
+
+        // Enforce allowlist for safety
+        if (!AllowedDestinationTables.Contains(destinationTable))
+        {
+            throw new ArgumentException($"Destination table '{destinationTable}' is not allowed for querying.", nameof(destinationTable));
+        }
+
+        var quotedDestination = QuoteMultipartIdentifier(destinationTable);
+
+        await using var connection = await connectionFactory.CreateConnectionAsync(cancellationToken);
+        await connection.OpenAsync(cancellationToken);
+
+        var existing = new HashSet<long>();
+        // Keep parameter count under SQL Server's 2100 parameter limit.
+        foreach (var idBatch in ids.Distinct().Chunk(1000))
+        {
+            var parameterNames = new List<string>(idBatch.Length);
+            await using var command = new SqlCommand { Connection = connection };
+
+            for (var index = 0; index < idBatch.Length; index++)
+            {
+                var parameterName = $"@id{index}";
+                parameterNames.Add(parameterName);
+                command.Parameters.Add(parameterName, SqlDbType.BigInt).Value = idBatch[index];
+            }
+
+            command.CommandText = $"SELECT [ID] FROM {quotedDestination} WHERE [ID] IN ({string.Join(", ", parameterNames)});";
+
+            await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+            while (await reader.ReadAsync(cancellationToken))
+            {
+                var idValue = reader.GetValue(0);
+                if (idValue is DBNull)
+                {
+                    continue;
+                }
+
+                existing.Add(Convert.ToInt64(idValue));
+            }
+        }
+
+        return existing;
     }
 
     private static string QuoteMultipartIdentifier(string identifier)

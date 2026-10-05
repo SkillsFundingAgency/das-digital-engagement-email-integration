@@ -1,5 +1,6 @@
 ﻿using System.Data;
 using DAS.DigitalEngagement.Models.PerformanceImport;
+using DAS.DigitalEngagement.CampaignInterest.Data.Service;
 
 namespace DAS.DigitalEngagement.Application.PerformanceImport.Mappers;
 
@@ -8,7 +9,7 @@ public static class PerformanceDataTableMapper
     public static DataTable CreateContacts(IReadOnlyCollection<ContactApiRecord> records)
     {
         var table = Table(
-            "Contacts",
+            ImportTableNames.Contacts,
             ("ID", typeof(int)),
             ("Email", typeof(string)),
             ("Firstname", typeof(string)),
@@ -30,7 +31,7 @@ public static class PerformanceDataTableMapper
     public static DataTable CreateSendContacts(IReadOnlyCollection<SendContactApiRecord> records)
     {
         var table = Table(
-            "SendContacts",
+            ImportTableNames.SendContacts,
             ("ID", typeof(int)),
             ("SendID", typeof(int)),
             ("ContactID", typeof(int)),
@@ -49,10 +50,10 @@ public static class PerformanceDataTableMapper
         return table;
     }
 
-    public static DataTable CreateImportMetadata(IReadOnlyCollection<Send> sends, DateTimeOffset importStart)
+    public static DataTable CreateImportMetadata(IReadOnlyCollection<Send> sends, DateTimeOffset importStart, IReadOnlyDictionary<long, bool>? importCompleteness)
     {
         var table = Table(
-            "CampaignImportMetadata",
+            ImportTableNames.CampaignImportMetadata,
             ("SendID", typeof(int)),
             ("CampaignID", typeof(int)),
             ("IsImportComplete", typeof(bool)),
@@ -61,11 +62,17 @@ public static class PerformanceDataTableMapper
 
         foreach (var send in sends)
         {
+            var isComplete = true;
+            if (importCompleteness is not null && importCompleteness.TryGetValue(send.Id, out var complete))
+            {
+                isComplete = complete;
+            }
+
             Add(
                 table,
                 ("SendID", ToInt32(send.Id)),
                 ("CampaignID", ToInt32(send.CampaignId)),
-                ("IsImportComplete", true),
+                ("IsImportComplete", isComplete),
                 ("ImportStartDate", importStart.UtcDateTime),
                 ("ImportEndDate", DateTime.UtcNow));
         }
@@ -76,7 +83,7 @@ public static class PerformanceDataTableMapper
     public static DataTable CreateUserAgents(IReadOnlyCollection<UserAgentApiRecord> records)
     {
         var table = Table(
-            "UserAgents",
+            ImportTableNames.UserAgents,
             ("ID", typeof(int)),
             ("SendContactID", typeof(int)),
             ("IPAddress", typeof(string)),
@@ -111,7 +118,7 @@ public static class PerformanceDataTableMapper
     public static DataTable CreateLinks(IReadOnlyCollection<LinkApiRecord> records)
     {
         var table = Table(
-            "Links",
+            ImportTableNames.Links,
             ("ID", typeof(int)),
             ("SendID", typeof(int)),
             ("URL", typeof(string)),
@@ -136,7 +143,7 @@ public static class PerformanceDataTableMapper
     public static DataTable CreateDisplayedContacts(IReadOnlyCollection<DisplayedContactApiRecord> records)
     {
         var table = Table(
-            "DisplayedContacts",
+            ImportTableNames.DisplayedContacts,
             ("ID", typeof(int)),
             ("SendContactID", typeof(int)),
             ("UserAgentID", typeof(int)),
@@ -163,7 +170,7 @@ public static class PerformanceDataTableMapper
     public static DataTable CreateClickedContacts(IReadOnlyCollection<ClickedContactApiRecord> records)
     {
         var table = Table(
-            "ClickedContacts",
+            ImportTableNames.ClickedContacts,
             ("ID", typeof(int)),
             ("SendContactID", typeof(int)),
             ("LinkID", typeof(int)),
@@ -190,7 +197,7 @@ public static class PerformanceDataTableMapper
     public static DataTable CreateBouncedContacts(IReadOnlyCollection<BouncedContactApiRecord> records)
     {
         var table = Table(
-            "BouncedContacts",
+            ImportTableNames.BouncedContacts,
             ("ID", typeof(int)),
             ("SendContactID", typeof(int)),
             ("BounceReason", typeof(string)),
@@ -215,7 +222,7 @@ public static class PerformanceDataTableMapper
     public static DataTable CreateUnsubscribedContacts(IReadOnlyCollection<UnsubscribedContactApiRecord> records)
     {
         var table = Table(
-            "UnsubscribedContacts",
+            ImportTableNames.UnsubscribedContacts,
             ("ID", typeof(int)),
             ("SendContactID", typeof(int)),
             ("UnsubscribeDate", typeof(DateTime)),

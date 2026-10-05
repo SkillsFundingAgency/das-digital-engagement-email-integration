@@ -9,31 +9,31 @@ public sealed class PerformanceDataWriter(
     ISqlBulkInserter bulkInserter) : IPerformanceDataWriter
 {
     public Task WriteContactsAsync(IReadOnlyCollection<ContactApiRecord> records, CancellationToken cancellationToken = default) =>
-        WriteIfAnyAsync("import.Contacts", PerformanceDataTableMapper.CreateContacts(records), ignoreDuplicates: true, cancellationToken);
+        WriteIfAnyAsync(ImportTableNames.Contacts, PerformanceDataTableMapper.CreateContacts(records), ignoreDuplicates: true, cancellationToken);
 
     public Task WriteSendContactsAsync(IReadOnlyCollection<SendContactApiRecord> records, CancellationToken cancellationToken = default) =>
-        WriteIfAnyAsync("import.SendContacts", PerformanceDataTableMapper.CreateSendContacts(records), ignoreDuplicates: true, cancellationToken);
+        WriteIfAnyAsync(ImportTableNames.SendContacts, PerformanceDataTableMapper.CreateSendContacts(records), ignoreDuplicates: true, cancellationToken);
 
     public Task WriteLinksAsync(IReadOnlyCollection<LinkApiRecord> records, CancellationToken cancellationToken = default) =>
-        WriteIfAnyAsync("import.Links", PerformanceDataTableMapper.CreateLinks(records), ignoreDuplicates: true, cancellationToken);
+        WriteIfAnyAsync(ImportTableNames.Links, PerformanceDataTableMapper.CreateLinks(records), ignoreDuplicates: true, cancellationToken);
 
     public Task WriteUserAgentsAsync(IReadOnlyCollection<UserAgentApiRecord> records, CancellationToken cancellationToken = default) =>
-        WriteIfAnyAsync("import.UserAgents", PerformanceDataTableMapper.CreateUserAgents(records), ignoreDuplicates: true, cancellationToken);
+        WriteIfAnyAsync(ImportTableNames.UserAgents, PerformanceDataTableMapper.CreateUserAgents(records), ignoreDuplicates: true, cancellationToken);
 
     public Task WriteDisplayedContactsAsync(IReadOnlyCollection<DisplayedContactApiRecord> records, CancellationToken cancellationToken = default) =>
-        WriteIfAnyAsync("import.DisplayedContacts", PerformanceDataTableMapper.CreateDisplayedContacts(records), ignoreDuplicates: true, cancellationToken);
+        WriteIfAnyAsync(ImportTableNames.DisplayedContacts, PerformanceDataTableMapper.CreateDisplayedContacts(records), ignoreDuplicates: true, cancellationToken);
 
     public Task WriteClickedContactsAsync(IReadOnlyCollection<ClickedContactApiRecord> records, CancellationToken cancellationToken = default) =>
-        WriteIfAnyAsync("import.ClickedContacts", PerformanceDataTableMapper.CreateClickedContacts(records), ignoreDuplicates: true, cancellationToken);
+        WriteIfAnyAsync(ImportTableNames.ClickedContacts, PerformanceDataTableMapper.CreateClickedContacts(records), ignoreDuplicates: true, cancellationToken);
 
     public Task WriteBouncedContactsAsync(IReadOnlyCollection<BouncedContactApiRecord> records, CancellationToken cancellationToken = default) =>
-        WriteIfAnyAsync("import.BouncedContacts", PerformanceDataTableMapper.CreateBouncedContacts(records), ignoreDuplicates: true, cancellationToken);
+        WriteIfAnyAsync(ImportTableNames.BouncedContacts, PerformanceDataTableMapper.CreateBouncedContacts(records), ignoreDuplicates: true, cancellationToken);
 
     public Task WriteUnsubscribedContactsAsync(IReadOnlyCollection<UnsubscribedContactApiRecord> records, CancellationToken cancellationToken = default) =>
-        WriteIfAnyAsync("import.UnsubscribedContacts", PerformanceDataTableMapper.CreateUnsubscribedContacts(records), ignoreDuplicates: true, cancellationToken);
+        WriteIfAnyAsync(ImportTableNames.UnsubscribedContacts, PerformanceDataTableMapper.CreateUnsubscribedContacts(records), ignoreDuplicates: true, cancellationToken);
 
-    public Task WriteImportCompletionsAsync(IReadOnlyCollection<Send> sends, DateTimeOffset importStart, CancellationToken cancellationToken = default) =>
-        WriteIfAnyAsync("import.CampaignImportMetadata", PerformanceDataTableMapper.CreateImportMetadata(sends, importStart), ignoreDuplicates: false, cancellationToken);
+    public Task WriteImportCompletionsAsync(IReadOnlyCollection<Send> sends, DateTimeOffset importStart, IReadOnlyDictionary<long, bool> importCompleteness, CancellationToken cancellationToken = default) =>
+        WriteIfAnyAsync(ImportTableNames.CampaignImportMetadata, PerformanceDataTableMapper.CreateImportMetadata(sends, importStart, importCompleteness), ignoreDuplicates: false, cancellationToken: cancellationToken);
 
     private async Task WriteIfAnyAsync(
         string tableName,

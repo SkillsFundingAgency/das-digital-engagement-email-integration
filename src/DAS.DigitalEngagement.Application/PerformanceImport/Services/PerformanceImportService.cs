@@ -201,7 +201,8 @@ public sealed class PerformanceImportService(
         }
 
         // Write completion metadata only after all pages and event datasets have been processed.
-        await dataWriter.WriteImportCompletionsAsync(sendBatch, importStart, cancellationToken);
+        var importCompleteness = sendBatch.ToDictionary(s => s.Id, s => true);
+        await dataWriter.WriteImportCompletionsAsync(sendBatch, importStart, importCompleteness, cancellationToken);
 
         logger.LogInformation(
             "Completed SendContacts batch {BatchNumber} for {SendCount} sends: {PageCount} pages, {SendContactCount} send contacts, {ContactCount} contacts, {LinkCount} links.",
@@ -223,11 +224,24 @@ public sealed class PerformanceImportService(
         var returnedContactIds = new HashSet<long>();
         var contactCount = 0;
 
-        // Fetch distinct contacts in API-sized groups before writing this SendContacts page.
+        // Fetch distinct contacts in API-sized groups. Check the DB first and only request missing IDs from the API.
         foreach (var contactIdBatch in contactIds.Chunk(_apiFilterBatchSize))
         {
+            // Check which IDs already exist in our staging table to avoid unnecessary API calls.
+            var existingIds = await bulkInserter.QueryExistingIdsAsync(ImportTableNames.Contacts, contactIdBatch, cancellationToken);
+            foreach (var id in existingIds)
+            {
+                returnedContactIds.Add(id);
+            }
+
+            var missingIds = contactIdBatch.Where(id => !existingIds.Contains(id)).ToArray();
+            if (missingIds.Length == 0)
+            {
+                continue;
+            }
+
             contactCount += await WriteApiRecordsAsync(
-                dataClient.GetContactsAsync(contactIdBatch, cancellationToken),
+                dataClient.GetContactsAsync(missingIds, cancellationToken),
                 async (records, token) =>
                 {
                     foreach (var contact in records)
@@ -402,13 +416,13 @@ public sealed class PerformanceImportService(
         // Build and write one SQL-sized DataTable at a time to bound staging memory.
         cancellationToken.ThrowIfCancellationRequested();
 
-        foreach (var sendBatch in sends.Chunk(_sqlWriteBatchSize))
+            foreach (var sendBatch in sends.Chunk(_sqlWriteBatchSize))
         {
             var sendTable = SendCampaignDataTableMapper.CreateSends(sendBatch);
             if (sendTable.Rows.Count > 0)
             {
                 await bulkInserter.BulkInsertIgnoringDuplicatesAsync(
-                    "import.Sends",
+                    ImportTableNames.Sends,
                     sendTable,
                     batchSize: _sqlWriteBatchSize,
                     cancellationToken: cancellationToken);
@@ -429,7 +443,7 @@ public sealed class PerformanceImportService(
             if (campaignTable.Rows.Count > 0)
             {
                 await bulkInserter.BulkInsertIgnoringDuplicatesAsync(
-                    "import.Campaigns",
+                    ImportTableNames.Campaigns,
                     campaignTable,
                     batchSize: _sqlWriteBatchSize,
                     cancellationToken: cancellationToken);
