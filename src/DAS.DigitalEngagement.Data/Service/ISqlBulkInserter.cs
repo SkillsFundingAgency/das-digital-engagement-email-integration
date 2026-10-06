@@ -17,4 +17,12 @@ public interface ISqlBulkInserter
         int batchSize = 5000,
         int timeoutSeconds = 300,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Query which of the provided IDs already exist in the destination table's ID column.
+    /// </summary>
+    Task<HashSet<long>> QueryExistingIdsAsync(
+        string destinationTable,
+        IReadOnlyCollection<long> ids,
+        CancellationToken cancellationToken = default);
 }

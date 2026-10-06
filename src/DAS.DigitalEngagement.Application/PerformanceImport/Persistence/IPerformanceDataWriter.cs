@@ -12,5 +12,5 @@ public interface IPerformanceDataWriter
     Task WriteClickedContactsAsync(IReadOnlyCollection<ClickedContactApiRecord> records, CancellationToken cancellationToken = default);
     Task WriteBouncedContactsAsync(IReadOnlyCollection<BouncedContactApiRecord> records, CancellationToken cancellationToken = default);
     Task WriteUnsubscribedContactsAsync(IReadOnlyCollection<UnsubscribedContactApiRecord> records, CancellationToken cancellationToken = default);
-    Task WriteImportCompletionsAsync(IReadOnlyCollection<Send> sends, DateTimeOffset importStart, CancellationToken cancellationToken = default);
+    Task WriteImportCompletionsAsync(IReadOnlyCollection<Send> sends, DateTimeOffset importStart, IReadOnlyDictionary<long, bool> importCompleteness, CancellationToken cancellationToken = default);
 }
