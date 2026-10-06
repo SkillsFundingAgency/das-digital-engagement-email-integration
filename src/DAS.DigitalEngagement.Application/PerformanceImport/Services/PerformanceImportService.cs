@@ -293,55 +293,83 @@ public sealed class PerformanceImportService(
         CancellationToken cancellationToken)
     {
         // These IDs are already within the API filter limit; stream event results into SQL-sized writes.
-        var userAgentCount = await WriteApiRecordsAsync(
-            dataClient.GetUserAgentsAsync(sendContactIds, cancellationToken),
-            (records, token) => dataWriter.WriteUserAgentsAsync(records, token),
-            _sqlWriteBatchSize,
-            cancellationToken);
-        logger.LogInformation(
-            "Processed send-contact batch of {SendContactCount}: wrote {UserAgentCount} user agents.",
-            sendContactIds.Length,
-            userAgentCount);
+        // Run event imports in bounded parallelism to reduce time without overloading dependencies.
+        var maxConcurrentEventImports = Math.Max(1, apiConfig.Value.MaxConcurrentEventImports);
+        using var gate = new SemaphoreSlim(maxConcurrentEventImports, maxConcurrentEventImports);
 
-        var displayedContactCount = await WriteApiRecordsAsync(
-            dataClient.GetDisplayedContactsAsync(sendContactIds, cancellationToken),
-            (records, token) => dataWriter.WriteDisplayedContactsAsync(records, token),
-            _sqlWriteBatchSize,
-            cancellationToken);
-        logger.LogInformation(
-            "Processed send-contact batch of {SendContactCount}: wrote {DisplayedContactCount} displayed contacts.",
-            sendContactIds.Length,
-            displayedContactCount);
+        async Task RunBoundedAsync(Func<Task<int>> importOperation, Action<int> logOperation)
+        {
+            await gate.WaitAsync(cancellationToken);
+            try
+            {
+                var count = await importOperation();
+                logOperation(count);
+            }
+            finally
+            {
+                gate.Release();
+            }
+        }
 
-        var clickedContactCount = await WriteApiRecordsAsync(
-            dataClient.GetClickedContactsAsync(sendContactIds, cancellationToken),
-            (records, token) => dataWriter.WriteClickedContactsAsync(records, token),
-            _sqlWriteBatchSize,
-            cancellationToken);
-        logger.LogInformation(
-            "Processed send-contact batch of {SendContactCount}: wrote {ClickedContactCount} clicked contacts.",
-            sendContactIds.Length,
-            clickedContactCount);
+        var tasks = new[]
+        {
+            RunBoundedAsync(
+                () => WriteApiRecordsAsync(
+                    dataClient.GetUserAgentsAsync(sendContactIds, cancellationToken),
+                    (records, token) => dataWriter.WriteUserAgentsAsync(records, token),
+                    _sqlWriteBatchSize,
+                    cancellationToken),
+                count => logger.LogInformation(
+                    "Processed send-contact batch of {SendContactCount}: wrote {UserAgentCount} user agents.",
+                    sendContactIds.Length,
+                    count)),
 
-        var bouncedContactCount = await WriteApiRecordsAsync(
-            dataClient.GetBouncedContactsAsync(sendContactIds, cancellationToken),
-            (records, token) => dataWriter.WriteBouncedContactsAsync(records, token),
-            _sqlWriteBatchSize,
-            cancellationToken);
-        logger.LogInformation(
-            "Processed send-contact batch of {SendContactCount}: wrote {BouncedContactCount} bounced contacts.",
-            sendContactIds.Length,
-            bouncedContactCount);
+            RunBoundedAsync(
+                () => WriteApiRecordsAsync(
+                    dataClient.GetDisplayedContactsAsync(sendContactIds, cancellationToken),
+                    (records, token) => dataWriter.WriteDisplayedContactsAsync(records, token),
+                    _sqlWriteBatchSize,
+                    cancellationToken),
+                count => logger.LogInformation(
+                    "Processed send-contact batch of {SendContactCount}: wrote {DisplayedContactCount} displayed contacts.",
+                    sendContactIds.Length,
+                    count)),
 
-        var unsubscribedContactCount = await WriteApiRecordsAsync(
-            dataClient.GetUnsubscribedContactsAsync(sendContactIds, cancellationToken),
-            (records, token) => dataWriter.WriteUnsubscribedContactsAsync(records, token),
-            _sqlWriteBatchSize,
-            cancellationToken);
-        logger.LogInformation(
-            "Processed send-contact batch of {SendContactCount}: wrote {UnsubscribedContactCount} unsubscribed contacts.",
-            sendContactIds.Length,
-            unsubscribedContactCount);
+            RunBoundedAsync(
+                () => WriteApiRecordsAsync(
+                    dataClient.GetClickedContactsAsync(sendContactIds, cancellationToken),
+                    (records, token) => dataWriter.WriteClickedContactsAsync(records, token),
+                    _sqlWriteBatchSize,
+                    cancellationToken),
+                count => logger.LogInformation(
+                    "Processed send-contact batch of {SendContactCount}: wrote {ClickedContactCount} clicked contacts.",
+                    sendContactIds.Length,
+                    count)),
+
+            RunBoundedAsync(
+                () => WriteApiRecordsAsync(
+                    dataClient.GetBouncedContactsAsync(sendContactIds, cancellationToken),
+                    (records, token) => dataWriter.WriteBouncedContactsAsync(records, token),
+                    _sqlWriteBatchSize,
+                    cancellationToken),
+                count => logger.LogInformation(
+                    "Processed send-contact batch of {SendContactCount}: wrote {BouncedContactCount} bounced contacts.",
+                    sendContactIds.Length,
+                    count)),
+
+            RunBoundedAsync(
+                () => WriteApiRecordsAsync(
+                    dataClient.GetUnsubscribedContactsAsync(sendContactIds, cancellationToken),
+                    (records, token) => dataWriter.WriteUnsubscribedContactsAsync(records, token),
+                    _sqlWriteBatchSize,
+                    cancellationToken),
+                count => logger.LogInformation(
+                    "Processed send-contact batch of {SendContactCount}: wrote {UnsubscribedContactCount} unsubscribed contacts.",
+                    sendContactIds.Length,
+                    count))
+        };
+
+        await Task.WhenAll(tasks);
     }
 
     private static async Task<int> WriteApiRecordsAsync<T>(
@@ -416,7 +444,7 @@ public sealed class PerformanceImportService(
         // Build and write one SQL-sized DataTable at a time to bound staging memory.
         cancellationToken.ThrowIfCancellationRequested();
 
-            foreach (var sendBatch in sends.Chunk(_sqlWriteBatchSize))
+        foreach (var sendBatch in sends.Chunk(_sqlWriteBatchSize))
         {
             var sendTable = SendCampaignDataTableMapper.CreateSends(sendBatch);
             if (sendTable.Rows.Count > 0)
