@@ -41,9 +41,9 @@ jobs:
             TargetFileName: '*.schema.json'
             TableName: Configuration
             ConfigurationSecrets:
-	     NServiceBusConnectionString: $(nServiceBusConnectionString)
-             nServiceBusLicense: $(nServiceBusLicense)
-             EmailMarketingAPI:ApiKey: $(EmailMarketingAPI:ApiKey)
+              NServiceBusConnectionString: $(nServiceBusConnectionString)
+              nServiceBusLicense: $(nServiceBusLicense)
+              EmailMarketingAPI:ApiKey': $(EmailMarketingAPI:ApiKey)
         - template: azure-pipelines-templates/deploy/step/function-deploy.yml@das-platform-building-blocks
           parameters:
             ServiceConnection: ${{ parameters.ServiceConnection }}
