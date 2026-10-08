@@ -111,7 +111,6 @@ public class EmailNotificationService : IEmailNotificationService
 
         try
         {
-            // Build NServiceBus email command tokens from the GovNotify personalisation values
             var tokens = personalisation.ToDictionary(p => p.Key, p => (string)(p.Value?.ToString() ?? string.Empty));
 
             _logger.LogInformation(
