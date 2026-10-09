@@ -2,12 +2,13 @@
 using Microsoft.Extensions.Logging;
 using DAS.DigitalEngagement.Application.Services.Interfaces;
 using DAS.DigitalEngagement.Models.Infrastructure;
+using SFA.DAS.Notifications.Messages.Commands;
 
 namespace DAS.DigitalEngagement.Application.Services;
 
 public class EmailNotificationService : IEmailNotificationService
 {
-    private readonly INotificationClientWrapper _notificationClient;
+    private readonly INotificationService _notificationService;
     private readonly GovNotifyConfiguration _configuration;
     private readonly ILogger<EmailNotificationService> _logger;
     private readonly IEmailDomainChecker _emailDomainChecker;
@@ -15,18 +16,13 @@ public class EmailNotificationService : IEmailNotificationService
     public EmailNotificationService(
         GovNotifyConfiguration configuration,
         ILogger<EmailNotificationService> logger,
-        INotificationClientWrapper notificationClient,
+        INotificationService notificationService,
         IEmailDomainChecker emailDomainChecker)
     {
         _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        _notificationClient = notificationClient ?? throw new ArgumentNullException(nameof(notificationClient));
+        _notificationService = notificationService ?? throw new ArgumentNullException(nameof(notificationService));
         _emailDomainChecker = emailDomainChecker ?? throw new ArgumentNullException(nameof(emailDomainChecker));
-
-        if (string.IsNullOrWhiteSpace(_configuration.ApiKey))
-        {
-            throw new InvalidOperationException("GovUK Notify API Key is not configured");
-        }
     }
 
     public async Task SendMonitoringReportAsync(string integrationName, string reportContent, string blobUrl, CancellationToken cancellationToken = default)
@@ -115,26 +111,22 @@ public class EmailNotificationService : IEmailNotificationService
 
         try
         {
-            // Fix: Convert personalisation to Dictionary<string, dynamic> as required by SendEmailAsync
-            var personalisationDict = personalisation as Dictionary<string, dynamic> 
-                                      ?? new Dictionary<string, dynamic>(personalisation);
-
-            var response = await _notificationClient.SendEmailAsync(
-                trimmedRecipient,
-                _configuration.MonitoringReportTemplateId,
-                personalisationDict);
-
-            if (response == null || string.IsNullOrWhiteSpace(response.id))
-            {
-                _logger.LogError(
-                    "Failed to send monitoring report email to {EmailAddress} for integration {IntegrationName} (no notification id).",
-                    trimmedRecipient, integrationName);
-                return false;
-            }
+            var tokens = personalisation.ToDictionary(p => p.Key, p => (string)(p.Value?.ToString() ?? string.Empty));
 
             _logger.LogInformation(
-                "Monitoring report email sent to {EmailAddress} for integration {IntegrationName}. Notification ID: {NotificationId}",
-                trimmedRecipient, integrationName, response.id);
+                "Sending monitoring report email to {EmailAddress} for integration {IntegrationName} using template {TemplateId}",
+                trimmedRecipient, integrationName, _configuration.MonitoringReportTemplateId);
+
+            var emailCommand = new SendEmailCommand(
+                templateId: _configuration.MonitoringReportTemplateId,
+                recipientsAddress: trimmedRecipient,
+                tokens: tokens);
+
+            await _notificationService.Send(emailCommand);
+
+            _logger.LogInformation(
+                "Monitoring report email sent to {EmailAddress} for integration {IntegrationName}",
+                trimmedRecipient, integrationName);
 
             return true;
         }
