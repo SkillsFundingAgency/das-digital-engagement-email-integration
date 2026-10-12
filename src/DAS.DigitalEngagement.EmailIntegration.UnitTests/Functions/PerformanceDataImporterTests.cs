@@ -43,7 +43,6 @@ public class PerformanceDataImporterTests
                 },
             GovNotifyConfiguration = new GovNotifyConfiguration
             {
-                ApiKey = "TestApiKey",
                 MonitoringReportTemplateId = "TestTemplateId",
                 RecipientEmailAddresses = new List<string> { "test@example.com" }
             }

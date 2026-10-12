@@ -183,15 +183,16 @@ namespace DAS.DigitalEngagement.Application.Services
                 throw new InvalidOperationException($"Failed to save report file '{fileName}' to blob storage.", ex);
             }
 
-            try
-            {
-                await _emailNotificationService.SendMonitoringReportAsync(integrationName, reportContent, blobUrl);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Failed to send email notification for integration '{IntegrationName}'.", integrationName);
-                throw new InvalidOperationException($"Failed to send email notification for integration '{integrationName}'.", ex);
-            }
+            // temporarily disabled the monitoring emails and created a ticket to determine whether they are required.
+            //try
+            //{
+            //    await _emailNotificationService.SendMonitoringReportAsync(integrationName, reportContent, blobUrl);
+            //}
+            //catch (Exception ex)
+            //{
+            //    _logger.LogError(ex, "Failed to send email notification for integration '{IntegrationName}'.", integrationName);
+            //    throw new InvalidOperationException($"Failed to send email notification for integration '{integrationName}'.", ex);
+            //}
         }
 
         // Helper class for deserialization

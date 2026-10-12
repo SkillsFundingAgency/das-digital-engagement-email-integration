@@ -50,7 +50,6 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Functions
                 },
                 GovNotifyConfiguration = new GovNotifyConfiguration
                 {
-                    ApiKey = "TestGovNotifyApiKey",
                     MonitoringReportTemplateId = "TestTemplateId",
                     RecipientEmailAddresses = new List<string> { "test@example.com" }
                 }
