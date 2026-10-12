@@ -899,13 +899,15 @@ namespace DAS.DigitalEngagement.Application.Services.UnitTests
             await service.SaveReportToBlobAndNotifyAsync(reportContent, fileName, integrationName);
 
             mockBlobClient.Verify(x => x.UploadAsync(It.IsAny<Stream>(), true, It.IsAny<CancellationToken>()), Times.Once);
-            mockEmailNotificationService.Verify(
-                x => x.SendMonitoringReportAsync(
-                    integrationName,
-                    reportContent,
-                    It.Is<string>(url => url.Contains("test-report.report.txt")),
-                    It.IsAny<CancellationToken>()),
-                Times.Once);
+
+            // temporarily disabled the monitoring emails and created a ticket to determine whether they are required.
+            //mockEmailNotificationService.Verify(
+            //    x => x.SendMonitoringReportAsync(
+            //        integrationName,
+            //        reportContent,
+            //        It.Is<string>(url => url.Contains("test-report.report.txt")),
+            //        It.IsAny<CancellationToken>()),
+            //    Times.Once);
         }
 
         [Test]
@@ -1140,11 +1142,12 @@ namespace DAS.DigitalEngagement.Application.Services.UnitTests
 
             mockBlobClient.Verify(x => x.UploadAsync(It.IsAny<Stream>(), true, It.IsAny<CancellationToken>()), Times.Once);
 
-            mockEmailNotificationService.Verify(x => x.SendMonitoringReportAsync(
-                integrationName,
-                reportContent,
-                It.Is<string>(s => s.Contains("test-report.report.txt")),
-                It.IsAny<CancellationToken>()), Times.Once);
+            // temporarily disabled the monitoring emails and created a ticket to determine whether they are required.
+            //mockEmailNotificationService.Verify(x => x.SendMonitoringReportAsync(
+            //    integrationName,
+            //    reportContent,
+            //    It.Is<string>(s => s.Contains("test-report.report.txt")),
+            //    It.IsAny<CancellationToken>()), Times.Once);
 
             mockLogger.Verify(
                 x => x.Log(
