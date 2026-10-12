@@ -15,13 +15,15 @@ public sealed class SendEligibilityService(
     IOptions<EmailMarketingApi> apiConfig) : ISendEligibilityService
 {
     private readonly int _importWindowDays = apiConfig.Value.ImportWindowDays;
+    private readonly IReadOnlyCollection<int>? _subAccountIds = apiConfig.Value.SubAccountIds is { Length: > 0 }
+        ? apiConfig.Value.SubAccountIds
+        : null;
 
     public async Task<IReadOnlyList<SendEligibilityRecord>> GetEligibleSendRecordsAsync(
-        int? subAccountId = null,
         CancellationToken cancellationToken = default)
     {
         var sends = new List<SendEligibilityRecord>();
-        await foreach (var send in performanceDataClient.GetSendsAsync(subAccountId, cancellationToken))
+        await foreach (var send in performanceDataClient.GetSendsAsync(_subAccountIds, cancellationToken))
         {
             sends.Add(send);
         }
