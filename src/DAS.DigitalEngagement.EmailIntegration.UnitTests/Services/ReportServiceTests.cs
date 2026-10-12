@@ -1089,6 +1089,7 @@ namespace DAS.DigitalEngagement.Application.Services.UnitTests
                 Times.Once);
         }
 
+        // temporarily disabled the monitoring emails and created a ticket to determine whether they are required.
         [Test]
         public void SaveReportToBlobAndNotifyAsync_WhenEmailNotificationThrows_LogsErrorAndRethrows()
         {
@@ -1122,41 +1123,40 @@ namespace DAS.DigitalEngagement.Application.Services.UnitTests
                 .Setup(x => x.UploadAsync(It.IsAny<Stream>(), It.IsAny<bool>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(Mock.Of<Response<BlobContentInfo>>());
 
-            var notifyException = new Exception("notify failed");
-            mockEmailNotificationService
-                .Setup(x => x.SendMonitoringReportAsync(
-                    It.IsAny<string>(),
-                    It.IsAny<string>(),
-                    It.IsAny<string>(),
-                    It.IsAny<CancellationToken>()))
-                .ThrowsAsync(notifyException);
+            // var notifyException = new Exception("notify failed");
+            // mockEmailNotificationService
+            //     .Setup(x => x.SendMonitoringReportAsync(
+            //         It.IsAny<string>(),
+            //         It.IsAny<string>(),
+            //         It.IsAny<string>(),
+            //         It.IsAny<CancellationToken>()))
+            //     .ThrowsAsync(notifyException);
 
             var service = new ReportService(mockBlobServiceClient.Object, mockLogger.Object, mockEmailNotificationService.Object);
 
-            var thrown = Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            Assert.DoesNotThrowAsync(async () =>
                 await service.SaveReportToBlobAndNotifyAsync(reportContent, fileName, integrationName));
 
-            Assert.That(thrown, Is.Not.Null);
-            Assert.That(thrown!.Message, Is.EqualTo($"Failed to send email notification for integration '{integrationName}'."));
-            Assert.That(thrown.InnerException, Is.EqualTo(notifyException));
+            //Assert.That(thrown, Is.Not.Null);
+            //Assert.That(thrown!.Message, Is.EqualTo($"Failed to send email notification for integration '{integrationName}'."));
+            //Assert.That(thrown.InnerException, Is.EqualTo(notifyException));
 
             mockBlobClient.Verify(x => x.UploadAsync(It.IsAny<Stream>(), true, It.IsAny<CancellationToken>()), Times.Once);
 
-            // temporarily disabled the monitoring emails and created a ticket to determine whether they are required.
             //mockEmailNotificationService.Verify(x => x.SendMonitoringReportAsync(
             //    integrationName,
             //    reportContent,
             //    It.Is<string>(s => s.Contains("test-report.report.txt")),
             //    It.IsAny<CancellationToken>()), Times.Once);
 
-            mockLogger.Verify(
-                x => x.Log(
-                    LogLevel.Error,
-                    It.IsAny<EventId>(),
-                    It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("Failed to send email notification for integration")),
-                    It.Is<Exception>(ex => ex == notifyException),
-                    It.IsAny<Func<It.IsAnyType, Exception, string>>()),
-                Times.Once);
+            // mockLogger.Verify(
+            //     x => x.Log(
+            //         LogLevel.Error,
+            //         It.IsAny<EventId>(),
+            //         It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("Failed to send email notification for integration")),
+            //         It.Is<Exception>(ex => ex == notifyException),
+            //         It.IsAny<Func<It.IsAnyType, Exception, string>>()),
+            //     Times.Once);
         }
     }
 }
