@@ -16,12 +16,12 @@ public sealed class PerformanceDataClient(
 {
     private readonly int _pageSize = apiOptions.Value.PageSize;
 
-    public IAsyncEnumerable<SendEligibilityRecord> GetSendsAsync(int? subAccountId = null, CancellationToken cancellationToken = default)
+    public IAsyncEnumerable<SendEligibilityRecord> GetSendsAsync(IReadOnlyCollection<int>? subAccountIds = null, CancellationToken cancellationToken = default)
     {
         var endpoint = "Sends?$select=ID,SendCompletedDate";
-        if (subAccountId is not null)
+        if (subAccountIds is { Count: > 0 })
         {
-            endpoint += $"&$filter={Uri.EscapeDataString($"SubAccountID eq {subAccountId}")}";
+            endpoint += $"&$filter={Uri.EscapeDataString($"SubAccountID in ({string.Join(",", subAccountIds.Distinct())})")}";
         }
 
         return ReadPagesAsync<SendEligibilityRecord>(endpoint, cancellationToken);

@@ -12,8 +12,7 @@ namespace DAS.DigitalEngagement.Application.Handlers.CampaignToStaging
         {
             logger.LogInformation("Performance import handler started.");
 
-            // Set subAccountId = null for production. For local/testing, use sub-account 3 for lots of small sends, 5 for one huge send
-            var eligibleSends = await sendEligibilityService.GetEligibleSendRecordsAsync(subAccountId: null, cancellationToken: cancellationToken);
+            var eligibleSends = await sendEligibilityService.GetEligibleSendRecordsAsync(cancellationToken);
             logger.LogInformation("Eligibility check returned {EligibleSendCount} sends.", eligibleSends.Count);
 
             if (eligibleSends.Count == 0)

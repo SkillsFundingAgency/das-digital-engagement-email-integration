@@ -4,7 +4,7 @@ namespace DAS.DigitalEngagement.Application.PerformanceImport.Api;
 
 public interface IPerformanceDataClient
 {
-    IAsyncEnumerable<SendEligibilityRecord> GetSendsAsync(int? subAccountId = null, CancellationToken cancellationToken = default);
+    IAsyncEnumerable<SendEligibilityRecord> GetSendsAsync(IReadOnlyCollection<int>? subAccountIds = null, CancellationToken cancellationToken = default);
     IAsyncEnumerable<Send> GetSendsByIdsAsync(IReadOnlyCollection<long> sendIds, CancellationToken cancellationToken = default);
     IAsyncEnumerable<Campaign> GetCampaignsAsync(IReadOnlyCollection<long> campaignIds, CancellationToken cancellationToken = default);
     IAsyncEnumerable<SendContactApiRecord> GetSendContactsAsync(IReadOnlyCollection<long> sendIds, CancellationToken cancellationToken = default);

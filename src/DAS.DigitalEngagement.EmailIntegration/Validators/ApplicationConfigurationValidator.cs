@@ -20,6 +20,7 @@ namespace DAS.DigitalEngagement.EmailIntegration.Validators
             ValidateDataMart(options.DataMart, failures);
             ValidateConnectionString(options.ConnectionString, failures);
             ValidateEmailMarketingApi(options.EmailMarketingApi, failures);
+            ValidateSubAccountIds(options.EmailMarketingApi.SubAccountIds, failures);
 
             return failures.Count == 0 ? ValidateOptionsResult.Success : ValidateOptionsResult.Fail(failures);
         }
@@ -89,6 +90,15 @@ namespace DAS.DigitalEngagement.EmailIntegration.Validators
                 failures.Add("EmailMarketingApi.SendContactFilterBatchSize: required and must be greater than zero.");
             if (emailMarketingApi.SqlWriteBatchSize <= 0)
                 failures.Add("EmailMarketingApi.SqlWriteBatchSize: required and must be greater than zero.");
+        }
+
+        private void ValidateSubAccountIds(int[]? subAccountIds, List<string> failures)
+        {
+            if (subAccountIds == null || subAccountIds.Length == 0)
+                return;
+
+            if (subAccountIds.Any(id => id <= 0))
+                failures.Add("SubAccountIds: all IDs must be greater than zero.");
         }
 
         private void AddIfNullOrWhiteSpace(string? value, string message, List<string> failures)
