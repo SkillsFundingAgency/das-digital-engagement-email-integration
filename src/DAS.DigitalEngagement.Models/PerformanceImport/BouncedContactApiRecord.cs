@@ -5,6 +5,7 @@ namespace DAS.DigitalEngagement.Models.PerformanceImport;
 public sealed class BouncedContactApiRecord
 {
     [JsonPropertyName("ID")] public long Id { get; init; }
+    [JsonPropertyName("SubaccountID")] public long? SubaccountId { get; init; }
     [JsonPropertyName("BounceReason")] public string? BounceReason { get; init; }
     [JsonPropertyName("BounceType")] public string? BounceType { get; init; }
     [JsonPropertyName("BounceDate")] public DateTimeOffset? BounceDate { get; init; }
