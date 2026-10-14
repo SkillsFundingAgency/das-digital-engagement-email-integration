@@ -5,7 +5,6 @@ namespace DAS.DigitalEngagement.Models.PerformanceImport;
 public sealed class LinkApiRecord
 {
     [JsonPropertyName("ID")] public long Id { get; init; }
-    [JsonPropertyName("SubaccountID")] public long? SubaccountId { get; init; }
     [JsonPropertyName("URL")] public string? Url { get; init; }
     [JsonPropertyName("FriendlyName")] public string? FriendlyName { get; init; }
     [JsonPropertyName("IsMonitored")] public bool? IsMonitored { get; init; }
