@@ -119,7 +119,7 @@ namespace DAS.DigitalEngagement.Application.Services.UnitTests
                 .Returns(mockBlobContainerClient.Object);
 
             mockBlobContainerClient
-                .Setup(x => x.CreateIfNotExistsAsync(It.IsAny<PublicAccessType>(), It.IsAny<System.Collections.Generic.IDictionary<string, string>>(), It.IsAny<BlobContainerEncryptionScopeOptions>(), It.IsAny<CancellationToken>()))
+                .Setup(x => x.CreateIfNotExistsAsync(It.IsAny<PublicAccessType>(), It.IsAny<IDictionary<string, string>>(), It.IsAny<BlobContainerEncryptionScopeOptions>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(Mock.Of<Response<BlobContainerInfo>>());
 
             mockBlobContainerClient
@@ -142,7 +142,7 @@ namespace DAS.DigitalEngagement.Application.Services.UnitTests
         }
 
         [Test]
-        public void SaveReportToBlob_CreateContainerThrowsException_LogsErrorAndRethrows()
+        public async Task SaveReportToBlob_CreateContainerThrowsException_LogsErrorAndRethrows()
         {
             var reportContent = "Test content";
             var fileName = "test-report";
@@ -158,11 +158,7 @@ namespace DAS.DigitalEngagement.Application.Services.UnitTests
                 .Returns(mockBlobContainerClient.Object);
 
             mockBlobContainerClient
-                .Setup(x => x.CreateIfNotExistsAsync(
-                    It.IsAny<PublicAccessType>(),
-                    It.IsAny<IDictionary<string, string>>(),
-                    It.IsAny<BlobContainerEncryptionScopeOptions>(),
-                    It.IsAny<CancellationToken>()))
+                .Setup(x => x.CreateIfNotExistsAsync(It.IsAny<PublicAccessType>(), It.IsAny<IDictionary<string, string>>(), It.IsAny<BlobContainerEncryptionScopeOptions>(), It.IsAny<CancellationToken>()))
                 .ThrowsAsync(expectedException);
 
             var service = new ReportService(
@@ -170,7 +166,7 @@ namespace DAS.DigitalEngagement.Application.Services.UnitTests
                 mockLogger.Object,
                 mockEmailNotificationService.Object);
 
-            var thrownException = Assert.ThrowsAsync<InvalidOperationException>(
+            var thrownException = await Assert.ThrowsAsync<InvalidOperationException>(
                 async () => await service.SaveReportToBlobInternalAsync(reportContent, fileName));
 
             Assert.That(thrownException, Is.Not.Null);
@@ -251,9 +247,7 @@ namespace DAS.DigitalEngagement.Application.Services.UnitTests
                 .Returns(mockBlobContainerClient.Object);
 
             mockBlobContainerClient
-                .Setup(x => x.CreateIfNotExistsAsync(It.IsAny<PublicAccessType>(),
-                            It.IsAny<System.Collections.Generic.IDictionary<string, string>>(),
-                            It.IsAny<BlobContainerEncryptionScopeOptions>(), It.IsAny<CancellationToken>()))
+                .Setup(x => x.CreateIfNotExistsAsync(It.IsAny<PublicAccessType>(), It.IsAny<System.Collections.Generic.IDictionary<string, string>>(), It.IsAny<BlobContainerEncryptionScopeOptions>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(Mock.Of<Response<BlobContainerInfo>>());
 
             mockBlobContainerClient
@@ -1042,7 +1036,7 @@ namespace DAS.DigitalEngagement.Application.Services.UnitTests
         }
 
         [Test]
-        public void SaveReportToBlob_UploadThrows_LogsErrorAndRethrows()
+        public async Task SaveReportToBlob_UploadThrows_LogsErrorAndRethrows()
         {
             var reportContent = "Test content";
             var fileName = "upload-fail-report";
@@ -1059,7 +1053,7 @@ namespace DAS.DigitalEngagement.Application.Services.UnitTests
                 .Returns(mockBlobContainerClient.Object);
 
             mockBlobContainerClient
-                .Setup(x => x.CreateIfNotExistsAsync(It.IsAny<PublicAccessType>(), It.IsAny<IDictionary<string, string>>(), It.IsAny<BlobContainerEncryptionScopeOptions>(), It.IsAny<CancellationToken>()))
+                .Setup(x => x.CreateIfNotExistsAsync(It.IsAny<PublicAccessType>(), It.IsAny<System.Collections.Generic.IDictionary<string, string>>(), It.IsAny<BlobContainerEncryptionScopeOptions>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(Mock.Of<Response<BlobContainerInfo>>());
 
             mockBlobContainerClient
@@ -1072,7 +1066,7 @@ namespace DAS.DigitalEngagement.Application.Services.UnitTests
 
             var service = new ReportService(mockBlobServiceClient.Object, mockLogger.Object, mockEmailNotificationService.Object);
 
-            var thrown = Assert.ThrowsAsync<InvalidOperationException>(async () => await service.SaveReportToBlobInternalAsync(reportContent, fileName));
+            var thrown = await Assert.ThrowsAsync<InvalidOperationException>(async () => await service.SaveReportToBlobInternalAsync(reportContent, fileName));
             Assert.That(thrown, Is.Not.Null);
             Assert.That(thrown!.Message, Is.EqualTo($"Failed to save report file '{fileName}' to blob storage."));
             Assert.That(thrown.InnerException, Is.EqualTo(expectedException));
@@ -1088,7 +1082,7 @@ namespace DAS.DigitalEngagement.Application.Services.UnitTests
         }
 
         [Test]
-        public void SaveReportToBlobAndNotifyAsync_WhenEmailNotificationThrows_LogsErrorAndRethrows()
+        public async Task SaveReportToBlobAndNotifyAsync_WhenEmailNotificationThrows_LogsErrorAndRethrows()
         {
             var reportContent = "Test report content";
             var fileName = "test-report";
@@ -1105,7 +1099,7 @@ namespace DAS.DigitalEngagement.Application.Services.UnitTests
                 .Returns(mockBlobContainerClient.Object);
 
             mockBlobContainerClient
-                .Setup(x => x.CreateIfNotExistsAsync(It.IsAny<PublicAccessType>(), It.IsAny<IDictionary<string, string>>(), It.IsAny<BlobContainerEncryptionScopeOptions>(), It.IsAny<CancellationToken>()))
+                .Setup(x => x.CreateIfNotExistsAsync(It.IsAny<PublicAccessType>(), It.IsAny<System.Collections.Generic.IDictionary<string, string>>(), It.IsAny<BlobContainerEncryptionScopeOptions>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(Mock.Of<Response<BlobContainerInfo>>());
 
             mockBlobContainerClient
@@ -1131,7 +1125,7 @@ namespace DAS.DigitalEngagement.Application.Services.UnitTests
 
             var service = new ReportService(mockBlobServiceClient.Object, mockLogger.Object, mockEmailNotificationService.Object);
 
-            var thrown = Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            var thrown = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
                 await service.SaveReportToBlobAndNotifyAsync(reportContent, fileName, integrationName));
 
             Assert.That(thrown, Is.Not.Null);

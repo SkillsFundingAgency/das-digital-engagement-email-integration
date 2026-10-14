@@ -378,7 +378,7 @@ public class SqlConnectionFactoryTests
         var factory = new SqlConnectionFactory(ValidConnectionString);
 
         // Act & Assert
-        Assert.DoesNotThrowAsync(async () =>
+        await Assert.DoesNotThrowAsync(async () =>
         {
             using var connection = await factory.CreateConnectionAsync();
             Assert.That(connection, Is.Not.Null);
