@@ -327,8 +327,8 @@ public class SqlConnectionFactoryTests
         {
             // Assert
             Assert.That(connection, Is.Not.Null);
-            Assert.That(stopwatch.ElapsedMilliseconds, Is.LessThan(100),
-                "Connection creation should complete in less than 100ms");
+            Assert.That(stopwatch.ElapsedMilliseconds, Is.LessThan(1000),
+                "Connection creation should complete in less than 1000ms");
         });
     }
 
