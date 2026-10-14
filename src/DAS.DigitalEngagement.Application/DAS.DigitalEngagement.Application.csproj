@@ -24,4 +24,8 @@
     <ProjectReference Include="..\DAS.DigitalEngagement.Models\DAS.DigitalEngagement.Models.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Handlers\Campaigns\" />
+  </ItemGroup>
+
 </Project>

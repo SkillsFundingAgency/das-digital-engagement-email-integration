@@ -1,4 +1,5 @@
-using DAS.DigitalEngagement.Application.Handlers.Campaigns;
+//using DAS.DigitalEngagement.Application.Handlers.Campaigns;
+using DAS.DigitalEngagement.Application.Handlers.CampaignToStaging;
 using DAS.DigitalEngagement.Models.Infrastructure;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging;
@@ -7,7 +8,7 @@ using System.Diagnostics;
 namespace DAS.DigitalEngagement.EmailIntegration.Functions;
 
 public class PerformanceDataImporter(
-    IImportCampaignPerformanceHandler importCampaignPerformanceHandler,
+    IImportCampaignStagingHandler importCampaignStagingHandler,
     ApplicationConfiguration configuration,
     ILogger<PerformanceDataImporter> logger)
 {
@@ -25,7 +26,7 @@ public class PerformanceDataImporter(
 
         try
         {
-            await importCampaignPerformanceHandler.Handle();
+            await importCampaignStagingHandler.Handle();
             logger.LogInformation("Performance data import ran successfully.");
         }
         catch (Exception ex)
