@@ -92,6 +92,66 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Services
 
             Assert.ThrowsAsync<HttpRequestException>(async () =>
                 await service.GetDataAsync("endpoint"));
+
+            _httpMessageHandlerMock.Protected().Verify(
+                "SendAsync",
+                Times.Once(),
+                ItExpr.IsAny<HttpRequestMessage>(),
+                ItExpr.IsAny<CancellationToken>());
+        }
+
+        [Test]
+        public async Task GetDataAsync_RetriesTransientStatus_ThenReturnsContent()
+        {
+            _httpMessageHandlerMock.Protected()
+                .SetupSequence<Task<HttpResponseMessage>>(
+                    "SendAsync",
+                    ItExpr.IsAny<HttpRequestMessage>(),
+                    ItExpr.IsAny<CancellationToken>())
+                .ReturnsAsync(new HttpResponseMessage { StatusCode = HttpStatusCode.ServiceUnavailable })
+                .ReturnsAsync(new HttpResponseMessage
+                {
+                    StatusCode = HttpStatusCode.OK,
+                    Content = new StringContent("response data")
+                });
+
+            var service = new ExternalApiService(_httpClient, _options, _loggerMock.Object);
+
+            var result = await service.GetDataAsync("endpoint");
+
+            Assert.That(result, Is.EqualTo("response data"));
+            _httpMessageHandlerMock.Protected().Verify(
+                "SendAsync",
+                Times.Exactly(2),
+                ItExpr.IsAny<HttpRequestMessage>(),
+                ItExpr.IsAny<CancellationToken>());
+        }
+
+        [Test]
+        public async Task GetDataAsync_RetriesRequestException_ThenReturnsContent()
+        {
+            _httpMessageHandlerMock.Protected()
+                .SetupSequence<Task<HttpResponseMessage>>(
+                    "SendAsync",
+                    ItExpr.IsAny<HttpRequestMessage>(),
+                    ItExpr.IsAny<CancellationToken>())
+                .ThrowsAsync(new HttpRequestException("Temporary network failure"))
+                .ReturnsAsync(new HttpResponseMessage
+                {
+                    StatusCode = HttpStatusCode.OK,
+                    Content = new StringContent("response data")
+                });
+
+            var service = new ExternalApiService(_httpClient, _options, _loggerMock.Object);
+
+            var result = await service.GetDataAsync("endpoint");
+
+            Assert.That(result, Is.EqualTo("response data"));
+            _httpMessageHandlerMock.Protected().Verify(
+                "SendAsync",
+                Times.Exactly(2),
+                ItExpr.IsAny<HttpRequestMessage>(),
+                ItExpr.IsAny<CancellationToken>());
         }
 
         [Test]

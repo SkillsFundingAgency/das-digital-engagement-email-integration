@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using DAS.DigitalEngagement.Application.Import.Handlers;
-using DAS.DigitalEngagement.Application.Repositories.Interfaces;
+using DAS.DigitalEngagement.CampaignInterest.Data.Repositories.Interfaces;
 using DAS.DigitalEngagement.Application.Services.Interfaces;
 using DAS.DigitalEngagement.Models.Import;
 using DAS.DigitalEngagement.Models.Infrastructure;

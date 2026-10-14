@@ -81,6 +81,14 @@ namespace DAS.DigitalEngagement.EmailIntegration.Validators
                 failures.Add("EmailMarketingApi.ApiRetryCount: required and cannot be Zero.");
             if (emailMarketingApi.ChunkSizeKB == 0)
                 failures.Add("EmailMarketingApi.ChunkSizeKB: required and cannot be Zero.");
+            if (emailMarketingApi.PageSize <= 0)
+                failures.Add("EmailMarketingApi.PageSize: required and must be greater than zero.");
+            if (emailMarketingApi.ApiFilterBatchSize <= 0)
+                failures.Add("EmailMarketingApi.ApiFilterBatchSize: required and must be greater than zero.");
+            if (emailMarketingApi.SendContactFilterBatchSize <= 0)
+                failures.Add("EmailMarketingApi.SendContactFilterBatchSize: required and must be greater than zero.");
+            if (emailMarketingApi.SqlWriteBatchSize <= 0)
+                failures.Add("EmailMarketingApi.SqlWriteBatchSize: required and must be greater than zero.");
         }
 
         private void AddIfNullOrWhiteSpace(string? value, string message, List<string> failures)

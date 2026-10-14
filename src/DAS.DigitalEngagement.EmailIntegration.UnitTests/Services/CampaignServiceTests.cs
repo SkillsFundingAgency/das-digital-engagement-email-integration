@@ -1,9 +1,9 @@
-using DAS.DigitalEngagement.Application.Repositories.Interfaces;
+using DAS.DigitalEngagement.CampaignInterest.Data.Repositories.Interfaces;
 using DAS.DigitalEngagement.Application.Services;
 using DAS.DigitalEngagement.Application.Services.Interfaces;
 using DAS.DigitalEngagement.CampaignInterest.Data.Helpers;
 using DAS.DigitalEngagement.CampaignInterest.Data.Models;
-using DAS.DigitalEngagement.Models.Campaigns;
+using DAS.DigitalEngagement.Models.PerformanceImport;
 using DAS.DigitalEngagement.Models.Infrastructure;
 using Grpc.Core;
 using Microsoft.Extensions.Logging;

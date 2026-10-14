@@ -5,7 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using DAS.DigitalEngagement.Application.Services;
 using DAS.DigitalEngagement.Application.Services.Interfaces;
-using DAS.DigitalEngagement.Models.Campaigns;
+using DAS.DigitalEngagement.Models.PerformanceImport;
 using DAS.DigitalEngagement.Models.Infrastructure;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;

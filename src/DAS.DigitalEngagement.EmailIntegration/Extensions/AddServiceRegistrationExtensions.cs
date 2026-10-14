@@ -3,9 +3,11 @@ using Azure.Identity;
 using Azure.Storage.Blobs;
 using DAS.DigitalEngagement.Application.Handlers.Import.Interfaces;
 using DAS.DigitalEngagement.Application.Import.Handlers;
-using DAS.DigitalEngagement.Application.Repositories;
-using DAS.DigitalEngagement.Application.Repositories.Interfaces;
+using DAS.DigitalEngagement.CampaignInterest.Data.Repositories.Interfaces;
 using DAS.DigitalEngagement.Application.Services;
+using DAS.DigitalEngagement.Application.PerformanceImport.Api;
+using DAS.DigitalEngagement.Application.PerformanceImport.Persistence;
+using DAS.DigitalEngagement.Application.PerformanceImport.Services;
 using DAS.DigitalEngagement.Application.Services.Interfaces;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -15,6 +17,8 @@ using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.Options;
 using DAS.DigitalEngagement.Application.Handlers.CampaignToStaging;
 using DAS.DigitalEngagement.CampaignInterest.Data.Repositories;
+using DAS.DigitalEngagement.CampaignInterest.Data.Service;
+using DAS.DigitalEngagement.CampaignInterest.Data.Helpers;
 
 
 namespace DAS.DigitalEngagement.EmailIntegration.Extensions
@@ -32,16 +36,23 @@ namespace DAS.DigitalEngagement.EmailIntegration.Extensions
             services.AddTransient<IPayLoadMapper, PayLoadMapper>();
             services.AddTransient<IEmailDomainChecker, EmailDomainChecker>();
 
-            // services.AddTransient<IImportCampaignPerformanceHandler, ImportCampaignPerformanceHandler>();
             services.AddTransient<IImportCampaignStagingHandler, ImportCampaignStagingHandler>();
-            services.AddTransient<ICampaignStagingService, CampaignStagingService>();
+            services.AddTransient<ISendEligibilityService, SendEligibilityService>();
             services.AddTransient<ICampaignImportMetadataRepository, CampaignImportMetadataRepository>();
-            services.AddTransient<IJsonToDataTableConverter, JsonToDataTableConverter>();
-            services.AddTransient<IODataPagedImporter,ODataPagedImporter>();
+            services.AddTransient<IPerformanceDataClient, PerformanceDataClient>();
+            services.AddTransient<IPerformanceDataWriter, PerformanceDataWriter>();
+            services.AddTransient<IPerformanceImportService, PerformanceImportService>();
             services.AddTransient<ISqlBulkInserter,SqlBulkInserter>();
+            services.AddTransient<ISqlConnectionFactory>(sp =>
+            {
+                var connectionString = configuration.GetSection("ConnectionString")["CampaignsDatabase"]
+                    ?? throw new ConfigurationErrorsException("CampaignsDatabase connection string is not configured");
+
+                var tokenCredential = sp.GetService<TokenCredential>();
+
+                return new SqlConnectionFactory(connectionString, tokenCredential);
+            });
            
-            //services.AddTransient<IUnitOfWork, UnitOfWork>();
-            // services.AddTransient<ICampaignService, CampaignService>();
 
             services.AddTransient<IDataMartRepository, DataMartRepository>();
            

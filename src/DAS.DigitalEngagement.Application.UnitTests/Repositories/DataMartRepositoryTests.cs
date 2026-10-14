@@ -4,7 +4,7 @@ using System.Dynamic;
 using System.Threading;
 using System.Threading.Tasks;
 using Azure.Core;
-using DAS.DigitalEngagement.Application.Repositories;
+using DAS.DigitalEngagement.CampaignInterest.Data.Repositories;
 using DAS.DigitalEngagement.Models.Infrastructure;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Logging;
