@@ -39,7 +39,7 @@ public class PerformanceDataClientTests
     public async Task GetSendsAsync_ReturnsRecords_AndUsesDefaultEndpoint_WhenSubAccountIdsAreNull()
     {
         var client = CreateClient();
-        SetupPagedResponse("Sends?$select=ID,SendCompletedDate&$top=2&$skip=0", new
+        SetupPagedResponse("Sends?$select=ID,SendCompletedDate&$orderby=ID&$top=2&$skip=0", new
         {
             value = new[]
             {
@@ -53,14 +53,14 @@ public class PerformanceDataClientTests
         Assert.That(result, Has.Count.EqualTo(2));
         Assert.That(result[0].Id, Is.EqualTo(10));
         Assert.That(result[1].Id, Is.EqualTo(11));
-        VerifyRequestedEndpoint("Sends?$select=ID,SendCompletedDate&$top=2&$skip=0", Times.Once());
+        VerifyRequestedEndpoint("Sends?$select=ID,SendCompletedDate&$orderby=ID&$top=2&$skip=0", Times.Once());
     }
 
     [Test]
     public async Task GetSendsAsync_DeduplicatesSubAccountIds_AndEncodesFilter()
     {
         var client = CreateClient();
-        var endpoint = "Sends?$select=ID,SendCompletedDate&$filter=SubAccountID%20in%20(1,2)&$top=2&$skip=0";
+        var endpoint = "Sends?$select=ID,SendCompletedDate&$orderby=ID&$filter=SubAccountID%20in%20(1,2)&$top=2&$skip=0";
         SetupPagedResponse(endpoint, new { value = Array.Empty<object>() });
 
         var result = await EnumerateAsync(client.GetSendsAsync([1, 2, 2]));

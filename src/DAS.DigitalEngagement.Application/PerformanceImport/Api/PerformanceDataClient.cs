@@ -18,7 +18,7 @@ public sealed class PerformanceDataClient(
 
     public IAsyncEnumerable<SendEligibilityRecord> GetSendsAsync(IReadOnlyCollection<int>? subAccountIds = null, CancellationToken cancellationToken = default)
     {
-        var endpoint = "Sends?$select=ID,SendCompletedDate";
+        var endpoint = "Sends?$select=ID,SendCompletedDate&$orderby=ID";
         if (subAccountIds is { Count: > 0 })
         {
             endpoint += $"&$filter={Uri.EscapeDataString($"SubAccountID in ({string.Join(",", subAccountIds.Distinct())})")}";
