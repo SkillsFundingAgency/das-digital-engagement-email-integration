@@ -5,6 +5,7 @@ using DAS.DigitalEngagement.Application.Import.Handlers;
 using DAS.DigitalEngagement.CampaignInterest.Data.Repositories.Interfaces;
 using DAS.DigitalEngagement.Application.Services.Interfaces;
 using DAS.DigitalEngagement.Models.Import;
+using DAS.DigitalEngagement.Models.Infrastructure;
 using Microsoft.Extensions.Logging;
 using Moq;
 using NUnit.Framework;
@@ -31,9 +32,9 @@ namespace DAS.DigitalEngagement.Application.UnitTests.Handlers.Import
         [Test]
         public async Task Handle_ReturnsFailed_WhenObjectNameIsNotLead()
         {
-            var config = new DataMartSettings { ObjectName = "NotLead" };
+            var config = new DataMartSettings { ObjectName = "NotLead", ViewName = "View", FieldMapping = "Mapping", TemplatedUploadId = [1] };
 
-            var result = await _handler.Handle(config);
+            var result = await _handler.Handle(new List<DataMartSettings> { config });
 
             Assert.AreEqual("Failed", result.Status);
             Assert.That(result.Messages, Does.Contain("Expected Object name is configured in the Configuration"));
@@ -42,10 +43,10 @@ namespace DAS.DigitalEngagement.Application.UnitTests.Handlers.Import
         [Test]
         public async Task Handle_ReturnsFailed_WhenContactImportTemplateDoesNotExist()
         {
-            var config = new DataMartSettings { ObjectName = "Lead" };
+            var config = new DataMartSettings { ObjectName = "Lead", ViewName = "View", FieldMapping = "Mapping", TemplatedUploadId = [1] };
             _importServiceMock.Setup(x => x.IsContactImportTemplatesExist()).ReturnsAsync(false);
 
-            var result = await _handler.Handle(config);
+            var result = await _handler.Handle(new List<DataMartSettings> { config });
 
             Assert.AreEqual("Failed", result.Status);
             Assert.That(result.Messages, Does.Contain("Contact import template is not available in E-shot."));
@@ -54,11 +55,11 @@ namespace DAS.DigitalEngagement.Application.UnitTests.Handlers.Import
         [Test]
         public async Task Handle_ReturnsCompleted_WhenNoRecordsToImport()
         {
-            var config = new DataMartSettings { ObjectName = "Lead" };
+            var config = new DataMartSettings { ObjectName = "Lead", ViewName = "View", FieldMapping = "Mapping", TemplatedUploadId = [1] };
             _importServiceMock.Setup(x => x.IsContactImportTemplatesExist()).ReturnsAsync(true);
             _dataMartRepositoryMock.Setup(x => x.RetrieveEmployeeRegistrationData()).ReturnsAsync(new List<object>());
 
-            var result = await _handler.Handle(config);
+            var result = await _handler.Handle(new List<DataMartSettings> { config });
 
             Assert.AreEqual("Completed", result.Status);
             Assert.That(result.Messages, Does.Contain("No records to import."));
@@ -68,13 +69,13 @@ namespace DAS.DigitalEngagement.Application.UnitTests.Handlers.Import
         [Test]
         public async Task Handle_ReturnsCompleted_WhenRecordsAreImported()
         {
-            var config = new DataMartSettings { ObjectName = "Lead" };
+            var config = new DataMartSettings { ObjectName = "Lead", ViewName = "View", FieldMapping = "Mapping", TemplatedUploadId = [1] };
             _importServiceMock.Setup(x => x.IsContactImportTemplatesExist()).ReturnsAsync(true);
             var data = new List<object> { new object(), new object() };
             _dataMartRepositoryMock.Setup(x => x.RetrieveEmployeeRegistrationData()).ReturnsAsync(data);
-            _importServiceMock.Setup(x => x.ImportEmployeeRegistration(data)).ReturnsAsync("Success");
+            _importServiceMock.Setup(x => x.ImportEmployeeRegistration(data)).ReturnsAsync(new ImportSummaryResult { Status = BatchStatus.Completed });
 
-            var result = await _handler.Handle(config);
+            var result = await _handler.Handle(new List<DataMartSettings> { config });
 
             Assert.AreEqual("Completed", result.Status);
             Assert.That(result.Messages, Does.Contain("Import completed."));

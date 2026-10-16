@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using DAS.DigitalEngagement.Application.PerformanceImport.Api;
 using DAS.DigitalEngagement.Application.PerformanceImport.Services;
 using DAS.DigitalEngagement.CampaignInterest.Data.Repositories.Interfaces;
+using DAS.DigitalEngagement.CampaignInterest.Data.Models;
 using DAS.DigitalEngagement.Models.Infrastructure;
 using DAS.DigitalEngagement.Models.PerformanceImport;
 using Microsoft.Extensions.Logging;
@@ -63,6 +64,65 @@ public class SendEligibilityServiceTests
     }
 
     [Test]
+    public async Task GetEligibleSendRecordsAsync_FiltersOutRecentAndCompletedSends()
+    {
+        var service = CreateSut(null);
+        var sends = new List<SendEligibilityRecord>
+        {
+            new() { Id = 1, SendCompletedDate = DateTimeOffset.UtcNow.AddDays(-10) },
+            new() { Id = 2, SendCompletedDate = DateTimeOffset.UtcNow.AddDays(-10) },
+            new() { Id = 3, SendCompletedDate = DateTimeOffset.UtcNow.AddDays(-1) }
+        };
+
+        SetupClientToReturnSends(sends);
+        _campaignImportMetadataRepositoryMock
+            .Setup(x => x.GetAllAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new[]
+            {
+                new CampaignImportMetadata { SendId = 2, IsImportComplete = true },
+                new CampaignImportMetadata { SendId = 99, IsImportComplete = false }
+            });
+
+        var result = await service.GetEligibleSendRecordsAsync();
+
+        Assert.That(result.Select(x => x.Id), Is.EqualTo(new[] { 1L }));
+    }
+
+    [Test]
+    public async Task GetEligibleSendRecordsAsync_WhenNoSendsReturnedSkipsMetadataLookup()
+    {
+        var service = CreateSut(null);
+        _performanceDataClientMock
+            .Setup(x => x.GetSendsAsync(null, It.IsAny<CancellationToken>()))
+            .Returns(EmptySendsAsync());
+
+        var result = await service.GetEligibleSendRecordsAsync();
+
+        Assert.That(result, Is.Empty);
+        _campaignImportMetadataRepositoryMock.Verify(x => x.GetAllAsync(It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Test]
+    public async Task GetAllCampaignImportMetadataAsync_ReturnsRepositoryData()
+    {
+        var service = CreateSut(null);
+        var metadata = new[]
+        {
+            new CampaignImportMetadata { SendId = 1, IsImportComplete = true },
+            new CampaignImportMetadata { SendId = 2, IsImportComplete = false }
+        };
+
+        _campaignImportMetadataRepositoryMock
+            .Setup(x => x.GetAllAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(metadata);
+
+        var result = await service.GetAllCampaignImportMetadataAsync();
+
+        Assert.That(result, Is.EquivalentTo(metadata));
+        _campaignImportMetadataRepositoryMock.Verify(x => x.GetAllAsync(It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Test]
     public async Task GetEligibleSendRecordsAsync_WhenSubAccountIdsEmptyPassesNoFilterToClient()
     {
         var service = CreateSut(Array.Empty<int>());
@@ -97,18 +157,35 @@ public class SendEligibilityServiceTests
 
     private void SetupClientToReturnOneSend()
     {
-        _performanceDataClientMock
-            .Setup(x => x.GetSendsAsync(It.IsAny<IReadOnlyCollection<int>>(), It.IsAny<CancellationToken>()))
-            .Returns(GetSendsAsync());
+        SetupClientToReturnSends(new[]
+        {
+            new SendEligibilityRecord
+            {
+                Id = 1,
+                SendCompletedDate = DateTimeOffset.UtcNow.AddDays(-10)
+            }
+        });
     }
 
-    private static async IAsyncEnumerable<SendEligibilityRecord> GetSendsAsync()
+    private void SetupClientToReturnSends(IReadOnlyCollection<SendEligibilityRecord> sends)
+    {
+        _performanceDataClientMock
+            .Setup(x => x.GetSendsAsync(It.IsAny<IReadOnlyCollection<int>>(), It.IsAny<CancellationToken>()))
+            .Returns(ToAsyncEnumerable(sends));
+    }
+
+    private static async IAsyncEnumerable<SendEligibilityRecord> ToAsyncEnumerable(IReadOnlyCollection<SendEligibilityRecord> sends)
     {
         await Task.Yield();
-        yield return new SendEligibilityRecord
+        foreach (var send in sends)
         {
-            Id = 1,
-            SendCompletedDate = DateTimeOffset.UtcNow.AddDays(-10)
-        };
+            yield return send;
+        }
+    }
+
+    private static async IAsyncEnumerable<SendEligibilityRecord> EmptySendsAsync()
+    {
+        await Task.Yield();
+        yield break;
     }
 }

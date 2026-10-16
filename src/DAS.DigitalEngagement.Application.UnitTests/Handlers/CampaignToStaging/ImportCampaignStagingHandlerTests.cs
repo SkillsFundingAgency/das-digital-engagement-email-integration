@@ -52,4 +52,29 @@ public class ImportCampaignStagingHandlerTests
                 It.IsAny<CancellationToken>()),
             Times.Once);
     }
+
+    [Test]
+    public async Task Handle_WhenNoEligibleSends_DoesNotImport()
+    {
+        var eligibleSends = new List<SendEligibilityRecord>();
+
+        _sendEligibilityServiceMock
+            .Setup(x => x.GetEligibleSendRecordsAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(eligibleSends);
+
+        var sut = new ImportCampaignStagingHandler(
+            _sendEligibilityServiceMock.Object,
+            _performanceImportServiceMock.Object,
+            _loggerMock.Object);
+
+        await sut.Handle();
+
+        _sendEligibilityServiceMock.Verify(x => x.GetEligibleSendRecordsAsync(It.IsAny<CancellationToken>()), Times.Once);
+        _performanceImportServiceMock.Verify(
+            x => x.ImportAsync(
+                It.IsAny<IReadOnlyCollection<SendEligibilityRecord>>(),
+                It.IsAny<DateTimeOffset>(),
+                It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
 }
