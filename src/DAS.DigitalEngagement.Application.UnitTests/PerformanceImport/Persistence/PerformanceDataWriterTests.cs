@@ -38,6 +38,54 @@ public class PerformanceDataWriterTests
     }
 
     [Test]
+    public async Task WriteSendsAsync_WritesSendsTableUsingIgnoreDuplicates()
+    {
+        var sut = CreateSut();
+        var records = new List<Send>
+        {
+            new()
+            {
+                Id = 1,
+                Name = "Send Name",
+                CampaignId = 10
+            }
+        };
+
+        await sut.WriteSendsAsync(records);
+
+        _bulkInserterMock.Verify(x => x.BulkInsertIgnoringDuplicatesAsync(
+            "import.Sends",
+            It.Is<DataTable>(t => t.Rows.Count == 1 && Convert.ToInt64(t.Rows[0]["ID"]) == 1L && Convert.ToInt64(t.Rows[0]["CampaignID"]) == 10L),
+            records.Count,
+            300,
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Test]
+    public async Task WriteCampaignsAsync_WritesCampaignsTableUsingIgnoreDuplicates()
+    {
+        var sut = CreateSut();
+        var records = new List<Campaign>
+        {
+            new()
+            {
+                Id = 20,
+                Name = "Campaign Name",
+                Status = "Active"
+            }
+        };
+
+        await sut.WriteCampaignsAsync(records);
+
+        _bulkInserterMock.Verify(x => x.BulkInsertIgnoringDuplicatesAsync(
+            "import.Campaigns",
+            It.Is<DataTable>(t => t.Rows.Count == 1 && Convert.ToInt64(t.Rows[0]["ID"]) == 20L && t.Rows[0]["Name"].Equals("Campaign Name")),
+            records.Count,
+            300,
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Test]
     public async Task WriteContactsAsync_WritesContactsTableUsingIgnoreDuplicates()
     {
         var sut = CreateSut();

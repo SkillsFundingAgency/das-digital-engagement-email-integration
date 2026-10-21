@@ -59,6 +59,11 @@ public sealed class PerformanceDataClient(
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(sendIds);
+        if (sendIds.Count == 0)
+        {
+            return EmptyPagesAsync<SendContactApiRecord>();
+        }
+
         return ReadPageCollectionsAsync<SendContactApiRecord>(BuildInEndpoint("SendContacts", "SendID", sendIds), cancellationToken);
     }
 
@@ -72,37 +77,67 @@ public sealed class PerformanceDataClient(
     public IAsyncEnumerable<LinkApiRecord> GetLinksAsync(IReadOnlyCollection<long> sendIds, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(sendIds);
+        if (sendIds.Count == 0)
+        {
+            return EmptyAsync<LinkApiRecord>();
+        }
+
         return ReadPagesAsync<LinkApiRecord>(BuildInEndpoint("Links", "SendID", sendIds), cancellationToken);
     }
 
-    public IAsyncEnumerable<DisplayedContactApiRecord> GetDisplayedContactsAsync(IReadOnlyCollection<long> sendContactIds, CancellationToken cancellationToken = default)
+    public IAsyncEnumerable<DisplayedContactApiRecord> GetDisplayedContactsAsync(IReadOnlyCollection<long> sendIds, CancellationToken cancellationToken = default)
     {
-        ArgumentNullException.ThrowIfNull(sendContactIds);
-        return ReadPagesAsync<DisplayedContactApiRecord>(BuildInEndpoint("DisplayedContacts", "SendContactID", sendContactIds), cancellationToken);
+        ArgumentNullException.ThrowIfNull(sendIds);
+        if (sendIds.Count == 0)
+        {
+            return EmptyAsync<DisplayedContactApiRecord>();
+        }
+
+        return ReadPagesAsync<DisplayedContactApiRecord>(BuildInEndpoint("DisplayedContacts", "SendID", sendIds), cancellationToken);
     }
 
-    public IAsyncEnumerable<ClickedContactApiRecord> GetClickedContactsAsync(IReadOnlyCollection<long> sendContactIds, CancellationToken cancellationToken = default)
+    public IAsyncEnumerable<ClickedContactApiRecord> GetClickedContactsAsync(IReadOnlyCollection<long> sendIds, CancellationToken cancellationToken = default)
     {
-        ArgumentNullException.ThrowIfNull(sendContactIds);
-        return ReadPagesAsync<ClickedContactApiRecord>(BuildInEndpoint("ClickedContacts", "SendContactID", sendContactIds), cancellationToken);
+        ArgumentNullException.ThrowIfNull(sendIds);
+        if (sendIds.Count == 0)
+        {
+            return EmptyAsync<ClickedContactApiRecord>();
+        }
+
+        return ReadPagesAsync<ClickedContactApiRecord>(BuildInEndpoint("ClickedContacts", "SendID", sendIds), cancellationToken);
     }
 
-    public IAsyncEnumerable<BouncedContactApiRecord> GetBouncedContactsAsync(IReadOnlyCollection<long> sendContactIds, CancellationToken cancellationToken = default)
+    public IAsyncEnumerable<BouncedContactApiRecord> GetBouncedContactsAsync(IReadOnlyCollection<long> sendIds, CancellationToken cancellationToken = default)
     {
-        ArgumentNullException.ThrowIfNull(sendContactIds);
-        return ReadPagesAsync<BouncedContactApiRecord>(BuildInEndpoint("BouncedContacts", "SendContactID", sendContactIds), cancellationToken);
+        ArgumentNullException.ThrowIfNull(sendIds);
+        if (sendIds.Count == 0)
+        {
+            return EmptyAsync<BouncedContactApiRecord>();
+        }
+
+        return ReadPagesAsync<BouncedContactApiRecord>(BuildInEndpoint("BouncedContacts", "SendID", sendIds), cancellationToken);
     }
 
-    public IAsyncEnumerable<UnsubscribedContactApiRecord> GetUnsubscribedContactsAsync(IReadOnlyCollection<long> sendContactIds, CancellationToken cancellationToken = default)
+    public IAsyncEnumerable<UnsubscribedContactApiRecord> GetUnsubscribedContactsAsync(IReadOnlyCollection<long> sendIds, CancellationToken cancellationToken = default)
     {
-        ArgumentNullException.ThrowIfNull(sendContactIds);
-        return ReadPagesAsync<UnsubscribedContactApiRecord>(BuildInEndpoint("UnsubscribedContacts", "SendContactID", sendContactIds), cancellationToken);
+        ArgumentNullException.ThrowIfNull(sendIds);
+        if (sendIds.Count == 0)
+        {
+            return EmptyAsync<UnsubscribedContactApiRecord>();
+        }
+
+        return ReadPagesAsync<UnsubscribedContactApiRecord>(BuildInEndpoint("UnsubscribedContacts", "SendID", sendIds), cancellationToken);
     }
 
-    public IAsyncEnumerable<UserAgentApiRecord> GetUserAgentsAsync(IReadOnlyCollection<long> sendContactIds, CancellationToken cancellationToken = default)
+    public IAsyncEnumerable<UserAgentApiRecord> GetUserAgentsAsync(IReadOnlyCollection<long> sendIds, CancellationToken cancellationToken = default)
     {
-        ArgumentNullException.ThrowIfNull(sendContactIds);
-        return ReadPagesAsync<UserAgentApiRecord>(BuildInEndpoint("UserAgents", "SendContactID", sendContactIds), cancellationToken);
+        ArgumentNullException.ThrowIfNull(sendIds);
+        if (sendIds.Count == 0)
+        {
+            return EmptyAsync<UserAgentApiRecord>();
+        }
+
+        return ReadPagesAsync<UserAgentApiRecord>(BuildInEndpoint("UserAgents", "SendID", sendIds), cancellationToken);
     }
 
     private async IAsyncEnumerable<T> ReadPagesAsync<T>(
@@ -188,6 +223,12 @@ public sealed class PerformanceDataClient(
     }
 
     private static async IAsyncEnumerable<T> EmptyAsync<T>()
+    {
+        await Task.CompletedTask;
+        yield break;
+    }
+
+    private static async IAsyncEnumerable<IReadOnlyCollection<T>> EmptyPagesAsync<T>()
     {
         await Task.CompletedTask;
         yield break;

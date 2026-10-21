@@ -36,7 +36,7 @@ namespace DAS.DigitalEngagement.Application.UnitTests.Handlers.Import
 
             var result = await _handler.Handle(new List<DataMartSettings> { config });
 
-            Assert.AreEqual("Failed", result.Status);
+            Assert.AreEqual(BatchStatus.Failed, result.Status);
             Assert.That(result.Messages, Does.Contain("Expected Object name is configured in the Configuration"));
         }
 
@@ -48,7 +48,7 @@ namespace DAS.DigitalEngagement.Application.UnitTests.Handlers.Import
 
             var result = await _handler.Handle(new List<DataMartSettings> { config });
 
-            Assert.AreEqual("Failed", result.Status);
+            Assert.AreEqual(BatchStatus.Failed, result.Status);
             Assert.That(result.Messages, Does.Contain("Contact import template is not available in E-shot."));
         }
 
@@ -61,7 +61,7 @@ namespace DAS.DigitalEngagement.Application.UnitTests.Handlers.Import
 
             var result = await _handler.Handle(new List<DataMartSettings> { config });
 
-            Assert.AreEqual("Completed", result.Status);
+            Assert.AreEqual(BatchStatus.Completed, result.Status);
             Assert.That(result.Messages, Does.Contain("No records to import."));
             Assert.AreEqual(0, result.TotalRecordsProcessed);
         }
@@ -73,11 +73,19 @@ namespace DAS.DigitalEngagement.Application.UnitTests.Handlers.Import
             _importServiceMock.Setup(x => x.IsContactImportTemplatesExist()).ReturnsAsync(true);
             var data = new List<object> { new object(), new object() };
             _dataMartRepositoryMock.Setup(x => x.RetrieveEmployeeRegistrationData()).ReturnsAsync(data);
-            _importServiceMock.Setup(x => x.ImportEmployeeRegistration(data)).ReturnsAsync(new ImportSummaryResult { Status = BatchStatus.Completed });
+            _importServiceMock.Setup(x => x.ImportEmployeeRegistration(data)).ReturnsAsync(new ImportSummaryResult
+            {
+                Status = BatchStatus.Completed,
+                Messages = new List<string> { "Import completed." },
+                BatchResults = new List<BatchResultDetail>
+                {
+                    new() { Status = BatchStatus.Completed, RecordsProcessed = 2 }
+                }
+            });
 
             var result = await _handler.Handle(new List<DataMartSettings> { config });
 
-            Assert.AreEqual("Completed", result.Status);
+            Assert.AreEqual(BatchStatus.Completed, result.Status);
             Assert.That(result.Messages, Does.Contain("Import completed."));
             Assert.AreEqual(2, result.TotalRecordsProcessed);
         }

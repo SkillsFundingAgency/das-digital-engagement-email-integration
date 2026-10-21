@@ -47,6 +47,7 @@ public class PerformanceDataClientTests
                 new { ID = 11L, SendCompletedDate = "2025-01-02T10:00:00Z" }
             }
         });
+        SetupPagedResponse("Sends?$select=ID,SendCompletedDate&$orderby=ID&$top=2&$skip=2", new Dictionary<string, object?> { { "value", Array.Empty<object>() } });
 
         var result = await EnumerateAsync(client.GetSendsAsync());
 
@@ -60,13 +61,24 @@ public class PerformanceDataClientTests
     public async Task GetSendsAsync_DeduplicatesSubAccountIds_AndEncodesFilter()
     {
         var client = CreateClient();
-        var endpoint = "Sends?$select=ID,SendCompletedDate&$orderby=ID&$filter=SubAccountID%20in%20(1,2)&$top=2&$skip=0";
+        var endpoint = "Sends?$select=ID,SendCompletedDate&$orderby=ID&$filter=SubAccountID%20in%20%281%2C2%29&$top=2&$skip=0";
         SetupPagedResponse(endpoint, new { value = Array.Empty<object>() });
 
         var result = await EnumerateAsync(client.GetSendsAsync([1, 2, 2]));
 
         Assert.That(result, Is.Empty);
         VerifyRequestedEndpoint(endpoint, Times.Once());
+    }
+
+    [Test]
+    public async Task GetSendContactPagesAsync_ReturnsEmpty_WhenNoIdsProvided()
+    {
+        var client = CreateClient();
+
+        var pages = await EnumeratePagesAsync(client.GetSendContactPagesAsync([]));
+
+        Assert.That(pages, Is.Empty);
+        _externalApiServiceMock.Verify(x => x.GetDataAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Test]
@@ -106,6 +118,17 @@ public class PerformanceDataClientTests
         Assert.That(result, Has.Count.EqualTo(1));
         Assert.That(result[0].Id, Is.EqualTo(5));
         VerifyRequestedEndpoint(endpoint, Times.Once());
+    }
+
+    [Test]
+    public async Task GetLinksAsync_ReturnsEmpty_WhenNoIdsProvided()
+    {
+        var client = CreateClient();
+
+        var result = await EnumerateAsync(client.GetLinksAsync([]));
+
+        Assert.That(result, Is.Empty);
+        _externalApiServiceMock.Verify(x => x.GetDataAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Test]
@@ -150,25 +173,46 @@ public class PerformanceDataClientTests
     }
 
     [Test]
+    public async Task GetDisplayedContactsAsync_ReturnsEmpty_WhenNoIdsProvided()
+    {
+        var client = CreateClient();
+
+        var result = await EnumerateAsync(client.GetDisplayedContactsAsync([]));
+
+        Assert.That(result, Is.Empty);
+        _externalApiServiceMock.Verify(x => x.GetDataAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Test]
     public async Task GetSendContactPagesAsync_ReturnsPages()
     {
         var client = CreateClient();
-        var endpoint = "SendContacts?$filter=SendID%20in%20(1,2)&$orderby=ID&$top=2&$skip=0";
+        var endpoint = "SendContacts?$filter=SendID%20in%20%281%2C2%29&$orderby=ID&$top=2&$skip=0";
         SetupPagedResponse(endpoint, new
         {
             value = new[]
             {
-                new { ID = 1L, SendID = 1L, ContactID = 100L, PublicIP = "127.0.0.1" },
-                new { ID = 2L, SendID = 2L, ContactID = 200L, PublicIP = "127.0.0.2" }
+                new { ID = 1L, SendID = 1L, ContactID = 100L, PublicIP = "127.0.0.1" }
             }
         });
 
         var pages = await EnumeratePagesAsync(client.GetSendContactPagesAsync([1, 2]));
 
         Assert.That(pages, Has.Count.EqualTo(1));
-        Assert.That(pages[0], Has.Count.EqualTo(2));
+        Assert.That(pages[0], Has.Count.EqualTo(1));
         Assert.That(pages[0].First().SendId, Is.EqualTo(1));
         VerifyRequestedEndpoint(endpoint, Times.Once());
+    }
+
+    [Test]
+    public async Task GetClickedContactsAsync_ReturnsEmpty_WhenNoIdsProvided()
+    {
+        var client = CreateClient();
+
+        var result = await EnumerateAsync(client.GetClickedContactsAsync([]));
+
+        Assert.That(result, Is.Empty);
+        _externalApiServiceMock.Verify(x => x.GetDataAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Test]
@@ -186,7 +230,7 @@ public class PerformanceDataClientTests
     public async Task GetLinksAsync_UsesExpectedEndpoint()
     {
         var client = CreateClient();
-        var endpoint = "Links?$filter=SendID%20in%20(12,13)&$orderby=ID&$top=2&$skip=0";
+        var endpoint = "Links?$filter=SendID%20in%20%2812%2C13%29&$orderby=ID&$top=2&$skip=0";
         SetupPagedResponse(endpoint, new
         {
             value = new[]
@@ -204,10 +248,21 @@ public class PerformanceDataClientTests
     }
 
     [Test]
+    public async Task GetBouncedContactsAsync_ReturnsEmpty_WhenNoIdsProvided()
+    {
+        var client = CreateClient();
+
+        var result = await EnumerateAsync(client.GetBouncedContactsAsync([]));
+
+        Assert.That(result, Is.Empty);
+        _externalApiServiceMock.Verify(x => x.GetDataAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Test]
     public async Task GetDisplayedContactsAsync_UsesExpectedEndpoint()
     {
         var client = CreateClient();
-        var endpoint = "DisplayedContacts?$filter=SendContactID%20in%20(21)&$orderby=ID&$top=2&$skip=0";
+        var endpoint = "DisplayedContacts?$filter=SendID%20in%20%2821%29&$orderby=ID&$top=2&$skip=0";
         SetupPagedResponse(endpoint, new { value = new[] { new { ID = 1L, SendContactID = 21L } } });
 
         var result = await EnumerateAsync(client.GetDisplayedContactsAsync([21]));
@@ -218,10 +273,21 @@ public class PerformanceDataClientTests
     }
 
     [Test]
+    public async Task GetUnsubscribedContactsAsync_ReturnsEmpty_WhenNoIdsProvided()
+    {
+        var client = CreateClient();
+
+        var result = await EnumerateAsync(client.GetUnsubscribedContactsAsync([]));
+
+        Assert.That(result, Is.Empty);
+        _externalApiServiceMock.Verify(x => x.GetDataAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Test]
     public async Task GetClickedContactsAsync_UsesExpectedEndpoint()
     {
         var client = CreateClient();
-        var endpoint = "ClickedContacts?$filter=SendContactID%20in%20(22)&$orderby=ID&$top=2&$skip=0";
+        var endpoint = "ClickedContacts?$filter=SendID%20in%20%2822%29&$orderby=ID&$top=2&$skip=0";
         SetupPagedResponse(endpoint, new { value = new[] { new { ID = 1L, SendContactID = 22L } } });
 
         var result = await EnumerateAsync(client.GetClickedContactsAsync([22]));
@@ -232,10 +298,21 @@ public class PerformanceDataClientTests
     }
 
     [Test]
+    public async Task GetUserAgentsAsync_ReturnsEmpty_WhenNoIdsProvided()
+    {
+        var client = CreateClient();
+
+        var result = await EnumerateAsync(client.GetUserAgentsAsync([]));
+
+        Assert.That(result, Is.Empty);
+        _externalApiServiceMock.Verify(x => x.GetDataAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Test]
     public async Task GetBouncedContactsAsync_UsesExpectedEndpoint()
     {
         var client = CreateClient();
-        var endpoint = "BouncedContacts?$filter=SendContactID%20in%20(23)&$orderby=ID&$top=2&$skip=0";
+        var endpoint = "BouncedContacts?$filter=SendID%20in%20%2823%29&$orderby=ID&$top=2&$skip=0";
         SetupPagedResponse(endpoint, new { value = new[] { new { ID = 1L, SendContactID = 23L } } });
 
         var result = await EnumerateAsync(client.GetBouncedContactsAsync([23]));
@@ -249,7 +326,7 @@ public class PerformanceDataClientTests
     public async Task GetUnsubscribedContactsAsync_UsesExpectedEndpoint()
     {
         var client = CreateClient();
-        var endpoint = "UnsubscribedContacts?$filter=SendContactID%20in%20(24)&$orderby=ID&$top=2&$skip=0";
+        var endpoint = "UnsubscribedContacts?$filter=SendID%20in%20%2824%29&$orderby=ID&$top=2&$skip=0";
         SetupPagedResponse(endpoint, new { value = new[] { new { ID = 1L, SendContactID = 24L } } });
 
         var result = await EnumerateAsync(client.GetUnsubscribedContactsAsync([24]));
@@ -263,7 +340,7 @@ public class PerformanceDataClientTests
     public async Task GetUserAgentsAsync_UsesExpectedEndpoint()
     {
         var client = CreateClient();
-        var endpoint = "UserAgents?$filter=SendContactID%20in%20(25)&$orderby=ID&$top=2&$skip=0";
+        var endpoint = "UserAgents?$filter=SendID%20in%20%2825%29&$orderby=ID&$top=2&$skip=0";
         SetupPagedResponse(endpoint, new { value = new[] { new { ID = 1L, SendContactID = 25L } } });
 
         var result = await EnumerateAsync(client.GetUserAgentsAsync([25]));

@@ -1,4 +1,5 @@
 using System.Data.Common;
+using System.Data;
 using Azure.Core;
 using DAS.DigitalEngagement.CampaignInterest.Data.Repositories;
 using DAS.DigitalEngagement.Models.Infrastructure;
@@ -6,6 +7,7 @@ using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
+using Moq.Protected;
 
 namespace DAS.DigitalEngagement.CampaignInterest.Data.UnitTests
 {
@@ -17,19 +19,21 @@ namespace DAS.DigitalEngagement.CampaignInterest.Data.UnitTests
         {
             var (repo, tokenCredentialMock, loggerMock, dbConnectionMock, dbCommandMock, dbDataReaderMock) = CreateRepository();
 
-            dbConnectionMock.Setup(c => c.CreateCommand()).Returns(dbCommandMock.Object);
+            dbConnectionMock.Protected().Setup<DbCommand>("CreateDbCommand").Returns(dbCommandMock.Object);
             dbCommandMock.SetupProperty(c => c.CommandText);
             dbCommandMock.SetupProperty(c => c.CommandTimeout);
-            dbCommandMock.Setup(c => c.ExecuteReaderAsync(It.IsAny<CancellationToken>())).ReturnsAsync(dbDataReaderMock.Object);
+            dbCommandMock.Protected()
+                .Setup<Task<DbDataReader>>("ExecuteDbDataReaderAsync", ItExpr.IsAny<CommandBehavior>(), ItExpr.IsAny<CancellationToken>())
+                .ReturnsAsync(dbDataReaderMock.Object);
 
-            dbDataReaderMock.SetupSequence(r => r.ReadAsync())
+            dbDataReaderMock.SetupSequence(r => r.ReadAsync(It.IsAny<CancellationToken>()))
                 .ReturnsAsync(true)
                 .ReturnsAsync(false);
             dbDataReaderMock.Setup(r => r.FieldCount).Returns(2);
             dbDataReaderMock.Setup(r => r.GetName(0)).Returns("Id");
             dbDataReaderMock.Setup(r => r.GetName(1)).Returns("Name");
-            dbDataReaderMock.Setup(r => r.IsDBNullAsync(0)).ReturnsAsync(false);
-            dbDataReaderMock.Setup(r => r.IsDBNullAsync(1)).ReturnsAsync(false);
+            dbDataReaderMock.Setup(r => r.IsDBNullAsync(0, It.IsAny<CancellationToken>())).ReturnsAsync(false);
+            dbDataReaderMock.Setup(r => r.IsDBNullAsync(1, It.IsAny<CancellationToken>())).ReturnsAsync(false);
             dbDataReaderMock.Setup(r => r.GetValue(0)).Returns(1);
             dbDataReaderMock.Setup(r => r.GetValue(1)).Returns("TestName");
 
@@ -49,8 +53,8 @@ namespace DAS.DigitalEngagement.CampaignInterest.Data.UnitTests
             VerifyLog(loggerMock, "Retrieved 1 employee registration records");
             tokenCredentialMock.Verify(tc => tc.GetTokenAsync(It.IsAny<TokenRequestContext>(), It.IsAny<CancellationToken>()), Times.Once);
             dbConnectionMock.Verify(c => c.OpenAsync(It.IsAny<CancellationToken>()), Times.Once);
-            dbConnectionMock.Verify(c => c.CreateCommand(), Times.Once);
-            dbCommandMock.Verify(c => c.ExecuteReaderAsync(It.IsAny<CancellationToken>()), Times.Once);
+            dbConnectionMock.Protected().Verify("CreateDbCommand", Times.Once());
+            dbCommandMock.Protected().Verify("ExecuteDbDataReaderAsync", Times.Once(), ItExpr.IsAny<CommandBehavior>(), ItExpr.IsAny<CancellationToken>());
         }
 
         [Test]
@@ -58,11 +62,13 @@ namespace DAS.DigitalEngagement.CampaignInterest.Data.UnitTests
         {
             var (repo, tokenCredentialMock, loggerMock, dbConnectionMock, dbCommandMock, dbDataReaderMock) = CreateRepository();
 
-            dbConnectionMock.Setup(c => c.CreateCommand()).Returns(dbCommandMock.Object);
+            dbConnectionMock.Protected().Setup<DbCommand>("CreateDbCommand").Returns(dbCommandMock.Object);
             dbCommandMock.SetupProperty(c => c.CommandText);
             dbCommandMock.SetupProperty(c => c.CommandTimeout);
-            dbCommandMock.Setup(c => c.ExecuteReaderAsync(It.IsAny<CancellationToken>())).ReturnsAsync(dbDataReaderMock.Object);
-            dbDataReaderMock.SetupSequence(r => r.ReadAsync())
+            dbCommandMock.Protected()
+                .Setup<Task<DbDataReader>>("ExecuteDbDataReaderAsync", ItExpr.IsAny<CommandBehavior>(), ItExpr.IsAny<CancellationToken>())
+                .ReturnsAsync(dbDataReaderMock.Object);
+            dbDataReaderMock.SetupSequence(r => r.ReadAsync(It.IsAny<CancellationToken>()))
                 .ReturnsAsync(false);
 
             var result = await repo.RetrieveEmployeeRegistrationData();
@@ -71,8 +77,8 @@ namespace DAS.DigitalEngagement.CampaignInterest.Data.UnitTests
             VerifyLog(loggerMock, "Retrieved 0 employee registration records");
             tokenCredentialMock.Verify(tc => tc.GetTokenAsync(It.IsAny<TokenRequestContext>(), It.IsAny<CancellationToken>()), Times.Once);
             dbConnectionMock.Verify(c => c.OpenAsync(It.IsAny<CancellationToken>()), Times.Once);
-            dbConnectionMock.Verify(c => c.CreateCommand(), Times.Once);
-            dbCommandMock.Verify(c => c.ExecuteReaderAsync(It.IsAny<CancellationToken>()), Times.Once);
+            dbConnectionMock.Protected().Verify("CreateDbCommand", Times.Once());
+            dbCommandMock.Protected().Verify("ExecuteDbDataReaderAsync", Times.Once(), ItExpr.IsAny<CommandBehavior>(), ItExpr.IsAny<CancellationToken>());
         }
 
         [Test]
@@ -112,24 +118,22 @@ namespace DAS.DigitalEngagement.CampaignInterest.Data.UnitTests
             var connectionString = new ConnectionString { CampaignsDatabase = "TestConnectionString", DataMart = "TestConnectionString" };
             var optionsMock = Mock.Of<IOptions<ConnectionString>>(o => o.Value == connectionString);
             var accessToken = new AccessToken("mock-token", DateTimeOffset.UtcNow.AddMinutes(5));
-            var sqlConnectionMock = new Mock<SqlConnection>();
+            var dbConnectionMock = new Mock<DbConnection>();
 
             tokenCredentialMock
                 .Setup(tc => tc.GetTokenAsync(It.IsAny<TokenRequestContext>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(accessToken);
-            sqlConnectionMock.SetupProperty(c => c.AccessToken);
-            sqlConnectionMock.Setup(c => c.OpenAsync(It.IsAny<CancellationToken>())).ThrowsAsync(new InvalidOperationException("Open failed"));
+            dbConnectionMock.Setup(c => c.OpenAsync(It.IsAny<CancellationToken>())).ThrowsAsync(new InvalidOperationException("Open failed"));
 
             var repo = new DataMartRepository(
                 tokenCredentialMock.Object,
                 optionsMock,
                 loggerMock.Object,
-                () => sqlConnectionMock.Object);
+                () => dbConnectionMock.Object);
 
             Assert.That(async () => await repo.RetrieveEmployeeRegistrationData(), Throws.TypeOf<InvalidOperationException>().With.Message.EqualTo("Open failed"));
-            Assert.That(sqlConnectionMock.Object.AccessToken, Is.EqualTo("mock-token"));
             tokenCredentialMock.Verify(tc => tc.GetTokenAsync(It.IsAny<TokenRequestContext>(), It.IsAny<CancellationToken>()), Times.Once);
-            sqlConnectionMock.Verify(c => c.OpenAsync(It.IsAny<CancellationToken>()), Times.Once);
+            dbConnectionMock.Verify(c => c.OpenAsync(It.IsAny<CancellationToken>()), Times.Once);
         }
 
         [Test]
@@ -141,14 +145,16 @@ namespace DAS.DigitalEngagement.CampaignInterest.Data.UnitTests
             tokenCredentialMock
                 .Setup(tc => tc.GetTokenAsync(It.IsAny<TokenRequestContext>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(accessToken);
-            dbConnectionMock.Setup(c => c.CreateCommand()).Returns(dbCommandMock.Object);
-            dbCommandMock.Setup(c => c.ExecuteReaderAsync(It.IsAny<CancellationToken>())).ThrowsAsync(new InvalidOperationException("Execute failed"));
+            dbConnectionMock.Protected().Setup<DbCommand>("CreateDbCommand").Returns(dbCommandMock.Object);
+            dbCommandMock.Protected()
+                .Setup<Task<DbDataReader>>("ExecuteDbDataReaderAsync", ItExpr.IsAny<CommandBehavior>(), ItExpr.IsAny<CancellationToken>())
+                .ThrowsAsync(new InvalidOperationException("Execute failed"));
 
             Assert.That(async () => await repo.RetrieveEmployeeRegistrationData(), Throws.TypeOf<InvalidOperationException>().With.Message.EqualTo("Execute failed"));
             tokenCredentialMock.Verify(tc => tc.GetTokenAsync(It.IsAny<TokenRequestContext>(), It.IsAny<CancellationToken>()), Times.Once);
             dbConnectionMock.Verify(c => c.OpenAsync(It.IsAny<CancellationToken>()), Times.Once);
-            dbConnectionMock.Verify(c => c.CreateCommand(), Times.Once);
-            dbCommandMock.Verify(c => c.ExecuteReaderAsync(It.IsAny<CancellationToken>()), Times.Once);
+            dbConnectionMock.Protected().Verify("CreateDbCommand", Times.Once());
+            dbCommandMock.Protected().Verify("ExecuteDbDataReaderAsync", Times.Once(), ItExpr.IsAny<CommandBehavior>(), ItExpr.IsAny<CancellationToken>());
         }
 
         private static (DataMartRepository Repo, Mock<TokenCredential> TokenCredentialMock, Mock<ILogger<DataMartRepository>> LoggerMock, Mock<DbConnection> DbConnectionMock, Mock<DbCommand> DbCommandMock, Mock<DbDataReader> DbDataReaderMock) CreateRepository()

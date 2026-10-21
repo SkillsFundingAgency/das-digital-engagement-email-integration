@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using DAS.DigitalEngagement.Application.PerformanceImport.Api;
@@ -31,6 +30,8 @@ public class PerformanceImportServiceTests
         _bulkInserterMock = new Mock<ISqlBulkInserter>();
         _loggerMock = new Mock<ILogger<PerformanceImportService>>();
 
+        _dataWriterMock.Setup(x => x.WriteSendsAsync(It.IsAny<IReadOnlyCollection<Send>>(), It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
+        _dataWriterMock.Setup(x => x.WriteCampaignsAsync(It.IsAny<IReadOnlyCollection<Campaign>>(), It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
         _dataWriterMock.Setup(x => x.WriteContactsAsync(It.IsAny<IReadOnlyCollection<ContactApiRecord>>(), It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
         _dataWriterMock.Setup(x => x.WriteSendContactsAsync(It.IsAny<IReadOnlyCollection<SendContactApiRecord>>(), It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
         _dataWriterMock.Setup(x => x.WriteLinksAsync(It.IsAny<IReadOnlyCollection<LinkApiRecord>>(), It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
