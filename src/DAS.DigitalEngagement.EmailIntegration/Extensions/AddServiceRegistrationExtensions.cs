@@ -49,16 +49,8 @@ namespace DAS.DigitalEngagement.EmailIntegration.Extensions
             services.AddTransient<IChunkingService, ChunkingService>();
             services.AddTransient<ICsvService, CsvService>();
             services.AddTransient<IReportService, ReportService>();
-            services.AddTransient<INotificationClientWrapper>(sp =>
-            {
-                var configuration = sp.GetRequiredService<IConfiguration>();
-                var apiKey = configuration["GovNotifyConfiguration:ApiKey"];
-                if (string.IsNullOrWhiteSpace(apiKey))
-                {
-                    throw new ConfigurationErrorsException("GovNotify:ApiKey is not configured or is empty.");
-                }
-                return new NotificationClientWrapper(apiKey);
-            });
+            services.AddNServiceBus(configuration);
+            services.AddTransient<INotificationService, NotificationService>();
 
             services.AddSingleton(provider => new BlobServiceClient(azureBlobStorage));
 
