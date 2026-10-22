@@ -33,16 +33,28 @@ public class ImportCampaignStagingHandlerTests
             new() { Id = 1, SendCompletedDate = DateTimeOffset.UtcNow.AddDays(-10) }
         };
 
+        var expectedSummary = new PerformanceImportReportSummary
+        {
+            Status = PerformanceImportStatus.Completed,
+            EligibleSends = 1
+        };
+
         _sendEligibilityServiceMock
             .Setup(x => x.GetEligibleSendRecordsAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(eligibleSends);
+        _performanceImportServiceMock
+            .Setup(x => x.ImportAsync(
+                eligibleSends,
+                It.IsAny<DateTimeOffset>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(expectedSummary);
 
         var sut = new ImportCampaignStagingHandler(
             _sendEligibilityServiceMock.Object,
             _performanceImportServiceMock.Object,
             _loggerMock.Object);
 
-        await sut.Handle();
+        var summary = await sut.Handle();
 
         _sendEligibilityServiceMock.Verify(x => x.GetEligibleSendRecordsAsync(It.IsAny<CancellationToken>()), Times.Once);
         _performanceImportServiceMock.Verify(
@@ -51,6 +63,7 @@ public class ImportCampaignStagingHandlerTests
                 It.IsAny<DateTimeOffset>(),
                 It.IsAny<CancellationToken>()),
             Times.Once);
+        Assert.That(summary, Is.SameAs(expectedSummary));
     }
 
     [Test]
@@ -67,7 +80,7 @@ public class ImportCampaignStagingHandlerTests
             _performanceImportServiceMock.Object,
             _loggerMock.Object);
 
-        await sut.Handle();
+        var summary = await sut.Handle();
 
         _sendEligibilityServiceMock.Verify(x => x.GetEligibleSendRecordsAsync(It.IsAny<CancellationToken>()), Times.Once);
         _performanceImportServiceMock.Verify(
@@ -76,5 +89,7 @@ public class ImportCampaignStagingHandlerTests
                 It.IsAny<DateTimeOffset>(),
                 It.IsAny<CancellationToken>()),
             Times.Never);
+        Assert.That(summary, Is.Not.Null);
+        Assert.That(summary!.EligibleSends, Is.EqualTo(0));
     }
 }
