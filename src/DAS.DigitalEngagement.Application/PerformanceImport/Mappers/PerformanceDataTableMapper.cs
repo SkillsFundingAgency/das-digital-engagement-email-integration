@@ -11,18 +11,93 @@ public static class PerformanceDataTableMapper
         var table = Table(
             ImportTableNames.Contacts,
             ("ID", typeof(int)),
+            ("SubaccountID", typeof(int)),
+            ("SalesforceContactID", typeof(string)),
+            ("SalesforceLeadID", typeof(string)),
+            ("MicrosoftDynamicsContactID", typeof(string)),
+            ("MicrosoftDynamicsLeadID", typeof(string)),
+            ("SourceID", typeof(int)),
+            ("EmailFormat", typeof(string)),
+            ("EmailFormatID", typeof(int)),
             ("Email", typeof(string)),
+            ("EmailStatusID", typeof(int)),
+            ("MobileStatusID", typeof(int)),
+            ("MobileNumber", typeof(string)),
+            ("MobileRegion", typeof(int)),
+            ("Salutation", typeof(string)),
             ("Firstname", typeof(string)),
             ("Lastname", typeof(string)));
+
+        table.Columns.Add("Telephone", typeof(string));
+        table.Columns.Add("URN", typeof(string));
+        table.Columns.Add("Company", typeof(string));
+        table.Columns.Add("CreatedDate", typeof(DateTime));
+        table.Columns.Add("CreatedFromSourceID", typeof(string));
+        table.Columns.Add("ModifiedDate", typeof(DateTime));
+        table.Columns.Add("ModifiedFromSourceID", typeof(string));
+        table.Columns.Add("EmailUnsubscribedDate", typeof(DateTime));
+        table.Columns.Add("EmailUnsubscribedFromSourceID", typeof(string));
+        table.Columns.Add("SmsUnsubscribedDate", typeof(DateTime));
+        table.Columns.Add("SmsUnsubscribedFromSourceID", typeof(string));
+        table.Columns.Add("EmailHardBounceDate", typeof(DateTime));
+        table.Columns.Add("DoubleOptInConfirmationDate", typeof(DateTime));
+        table.Columns.Add("InleadsScore", typeof(int));
+        table.Columns.Add("CustomerAccountID", typeof(int));
+        table.Columns.Add("EmailEngagementStatus", typeof(int));
+        table.Columns.Add("HardBouncedDate", typeof(DateTime));
+        table.Columns.Add("LastSoftBouncedDate", typeof(DateTime));
+        table.Columns.Add("LastSentDate", typeof(DateTime));
+        table.Columns.Add("LastDisplayedDate", typeof(DateTime));
+        table.Columns.Add("LastClickedDate", typeof(DateTime));
+        table.Columns.Add("FirstInleadsVisitDate", typeof(DateTime));
+        table.Columns.Add("LastInleadsVisitDate", typeof(DateTime));
+        table.Columns.Add("IncludeInUR", typeof(bool));
 
         foreach (var record in records)
         {
             Add(
                 table,
                 ("ID", ToInt32(record.Id)),
+                ("SubaccountID", ToInt32(record.SubaccountId)),
+                ("SalesforceContactID", record.SalesforceContactId),
+                ("SalesforceLeadID", record.SalesforceLeadId),
+                ("MicrosoftDynamicsContactID", record.MicrosoftDynamicsContactId),
+                ("MicrosoftDynamicsLeadID", record.MicrosoftDynamicsLeadId),
+                ("SourceID", ToInt32(record.SourceId)),
+                ("EmailFormat", record.EmailFormat),
+                ("EmailFormatID", ToInt32(record.EmailFormatId)),
                 ("Email", record.Email),
+                ("EmailStatusID", ToInt32(record.EmailStatusId)),
+                ("MobileStatusID", ToInt32(record.MobileStatusId)),
+                ("MobileNumber", record.MobileNumber),
+                ("MobileRegion", ToInt32(record.MobileRegion)),
+                ("Salutation", record.Salutation),
                 ("Firstname", record.FirstName),
-                ("Lastname", record.LastName));
+                ("Lastname", record.LastName),
+                ("Telephone", record.Telephone),
+                ("URN", record.Urn),
+                ("Company", record.Company),
+                ("CreatedDate", ToDateTime(record.CreatedDate)),
+                ("CreatedFromSourceID", record.CreatedFromSourceId?.ToString()),
+                ("ModifiedDate", ToDateTime(record.ModifiedDate)),
+                ("ModifiedFromSourceID", record.ModifiedFromSourceId?.ToString()),
+                ("EmailUnsubscribedDate", ToDateTime(record.EmailUnsubscribedDate)),
+                ("EmailUnsubscribedFromSourceID", record.EmailUnsubscribedFromSourceId?.ToString()),
+                ("SmsUnsubscribedDate", ToDateTime(record.SmsUnsubscribedDate)),
+                ("SmsUnsubscribedFromSourceID", record.SmsUnsubscribedFromSourceId?.ToString()),
+                ("EmailHardBounceDate", ToDateTime(record.EmailHardBounceDate)),
+                ("DoubleOptInConfirmationDate", ToDateTime(record.DoubleOptInConfirmationDate)),
+                ("InleadsScore", ToInt32(record.InleadsScore)),
+                ("CustomerAccountID", ToInt32(record.CustomerAccountId)),
+                ("EmailEngagementStatus", ToInt32(record.EmailEngagementStatus)),
+                ("HardBouncedDate", ToDateTime(record.HardBouncedDate)),
+                ("LastSoftBouncedDate", ToDateTime(record.LastSoftBouncedDate)),
+                ("LastSentDate", ToDateTime(record.LastSentDate)),
+                ("LastDisplayedDate", ToDateTime(record.LastDisplayedDate)),
+                ("LastClickedDate", ToDateTime(record.LastClickedDate)),
+                ("FirstInleadsVisitDate", ToDateTime(record.FirstInleadsVisitDate)),
+                ("LastInleadsVisitDate", ToDateTime(record.LastInleadsVisitDate)),
+                ("IncludeInUR", record.IncludeInUr));
         }
 
         return table;
@@ -33,6 +108,7 @@ public static class PerformanceDataTableMapper
         var table = Table(
             ImportTableNames.SendContacts,
             ("ID", typeof(int)),
+            ("SubaccountID", typeof(int)),
             ("SendID", typeof(int)),
             ("ContactID", typeof(int)),
             ("PublicIP", typeof(string)));
@@ -42,6 +118,7 @@ public static class PerformanceDataTableMapper
             Add(
                 table,
                 ("ID", ToInt32(record.Id)),
+                ("SubaccountID", ToInt32(record.SubaccountId)),
                 ("SendID", ToInt32(record.SendId)),
                 ("ContactID", ToInt32(record.ContactId)),
                 ("PublicIP", record.PublicIp));
@@ -85,6 +162,7 @@ public static class PerformanceDataTableMapper
         var table = Table(
             ImportTableNames.UserAgents,
             ("ID", typeof(int)),
+            ("SubaccountID", typeof(int)),
             ("SendContactID", typeof(int)),
             ("IPAddress", typeof(string)),
             ("ClientName", typeof(string)),
@@ -101,6 +179,7 @@ public static class PerformanceDataTableMapper
             Add(
                 table,
                 ("ID", ToInt32(record.Id)),
+                ("SubaccountID", ToInt32(record.SubaccountId)),
                 ("SendContactID", ToInt32(record.SendContactId)),
                 ("IPAddress", record.IpAddress),
                 ("ClientName", record.ClientName),
@@ -145,6 +224,7 @@ public static class PerformanceDataTableMapper
         var table = Table(
             ImportTableNames.DisplayedContacts,
             ("ID", typeof(int)),
+            ("SubaccountID", typeof(int)),
             ("SendContactID", typeof(int)),
             ("UserAgentID", typeof(int)),
             ("DisplayDate", typeof(DateTime)),
@@ -157,6 +237,7 @@ public static class PerformanceDataTableMapper
             Add(
                 table,
                 ("ID", ToInt32(record.Id)),
+                ("SubaccountID", ToInt32(record.SubaccountId)),
                 ("SendContactID", ToInt32(record.SendContactId)),
                 ("UserAgentID", ToInt32(record.UserAgentId)),
                 ("DisplayDate", ToDateTime(record.DisplayDate)),
@@ -172,6 +253,7 @@ public static class PerformanceDataTableMapper
         var table = Table(
             ImportTableNames.ClickedContacts,
             ("ID", typeof(int)),
+            ("SubaccountID", typeof(int)),
             ("SendContactID", typeof(int)),
             ("LinkID", typeof(int)),
             ("UserAgentID", typeof(int)),
@@ -184,6 +266,7 @@ public static class PerformanceDataTableMapper
             Add(
                 table,
                 ("ID", ToInt32(record.Id)),
+                ("SubaccountID", ToInt32(record.SubaccountId)),
                 ("SendContactID", ToInt32(record.SendContactId)),
                 ("LinkID", ToInt32(record.LinkId)),
                 ("UserAgentID", ToInt32(record.UserAgentId)),
@@ -199,9 +282,11 @@ public static class PerformanceDataTableMapper
         var table = Table(
             ImportTableNames.BouncedContacts,
             ("ID", typeof(int)),
+            ("SubaccountID", typeof(int)),
             ("SendContactID", typeof(int)),
             ("BounceReason", typeof(string)),
             ("BounceType", typeof(string)),
+            ("BounceTypeID", typeof(int)),
             ("BounceDate", typeof(DateTime)),
             ("ResponseText", typeof(string)));
 
@@ -210,9 +295,11 @@ public static class PerformanceDataTableMapper
             Add(
                 table,
                 ("ID", ToInt32(record.Id)),
+                ("SubaccountID", ToInt32(record.SubaccountId)),
                 ("SendContactID", ToInt32(record.SendContactId)),
                 ("BounceReason", record.BounceReason),
                 ("BounceType", record.BounceType),
+                ("BounceTypeID", ToInt32(record.BounceTypeId)),
                 ("BounceDate", ToDateTime(record.BounceDate)),
                 ("ResponseText", record.ResponseText));
         }
@@ -224,8 +311,9 @@ public static class PerformanceDataTableMapper
         var table = Table(
             ImportTableNames.UnsubscribedContacts,
             ("ID", typeof(int)),
+            ("SubaccountID", typeof(int)),
             ("SendContactID", typeof(int)),
-            ("UnsubscribeDate", typeof(DateTime)),
+            ("UnsubscribedDate", typeof(DateTime)),
             ("IsGlobalUnsubscribe", typeof(bool)),
             ("IsComplaint", typeof(bool)));
 
@@ -234,8 +322,9 @@ public static class PerformanceDataTableMapper
             Add(
                 table,
                 ("ID", ToInt32(record.Id)),
+                ("SubaccountID", ToInt32(record.SubaccountId)),
                 ("SendContactID", ToInt32(record.SendContactId)),
-                ("UnsubscribeDate", ToDateTime(record.UnsubscribeDate)),
+                ("UnsubscribedDate", ToDateTime(record.UnsubscribedDate)),
                 ("IsGlobalUnsubscribe", record.IsGlobalUnsubscribe),
                 ("IsComplaint", record.IsComplaint));
         }
