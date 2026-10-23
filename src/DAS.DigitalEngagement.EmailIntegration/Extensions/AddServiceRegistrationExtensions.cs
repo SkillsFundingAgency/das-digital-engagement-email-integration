@@ -67,6 +67,7 @@ namespace DAS.DigitalEngagement.EmailIntegration.Extensions
             services.AddTransient<IChunkingService, ChunkingService>();
             services.AddTransient<ICsvService, CsvService>();
             services.AddTransient<IReportService, ReportService>();
+            services.AddTransient<IPerformanceImportReportService, PerformanceImportReportService>();
             services.AddTransient<INotificationClientWrapper>(sp =>
             {
                 var configuration = sp.GetRequiredService<IConfiguration>();
