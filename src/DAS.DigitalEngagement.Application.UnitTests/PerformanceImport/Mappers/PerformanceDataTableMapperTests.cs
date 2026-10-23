@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Data;
 using DAS.DigitalEngagement.Application.PerformanceImport.Mappers;
 using DAS.DigitalEngagement.Models.PerformanceImport;
 
@@ -301,7 +300,7 @@ public class PerformanceDataTableMapperTests
                 Id = 1,
                 SubaccountId = 123,
                 SendContactId = 10,
-                UnsubscribeDate = DateTimeOffset.UtcNow,
+                UnsubscribedDate = DateTimeOffset.UtcNow,
                 IsGlobalUnsubscribe = true,
                 IsComplaint = false
             }]);
