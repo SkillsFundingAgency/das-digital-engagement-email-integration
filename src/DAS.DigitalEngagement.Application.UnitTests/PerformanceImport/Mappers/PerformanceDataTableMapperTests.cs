@@ -300,7 +300,7 @@ public class PerformanceDataTableMapperTests
                 Id = 1,
                 SubaccountId = 123,
                 SendContactId = 10,
-                UnsubscribedDate = DateTimeOffset.UtcNow,
+                UnsubscribeDate = DateTimeOffset.UtcNow,
                 IsGlobalUnsubscribe = true,
                 IsComplaint = false
             }]);

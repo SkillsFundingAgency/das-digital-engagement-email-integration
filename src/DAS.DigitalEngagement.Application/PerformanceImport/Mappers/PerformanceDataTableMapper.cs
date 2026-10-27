@@ -313,7 +313,7 @@ public static class PerformanceDataTableMapper
             ("ID", typeof(int)),
             ("SubaccountID", typeof(int)),
             ("SendContactID", typeof(int)),
-            ("UnsubscribedDate", typeof(DateTime)),
+            ("UnsubscribeDate", typeof(DateTime)),
             ("IsGlobalUnsubscribe", typeof(bool)),
             ("IsComplaint", typeof(bool)));
 
@@ -324,7 +324,7 @@ public static class PerformanceDataTableMapper
                 ("ID", ToInt32(record.Id)),
                 ("SubaccountID", ToInt32(record.SubaccountId)),
                 ("SendContactID", ToInt32(record.SendContactId)),
-                ("UnsubscribedDate", ToDateTime(record.UnsubscribedDate)),
+                ("UnsubscribeDate", ToDateTime(record.UnsubscribeDate)),
                 ("IsGlobalUnsubscribe", record.IsGlobalUnsubscribe),
                 ("IsComplaint", record.IsComplaint));
         }
