@@ -99,11 +99,9 @@ public sealed class PerformanceImportService(
                     campaigns.Count);
 
                 // Write campaigns and sends before their dependent performance records.
-                await WriteCampaignsAsync(campaigns, cancellationToken);
-                totals.ImportedCampaignRecords += campaigns.Count;
+                await WriteCampaignsAsync(campaigns, totals, cancellationToken);
 
-                await WriteSendsAsync(sends, cancellationToken);
-                totals.ImportedSendRecords += sends.Count;
+                await WriteSendsAsync(sends, totals, cancellationToken);
 
                 importedCampaignIds.UnionWith(campaignIds);
 
@@ -269,14 +267,11 @@ public sealed class PerformanceImportService(
 
             sendContactCount += sendContactPage.Count;
 
-            var importedContactCount = await ImportContactDataAsync(sendContactPage, oDataAvailableCounts, cancellationToken);
+            var importedContactCount = await ImportContactDataAsync(sendContactPage, totals, oDataAvailableCounts, cancellationToken);
             contactCount += importedContactCount;
-            totals.ImportedContactRecords += importedContactCount;
         }
 
-        var interactionCounts = await ImportSendInteractionDataAsync(sendIds, batchNumber, oDataAvailableCounts, cancellationToken);
-
-        totals.AddInteractionCounts(interactionCounts);
+        await ImportSendInteractionDataAsync(sendIds, batchNumber, totals, oDataAvailableCounts, cancellationToken);
 
         // Write completion metadata only after the send contacts, contacts, and interaction datasets have been processed.
         var importCompleteness = sendBatch.ToDictionary(s => s.Id, s => true);
@@ -291,9 +286,10 @@ public sealed class PerformanceImportService(
 
     }
 
-    private async Task<InteractionImportCounts> ImportSendInteractionDataAsync(
+    private async Task ImportSendInteractionDataAsync(
         long[] sendIds,
         int batchNumber,
+        ImportTotals totals,
         ConcurrentDictionary<string, long?> oDataAvailableCounts,
         CancellationToken cancellationToken)
     {
@@ -322,7 +318,8 @@ public sealed class PerformanceImportService(
                 dataClient.GetLinksAsync(sendIds, cancellationToken, oDataAvailableCounts),
                 (records, token) => dataWriter.WriteLinksAsync(records, token),
                 _sqlWriteBatchSize,
-                cancellationToken),
+                cancellationToken,
+                writtenCount => totals.AddImportedLinkRecords(writtenCount)),
             count => logger.LogInformation(
                 "Processed send batch {BatchNumber} of {SendCount}: wrote {LinkCount} links.",
                 batchNumber,
@@ -334,7 +331,8 @@ public sealed class PerformanceImportService(
                 dataClient.GetUserAgentsAsync(sendIds, cancellationToken, oDataAvailableCounts),
                 (records, token) => dataWriter.WriteUserAgentsAsync(records, token),
                 _sqlWriteBatchSize,
-                cancellationToken),
+                cancellationToken,
+                writtenCount => totals.AddImportedUserAgentRecords(writtenCount)),
             count => logger.LogInformation(
                 "Processed send batch {BatchNumber} of {SendCount}: wrote {UserAgentCount} user agents.",
                 batchNumber,
@@ -346,7 +344,8 @@ public sealed class PerformanceImportService(
                 dataClient.GetDisplayedContactsAsync(sendIds, cancellationToken, oDataAvailableCounts),
                 (records, token) => dataWriter.WriteDisplayedContactsAsync(records, token),
                 _sqlWriteBatchSize,
-                cancellationToken),
+                cancellationToken,
+                writtenCount => totals.AddImportedDisplayedContactRecords(writtenCount)),
             count => logger.LogInformation(
                 "Processed send batch {BatchNumber} of {SendCount}: wrote {DisplayedContactCount} displayed contacts.",
                 batchNumber,
@@ -358,7 +357,8 @@ public sealed class PerformanceImportService(
                 dataClient.GetClickedContactsAsync(sendIds, cancellationToken, oDataAvailableCounts),
                 (records, token) => dataWriter.WriteClickedContactsAsync(records, token),
                 _sqlWriteBatchSize,
-                cancellationToken),
+                cancellationToken,
+                writtenCount => totals.AddImportedClickedContactRecords(writtenCount)),
             count => logger.LogInformation(
                 "Processed send batch {BatchNumber} of {SendCount}: wrote {ClickedContactCount} clicked contacts.",
                 batchNumber,
@@ -370,7 +370,8 @@ public sealed class PerformanceImportService(
                 dataClient.GetBouncedContactsAsync(sendIds, cancellationToken, oDataAvailableCounts),
                 (records, token) => dataWriter.WriteBouncedContactsAsync(records, token),
                 _sqlWriteBatchSize,
-                cancellationToken),
+                cancellationToken,
+                writtenCount => totals.AddImportedBouncedContactRecords(writtenCount)),
             count => logger.LogInformation(
                 "Processed send batch {BatchNumber} of {SendCount}: wrote {BouncedContactCount} bounced contacts.",
                 batchNumber,
@@ -382,7 +383,8 @@ public sealed class PerformanceImportService(
                 dataClient.GetUnsubscribedContactsAsync(sendIds, cancellationToken, oDataAvailableCounts),
                 (records, token) => dataWriter.WriteUnsubscribedContactsAsync(records, token),
                 _sqlWriteBatchSize,
-                cancellationToken),
+                cancellationToken,
+                writtenCount => totals.AddImportedUnsubscribedContactRecords(writtenCount)),
             count => logger.LogInformation(
                 "Processed send batch {BatchNumber} of {SendCount}: wrote {UnsubscribedContactCount} unsubscribed contacts.",
                 batchNumber,
@@ -397,19 +399,11 @@ public sealed class PerformanceImportService(
             bouncedContactsTask,
             unsubscribedContactsTask);
 
-        return new InteractionImportCounts
-        {
-            LinkCount = await linksTask,
-            UserAgentCount = await userAgentsTask,
-            DisplayedContactCount = await displayedContactsTask,
-            ClickedContactCount = await clickedContactsTask,
-            BouncedContactCount = await bouncedContactsTask,
-            UnsubscribedContactCount = await unsubscribedContactsTask
-        };
     }
 
     private async Task<int> ImportContactDataAsync(
         IReadOnlyCollection<SendContactApiRecord> sendContacts,
+        ImportTotals totals,
         ConcurrentDictionary<string, long?> oDataAvailableCounts,
         CancellationToken cancellationToken)
     {
@@ -434,7 +428,8 @@ public sealed class PerformanceImportService(
                     await dataWriter.WriteContactsAsync(records, token);
                 },
                 _sqlWriteBatchSize,
-                cancellationToken);
+                cancellationToken,
+                writtenCount => totals.AddImportedContactRecords(writtenCount));
         }
 
         return contactCount;
@@ -464,7 +459,8 @@ public sealed class PerformanceImportService(
         IAsyncEnumerable<T> source,
         Func<IReadOnlyCollection<T>, CancellationToken, Task> writer,
         int writeBatchSize,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        Action<int>? onBatchWritten = null)
     {
         // Buffer streamed records to SQL write size instead of materializing the full API response.
         var batch = new List<T>(writeBatchSize);
@@ -480,6 +476,7 @@ public sealed class PerformanceImportService(
 
             await writer(batch, cancellationToken);
             totalCount += batch.Count;
+            onBatchWritten?.Invoke(batch.Count);
             batch.Clear();
         }
 
@@ -487,6 +484,7 @@ public sealed class PerformanceImportService(
         {
             await writer(batch, cancellationToken);
             totalCount += batch.Count;
+            onBatchWritten?.Invoke(batch.Count);
         }
 
         return totalCount;
@@ -494,6 +492,7 @@ public sealed class PerformanceImportService(
 
     private async Task WriteSendsAsync(
         IReadOnlyCollection<Send> sends,
+        ImportTotals totals,
         CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
@@ -501,6 +500,7 @@ public sealed class PerformanceImportService(
         foreach (var sendBatch in sends.Chunk(_sqlWriteBatchSize))
         {
             await dataWriter.WriteSendsAsync(sendBatch, cancellationToken);
+            totals.AddImportedSendRecords(sendBatch.Length);
         }
     }
 
@@ -514,12 +514,13 @@ public sealed class PerformanceImportService(
         foreach (var sendContactBatch in sendContacts.Chunk(_sqlWriteBatchSize))
         {
             await dataWriter.WriteSendContactsAsync(sendContactBatch, cancellationToken);
-            totals.ImportedSendContactRecords += sendContactBatch.Length;
+            totals.AddImportedSendContactRecords(sendContactBatch.Length);
         }
     }
 
     private async Task WriteCampaignsAsync(
         IReadOnlyCollection<Campaign> campaigns,
+        ImportTotals totals,
         CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
@@ -527,6 +528,7 @@ public sealed class PerformanceImportService(
         foreach (var campaignBatch in campaigns.Chunk(_sqlWriteBatchSize))
         {
             await dataWriter.WriteCampaignsAsync(campaignBatch, cancellationToken);
+            totals.AddImportedCampaignRecords(campaignBatch.Length);
         }
     }
 
