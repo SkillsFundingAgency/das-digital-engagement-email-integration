@@ -265,16 +265,17 @@ public sealed class PerformanceImportService(
         await foreach (var sendContactPage in dataClient.GetSendContactPagesAsync(sendIds, cancellationToken, oDataAvailableCounts)
             .WithCancellation(cancellationToken))
         {
-            await WriteSendContactsAsync(sendContactPage, cancellationToken);
+            await WriteSendContactsAsync(sendContactPage, totals, cancellationToken);
 
             sendContactCount += sendContactPage.Count;
-            contactCount += await ImportContactDataAsync(sendContactPage, oDataAvailableCounts, cancellationToken);
+
+            var importedContactCount = await ImportContactDataAsync(sendContactPage, oDataAvailableCounts, cancellationToken);
+            contactCount += importedContactCount;
+            totals.ImportedContactRecords += importedContactCount;
         }
 
         var interactionCounts = await ImportSendInteractionDataAsync(sendIds, batchNumber, oDataAvailableCounts, cancellationToken);
 
-        totals.ImportedSendContactRecords += sendContactCount;
-        totals.ImportedContactRecords += contactCount;
         totals.AddInteractionCounts(interactionCounts);
 
         // Write completion metadata only after the send contacts, contacts, and interaction datasets have been processed.
@@ -505,6 +506,7 @@ public sealed class PerformanceImportService(
 
     private async Task WriteSendContactsAsync(
         IReadOnlyCollection<SendContactApiRecord> sendContacts,
+        ImportTotals totals,
         CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
@@ -512,6 +514,7 @@ public sealed class PerformanceImportService(
         foreach (var sendContactBatch in sendContacts.Chunk(_sqlWriteBatchSize))
         {
             await dataWriter.WriteSendContactsAsync(sendContactBatch, cancellationToken);
+            totals.ImportedSendContactRecords += sendContactBatch.Length;
         }
     }
 
