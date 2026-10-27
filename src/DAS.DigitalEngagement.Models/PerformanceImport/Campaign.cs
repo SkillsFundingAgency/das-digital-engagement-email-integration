@@ -22,9 +22,19 @@ public sealed class Campaign
     [JsonPropertyName("Status")] public string? Status { get; init; }
     [JsonPropertyName("FirstSendDate")] public DateTimeOffset? FirstSendDate { get; init; }
     [JsonPropertyName("LastSendDate")] public DateTimeOffset? LastSendDate { get; init; }
+    [JsonPropertyName("CronExpression")] public string? CronExpression { get; init; }
+    [JsonPropertyName("StartDate")] public DateTimeOffset? StartDate { get; init; }
+    [JsonPropertyName("EndDate")] public DateTimeOffset? EndDate { get; init; }
+    [JsonPropertyName("NextDueDate")] public DateTimeOffset? NextDueDate { get; init; }
+    [JsonPropertyName("LastRunDate")] public DateTimeOffset? LastRunDate { get; init; }
+    [JsonPropertyName("StatusChangedBy")] public string? StatusChangedBy { get; init; }
+    [JsonPropertyName("StatusChangedByUserID")] public long? StatusChangedByUserId { get; init; }
+    [JsonPropertyName("StatusChangedDate")] public DateTimeOffset? StatusChangedDate { get; init; }
     [JsonPropertyName("TotalSent")] public long? TotalSent { get; init; }
     [JsonPropertyName("CanBeModified")] public bool? CanBeModified { get; init; }
     [JsonPropertyName("CanBeReported")] public bool? CanBeReported { get; init; }
+    [JsonPropertyName("IsActive")] public bool? IsActive { get; init; }
+    [JsonPropertyName("HasSpecifiedDates")] public bool? HasSpecifiedDates { get; init; }
     [JsonPropertyName("SendDate")] public DateTimeOffset? SendDate { get; init; }
     [JsonPropertyName("FromEmail")] public string? FromEmail { get; init; }
     [JsonPropertyName("FromName")] public string? FromName { get; init; }

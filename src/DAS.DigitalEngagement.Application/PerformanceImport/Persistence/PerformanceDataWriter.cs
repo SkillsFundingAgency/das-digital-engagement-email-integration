@@ -8,6 +8,12 @@ namespace DAS.DigitalEngagement.Application.PerformanceImport.Persistence;
 public sealed class PerformanceDataWriter(
     ISqlBulkInserter bulkInserter) : IPerformanceDataWriter
 {
+    public Task WriteSendsAsync(IReadOnlyCollection<Send> records, CancellationToken cancellationToken = default) =>
+        WriteIfAnyAsync(ImportTableNames.Sends, SendCampaignDataTableMapper.CreateSends(records), ignoreDuplicates: true, cancellationToken);
+
+    public Task WriteCampaignsAsync(IReadOnlyCollection<Campaign> records, CancellationToken cancellationToken = default) =>
+        WriteIfAnyAsync(ImportTableNames.Campaigns, SendCampaignDataTableMapper.CreateCampaigns(records), ignoreDuplicates: true, cancellationToken);
+
     public Task WriteContactsAsync(IReadOnlyCollection<ContactApiRecord> records, CancellationToken cancellationToken = default) =>
         WriteIfAnyAsync(ImportTableNames.Contacts, PerformanceDataTableMapper.CreateContacts(records), ignoreDuplicates: true, cancellationToken);
 
