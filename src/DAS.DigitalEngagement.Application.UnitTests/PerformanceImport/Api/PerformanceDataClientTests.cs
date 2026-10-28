@@ -39,7 +39,7 @@ public class PerformanceDataClientTests
     public async Task GetSendsAsync_ReturnsRecords_AndUsesDefaultEndpoint_WhenSubAccountIdsAreNull()
     {
         var client = CreateClient();
-        SetupPagedResponse("Sends?$select=ID,SendCompletedDate&$orderby=ID&$count=true&$top=2&$skip=0", new Dictionary<string, object?>
+        SetupPagedResponse("Sends?$select=ID,SendCompletedDate&$orderby=ID&$count=true&$filter=IsArchived%20eq%20false&$top=2&$skip=0", new Dictionary<string, object?>
         {
             { "@odata.count", 100 },
             { "value", new[]
@@ -49,21 +49,21 @@ public class PerformanceDataClientTests
                 }
             }
         });
-        SetupPagedResponse("Sends?$select=ID,SendCompletedDate&$orderby=ID&$count=true&$top=2&$skip=2", new Dictionary<string, object?> { { "@odata.count", 100 }, { "value", Array.Empty<object>() } });
+        SetupPagedResponse("Sends?$select=ID,SendCompletedDate&$orderby=ID&$count=true&$filter=IsArchived%20eq%20false&$top=2&$skip=2", new Dictionary<string, object?> { { "@odata.count", 100 }, { "value", Array.Empty<object>() } });
 
         var result = await EnumerateAsync(client.GetSendsAsync());
 
         Assert.That(result, Has.Count.EqualTo(2));
         Assert.That(result[0].Id, Is.EqualTo(10));
         Assert.That(result[1].Id, Is.EqualTo(11));
-        VerifyRequestedEndpoint("Sends?$select=ID,SendCompletedDate&$orderby=ID&$count=true&$top=2&$skip=0", Times.Once());
+        VerifyRequestedEndpoint("Sends?$select=ID,SendCompletedDate&$orderby=ID&$count=true&$filter=IsArchived%20eq%20false&$top=2&$skip=0", Times.Once());
     }
 
     [Test]
     public async Task GetSendsAsync_DeduplicatesSubAccountIds_AndEncodesFilter()
     {
         var client = CreateClient();
-        var endpoint = "Sends?$select=ID,SendCompletedDate&$orderby=ID&$count=true&$filter=SubAccountID%20in%20%281%2C2%29&$top=2&$skip=0";
+        var endpoint = "Sends?$select=ID,SendCompletedDate&$orderby=ID&$count=true&$filter=IsArchived%20eq%20false%20and%20SubAccountID%20in%20%281%2C2%29&$top=2&$skip=0";
         SetupPagedResponse(endpoint, new { value = Array.Empty<object>() });
 
         var result = await EnumerateAsync(client.GetSendsAsync([1, 2, 2]));

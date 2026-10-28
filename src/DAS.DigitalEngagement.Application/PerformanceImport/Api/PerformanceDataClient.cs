@@ -19,11 +19,14 @@ public sealed class PerformanceDataClient(
 
     public IAsyncEnumerable<SendEligibilityRecord> GetSendsAsync(IReadOnlyCollection<int>? subAccountIds = null, CancellationToken cancellationToken = default, ConcurrentDictionary<string, long?>? oDataCounts = null)
     {
-        var endpoint = "Sends?$select=ID,SendCompletedDate&$orderby=ID&$count=true";
+        var filters = new List<string> { "IsArchived eq false" };
+
         if (subAccountIds is { Count: > 0 })
         {
-            endpoint += $"&$filter={Uri.EscapeDataString($"SubAccountID in ({string.Join(",", subAccountIds.Distinct())})")}";
+            filters.Add($"SubAccountID in ({string.Join(",", subAccountIds.Distinct())})");
         }
+
+        var endpoint = $"Sends?$select=ID,SendCompletedDate&$orderby=ID&$count=true&$filter={Uri.EscapeDataString(string.Join(" and ", filters))}";
 
         return ReadPagesAsync<SendEligibilityRecord>(endpoint, cancellationToken, PerformanceImportResourceNames.Sends, oDataCounts);
     }
