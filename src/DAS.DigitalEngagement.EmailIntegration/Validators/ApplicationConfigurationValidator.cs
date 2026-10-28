@@ -20,7 +20,7 @@ namespace DAS.DigitalEngagement.EmailIntegration.Validators
             ValidateDataMart(options.DataMart, failures);
             ValidateConnectionString(options.ConnectionString, failures);
             ValidateEmailMarketingApi(options.EmailMarketingApi, failures);
-            ValidateSubAccountIds(options.EmailMarketingApi.SubAccountIds, failures);
+            ValidateSubAccountIds(options.EmailMarketingApi?.SubAccountIds, failures);
 
             return failures.Count == 0 ? ValidateOptionsResult.Success : ValidateOptionsResult.Fail(failures);
         }
