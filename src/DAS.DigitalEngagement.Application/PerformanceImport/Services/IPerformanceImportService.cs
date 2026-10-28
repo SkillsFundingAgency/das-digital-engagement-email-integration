@@ -4,7 +4,7 @@ namespace DAS.DigitalEngagement.Application.PerformanceImport.Services;
 
 public interface IPerformanceImportService
 {
-    Task ImportAsync(
+    Task<PerformanceImportReportSummary> ImportAsync(
         IReadOnlyCollection<SendEligibilityRecord> eligibleSends,
         DateTimeOffset importStart,
         CancellationToken cancellationToken = default);

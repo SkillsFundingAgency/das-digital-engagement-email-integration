@@ -4,6 +4,9 @@ namespace DAS.DigitalEngagement.Models.PerformanceImport;
 
 public sealed class ODataResponse<T>
 {
+    [JsonPropertyName("@odata.count")]
+    public long? Count { get; init; }
+
     [JsonPropertyName("value")]
     public List<T>? Value { get; init; }
 
