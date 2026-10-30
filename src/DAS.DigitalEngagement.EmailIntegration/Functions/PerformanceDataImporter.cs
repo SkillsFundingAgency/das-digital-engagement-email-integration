@@ -1,7 +1,6 @@
-﻿using DAS.DigitalEngagement.Application.Handlers.CampaignToStaging;
+using DAS.DigitalEngagement.Application.Handlers.CampaignToStaging;
 using DAS.DigitalEngagement.Application.PerformanceImport.Handlers;
 using DAS.DigitalEngagement.Application.Services.Interfaces;
-using DAS.DigitalEngagement.Models.Infrastructure;
 using DAS.DigitalEngagement.Models.PerformanceImport;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging;
@@ -11,7 +10,6 @@ namespace DAS.DigitalEngagement.EmailIntegration.Functions;
 
 public class PerformanceDataImporter(
     IImportCampaignStagingHandler importCampaignStagingHandler,
-    ApplicationConfiguration configuration,
     IPerformanceImportReportService performanceImportReportService,
     IReportService reportService,
     ILogger<PerformanceDataImporter> logger)
@@ -25,16 +23,25 @@ public class PerformanceDataImporter(
         logger.LogInformation(
             "Performance data import started at {StartedAt}.",
             startedAt);
-        logger.LogInformation(
-            "Performance data import using API base URL {ApiBaseUrl}.",
-            configuration.EmailMarketingApi?.ApiBaseUrl
-        );
 
         var stopwatch = Stopwatch.StartNew();
         var reportFilename = $"Performance-Import/Import-{startedAt.ToString("s", System.Globalization.CultureInfo.InvariantCulture)}";
         try
         {
             var (summary, importException) = await ExecuteImportAsync(cancellationToken);
+            if (summary is not null)
+            {
+                logger.LogInformation(
+                    "Performance data import summary: status {Status}, eligible sends {EligibleSends}, imported sends {ImportedSends}, campaigns {ImportedCampaigns}, send contacts {ImportedSendContacts}, contacts {ImportedContacts}, failures {FailureCount}.",
+                    summary.Status,
+                    summary.EligibleSends,
+                    summary.ImportedSendRecords,
+                    summary.ImportedCampaignRecords,
+                    summary.ImportedSendContactRecords,
+                    summary.ImportedContactRecords,
+                    summary.FailureCount);
+            }
+
             var report = CreateReport(summary, importException, stopwatch);
             await SaveReportAsync(report, reportFilename, importException, stopwatch, cancellationToken);
             ThrowIfImportFailed(importException, stopwatch);
@@ -61,7 +68,7 @@ public class PerformanceDataImporter(
             {
                 throw new InvalidOperationException("Performance data import handler returned a null summary.");
             }
-
+            
             logger.LogInformation("Performance data import completed successfully.");
             return (summary, null);
         }
