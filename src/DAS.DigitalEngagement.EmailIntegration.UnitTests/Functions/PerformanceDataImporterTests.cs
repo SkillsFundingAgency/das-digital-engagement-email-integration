@@ -2,12 +2,10 @@ using DAS.DigitalEngagement.Application.Handlers.CampaignToStaging;
 using DAS.DigitalEngagement.Application.PerformanceImport.Handlers;
 using DAS.DigitalEngagement.Application.Services.Interfaces;
 using DAS.DigitalEngagement.EmailIntegration.Functions;
-using DAS.DigitalEngagement.Models.Infrastructure;
 using DAS.DigitalEngagement.Models.PerformanceImport;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging;
 using Moq;
-using System.Collections.Generic;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
@@ -21,7 +19,6 @@ public class PerformanceDataImporterTests
     private Mock<IPerformanceImportReportService> _performanceImportReportServiceMock = null!;
     private Mock<IReportService> _reportServiceMock = null!;
     private Mock<ILogger<PerformanceDataImporter>> _loggerMock = null!;
-    private ApplicationConfiguration _configuration = null!;
     private PerformanceDataImporter _sut = null!;
 
     [SetUp]
@@ -31,29 +28,6 @@ public class PerformanceDataImporterTests
         _performanceImportReportServiceMock = new Mock<IPerformanceImportReportService>();
         _reportServiceMock = new Mock<IReportService>();
         _loggerMock = new Mock<ILogger<PerformanceDataImporter>>();
-        _configuration = new ApplicationConfiguration
-        {
-            ConnectionString = new ConnectionString
-            {
-                DataMart = "TestConnectionString",
-                CampaignsDatabase = "TestCampaignsDatabase"
-            },
-            DataMart = new List<DataMartSettings>(),
-            EmailMarketingApi = new EmailMarketingApi
-            {
-                ApiBaseUrl = "https://api.test.com"
-                , ApiKey = "TestApiKey"
-                , ApiRetryCount = 3
-                , ChunkSizeKB = 1024
-            }
-            , GovNotifyConfiguration = new GovNotifyConfiguration
-            {
-                ApiKey = "TestGovNotifyApiKey",
-                MonitoringReportTemplateId = "TestTemplateId",
-                RecipientEmailAddresses = new List<string>()
-            }
-        };
-
         _importCampaignStagingHandlerMock
             .Setup(x => x.Handle(It.IsAny<CancellationToken>()))
             .Returns(Task.FromResult(new PerformanceImportReportSummary
@@ -72,7 +46,6 @@ public class PerformanceDataImporterTests
 
         _sut = new PerformanceDataImporter(
             _importCampaignStagingHandlerMock.Object,
-            _configuration,
             _performanceImportReportServiceMock.Object,
             _reportServiceMock.Object,
             _loggerMock.Object);
@@ -106,15 +79,7 @@ public class PerformanceDataImporterTests
             x => x.Log(
                 LogLevel.Information,
                 It.IsAny<EventId>(),
-                It.Is<It.IsAnyType>((state, _) => state.ToString()!.Contains("Performance data import using API base URL https://api.test.com")),
-                It.IsAny<Exception?>(),
-                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
-            Times.Once);
-        _loggerMock.Verify(
-            x => x.Log(
-                LogLevel.Information,
-                It.IsAny<EventId>(),
-                It.Is<It.IsAnyType>((state, _) => state.ToString()!.Contains("Performance data import completed successfully.")),
+                It.Is<It.IsAnyType>((state, _) => state.ToString()!.Contains("Performance data import summary: status Completed")),
                 It.IsAny<Exception?>(),
                 It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
             Times.Once);
@@ -154,14 +119,6 @@ public class PerformanceDataImporterTests
                 LogLevel.Information,
                 It.IsAny<EventId>(),
                 It.Is<It.IsAnyType>((state, _) => state.ToString()!.Contains("Performance data import finished at")),
-                It.IsAny<Exception?>(),
-                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
-            Times.Once);
-        _loggerMock.Verify(
-            x => x.Log(
-                LogLevel.Information,
-                It.IsAny<EventId>(),
-                It.Is<It.IsAnyType>((state, _) => state.ToString()!.Contains("Performance data import using API base URL https://api.test.com")),
                 It.IsAny<Exception?>(),
                 It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
             Times.Once);

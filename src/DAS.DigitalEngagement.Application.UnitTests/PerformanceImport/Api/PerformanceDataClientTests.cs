@@ -7,7 +7,6 @@ using System.Threading.Tasks;
 using DAS.DigitalEngagement.Application.PerformanceImport.Api;
 using DAS.DigitalEngagement.Application.Services.Interfaces;
 using DAS.DigitalEngagement.Models.Infrastructure;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
 
@@ -17,14 +16,12 @@ namespace DAS.DigitalEngagement.Application.UnitTests.PerformanceImport.Api;
 public class PerformanceDataClientTests
 {
     private Mock<IExternalApiService> _externalApiServiceMock = null!;
-    private Mock<ILogger<PerformanceDataClient>> _loggerMock = null!;
     private IOptions<EmailMarketingApi> _options = null!;
 
     [SetUp]
     public void SetUp()
     {
         _externalApiServiceMock = new Mock<IExternalApiService>();
-        _loggerMock = new Mock<ILogger<PerformanceDataClient>>();
         _options = Options.Create(new EmailMarketingApi
         {
             ApiBaseUrl = "https://api.test.com",
@@ -352,7 +349,7 @@ public class PerformanceDataClientTests
         VerifyRequestedEndpoint(endpoint, Times.Once());
     }
 
-    private PerformanceDataClient CreateClient() => new(_externalApiServiceMock.Object, _options, _loggerMock.Object);
+    private PerformanceDataClient CreateClient() => new(_externalApiServiceMock.Object, _options);
 
     private void SetupPagedResponse(string endpoint, object response)
     {

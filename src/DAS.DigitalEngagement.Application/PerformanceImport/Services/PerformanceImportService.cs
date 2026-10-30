@@ -70,12 +70,6 @@ public sealed class PerformanceImportService(
 
             try
             {
-                logger.LogInformation(
-                    "Processing performance import batch {BatchNumber} of {BatchCount} with {SendCount} sends.",
-                    batchNumber,
-                    totalBatchCount,
-                    sendIds.Length);
-
                 var sends = await ToListAsync(
                     dataClient.GetSendsByIdsAsync(sendIds, cancellationToken, oDataAvailableCounts),
                     cancellationToken);
@@ -92,12 +86,6 @@ public sealed class PerformanceImportService(
                     dataClient.GetCampaignsAsync(campaignIds, cancellationToken, oDataAvailableCounts),
                     cancellationToken);
 
-                logger.LogInformation(
-                    "Batch {BatchNumber} loaded {SendCount} sends and {CampaignCount} new campaigns.",
-                    batchNumber,
-                    sends.Count,
-                    campaigns.Count);
-
                 // Write campaigns and sends before their dependent performance records.
                 await WriteCampaignsAsync(campaigns, totals, cancellationToken);
 
@@ -106,11 +94,6 @@ public sealed class PerformanceImportService(
                 importedCampaignIds.UnionWith(campaignIds);
 
                 await ImportSendPerformanceBatchAsync(sends, importStart, totals, oDataAvailableCounts, cancellationToken);
-
-                logger.LogInformation(
-                    "Completed performance import batch {BatchNumber} of {BatchCount}.",
-                    batchNumber,
-                    totalBatchCount);
             }
             catch (OperationCanceledException)
             {
@@ -140,19 +123,35 @@ public sealed class PerformanceImportService(
             messages,
             oDataAvailableCounts);
 
+        stopwatch.Stop();
+
         if (outerFailedBatches.Count > 0)
         {
+            logger.LogWarning(
+                "Performance import completed with failures in {ElapsedSeconds} seconds. Eligible sends: {EligibleSends}, imported sends: {ImportedSends}, campaigns: {ImportedCampaigns}, send contacts: {ImportedSendContacts}, contacts: {ImportedContacts}, failures: {FailureCount}.",
+                stopwatch.Elapsed.TotalSeconds,
+                summary.EligibleSends,
+                summary.ImportedSendRecords,
+                summary.ImportedCampaignRecords,
+                summary.ImportedSendContactRecords,
+                summary.ImportedContactRecords,
+                summary.FailureCount);
+
             throw new PerformanceImportFailedException(
                 summary,
                 $"Performance import failed for {outerFailedBatches.Count} outer batch(es). Failed batches were logged; successful batches were completed.",
                 new AggregateException(outerFailedBatches));
         }
 
-        stopwatch.Stop();
         logger.LogInformation(
-            "Performance import completed for {EligibleSendCount} sends in {ElapsedSeconds} seconds.",
-            eligibleSends.Count,
-            stopwatch.Elapsed.TotalSeconds);
+            "Performance import completed in {ElapsedSeconds} seconds. Eligible sends: {EligibleSends}, imported sends: {ImportedSends}, campaigns: {ImportedCampaigns}, send contacts: {ImportedSendContacts}, contacts: {ImportedContacts}, failures: {FailureCount}.",
+            stopwatch.Elapsed.TotalSeconds,
+            summary.EligibleSends,
+            summary.ImportedSendRecords,
+            summary.ImportedCampaignRecords,
+            summary.ImportedSendContactRecords,
+            summary.ImportedContactRecords,
+            summary.FailureCount);
 
         return summary;
     }
@@ -224,7 +223,7 @@ public sealed class PerformanceImportService(
             batchNumber++;
             try
             {
-                await ImportSendContactGroupAsync(sendBatch, batchNumber, importStart, totals, oDataAvailableCounts, cancellationToken);
+                await ImportSendContactGroupAsync(sendBatch, importStart, totals, oDataAvailableCounts, cancellationToken);
             }
             catch (Exception exception) when (exception is not OperationCanceledException || !cancellationToken.IsCancellationRequested)
             {
@@ -249,7 +248,6 @@ public sealed class PerformanceImportService(
 
     private async Task ImportSendContactGroupAsync(
         Send[] sendBatch,
-        int batchNumber,
         DateTimeOffset importStart,
         ImportTotals totals,
         ConcurrentDictionary<string, long?> oDataAvailableCounts,
@@ -257,38 +255,24 @@ public sealed class PerformanceImportService(
     {
         var sendIds = sendBatch.Select(send => send.Id).ToArray();
 
-        var sendContactCount = 0;
-        var contactCount = 0;
-
         await foreach (var sendContactPage in dataClient.GetSendContactPagesAsync(sendIds, cancellationToken, oDataAvailableCounts)
             .WithCancellation(cancellationToken))
         {
             await WriteSendContactsAsync(sendContactPage, totals, cancellationToken);
 
-            sendContactCount += sendContactPage.Count;
-
-            var importedContactCount = await ImportContactDataAsync(sendContactPage, totals, oDataAvailableCounts, cancellationToken);
-            contactCount += importedContactCount;
+            await ImportContactDataAsync(sendContactPage, totals, oDataAvailableCounts, cancellationToken);
         }
 
-        await ImportSendInteractionDataAsync(sendIds, batchNumber, totals, oDataAvailableCounts, cancellationToken);
+        await ImportSendInteractionDataAsync(sendIds, totals, oDataAvailableCounts, cancellationToken);
 
         // Write completion metadata only after the send contacts, contacts, and interaction datasets have been processed.
         var importCompleteness = sendBatch.ToDictionary(s => s.Id, s => true);
         await dataWriter.WriteImportCompletionsAsync(sendBatch, importStart, importCompleteness, cancellationToken);
 
-        logger.LogInformation(
-            "Completed SendContacts batch {BatchNumber} for {SendCount} sends: {SendContactCount} send contacts, {ContactCount} contacts.",
-            batchNumber,
-            sendBatch.Length,
-            sendContactCount,
-            contactCount);
-
     }
 
     private async Task ImportSendInteractionDataAsync(
         long[] sendIds,
-        int batchNumber,
         ImportTotals totals,
         ConcurrentDictionary<string, long?> oDataAvailableCounts,
         CancellationToken cancellationToken)
@@ -298,14 +282,12 @@ public sealed class PerformanceImportService(
         var maxConcurrentEventImports = Math.Max(1, apiConfig.Value.MaxConcurrentEventImports);
         using var gate = new SemaphoreSlim(maxConcurrentEventImports, maxConcurrentEventImports);
 
-        async Task<int> RunBoundedAsync(Func<Task<int>> importOperation, Action<int> logOperation)
+        async Task<int> RunBoundedAsync(Func<Task<int>> importOperation)
         {
             await gate.WaitAsync(cancellationToken);
             try
             {
-                var count = await importOperation();
-                logOperation(count);
-                return count;
+                return await importOperation();
             }
             finally
             {
@@ -319,12 +301,7 @@ public sealed class PerformanceImportService(
                 (records, token) => dataWriter.WriteLinksAsync(records, token),
                 _sqlWriteBatchSize,
                 cancellationToken,
-                writtenCount => totals.AddImportedLinkRecords(writtenCount)),
-            count => logger.LogInformation(
-                "Processed send batch {BatchNumber} of {SendCount}: wrote {LinkCount} links.",
-                batchNumber,
-                sendIds.Length,
-                count));
+                writtenCount => totals.AddImportedLinkRecords(writtenCount)));
 
         var userAgentsTask = RunBoundedAsync(
             () => WriteApiRecordsAsync(
@@ -332,12 +309,7 @@ public sealed class PerformanceImportService(
                 (records, token) => dataWriter.WriteUserAgentsAsync(records, token),
                 _sqlWriteBatchSize,
                 cancellationToken,
-                writtenCount => totals.AddImportedUserAgentRecords(writtenCount)),
-            count => logger.LogInformation(
-                "Processed send batch {BatchNumber} of {SendCount}: wrote {UserAgentCount} user agents.",
-                batchNumber,
-                sendIds.Length,
-                count));
+                writtenCount => totals.AddImportedUserAgentRecords(writtenCount)));
 
         var displayedContactsTask = RunBoundedAsync(
             () => WriteApiRecordsAsync(
@@ -345,12 +317,7 @@ public sealed class PerformanceImportService(
                 (records, token) => dataWriter.WriteDisplayedContactsAsync(records, token),
                 _sqlWriteBatchSize,
                 cancellationToken,
-                writtenCount => totals.AddImportedDisplayedContactRecords(writtenCount)),
-            count => logger.LogInformation(
-                "Processed send batch {BatchNumber} of {SendCount}: wrote {DisplayedContactCount} displayed contacts.",
-                batchNumber,
-                sendIds.Length,
-                count));
+                writtenCount => totals.AddImportedDisplayedContactRecords(writtenCount)));
 
         var clickedContactsTask = RunBoundedAsync(
             () => WriteApiRecordsAsync(
@@ -358,12 +325,7 @@ public sealed class PerformanceImportService(
                 (records, token) => dataWriter.WriteClickedContactsAsync(records, token),
                 _sqlWriteBatchSize,
                 cancellationToken,
-                writtenCount => totals.AddImportedClickedContactRecords(writtenCount)),
-            count => logger.LogInformation(
-                "Processed send batch {BatchNumber} of {SendCount}: wrote {ClickedContactCount} clicked contacts.",
-                batchNumber,
-                sendIds.Length,
-                count));
+                writtenCount => totals.AddImportedClickedContactRecords(writtenCount)));
 
         var bouncedContactsTask = RunBoundedAsync(
             () => WriteApiRecordsAsync(
@@ -371,12 +333,7 @@ public sealed class PerformanceImportService(
                 (records, token) => dataWriter.WriteBouncedContactsAsync(records, token),
                 _sqlWriteBatchSize,
                 cancellationToken,
-                writtenCount => totals.AddImportedBouncedContactRecords(writtenCount)),
-            count => logger.LogInformation(
-                "Processed send batch {BatchNumber} of {SendCount}: wrote {BouncedContactCount} bounced contacts.",
-                batchNumber,
-                sendIds.Length,
-                count));
+                writtenCount => totals.AddImportedBouncedContactRecords(writtenCount)));
 
         var unsubscribedContactsTask = RunBoundedAsync(
             () => WriteApiRecordsAsync(
@@ -384,12 +341,7 @@ public sealed class PerformanceImportService(
                 (records, token) => dataWriter.WriteUnsubscribedContactsAsync(records, token),
                 _sqlWriteBatchSize,
                 cancellationToken,
-                writtenCount => totals.AddImportedUnsubscribedContactRecords(writtenCount)),
-            count => logger.LogInformation(
-                "Processed send batch {BatchNumber} of {SendCount}: wrote {UnsubscribedContactCount} unsubscribed contacts.",
-                batchNumber,
-                sendIds.Length,
-                count));
+                writtenCount => totals.AddImportedUnsubscribedContactRecords(writtenCount)));
 
         await Task.WhenAll(
             linksTask,

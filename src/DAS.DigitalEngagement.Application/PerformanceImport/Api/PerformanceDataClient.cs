@@ -6,14 +6,12 @@ using DAS.DigitalEngagement.Application.Services.Interfaces;
 using DAS.DigitalEngagement.Models.PerformanceImport;
 using DAS.DigitalEngagement.Models.Infrastructure;
 using Microsoft.Extensions.Options;
-using Microsoft.Extensions.Logging;
 
 namespace DAS.DigitalEngagement.Application.PerformanceImport.Api;
 
 public sealed class PerformanceDataClient(
     IExternalApiService externalApiService,
-    IOptions<EmailMarketingApi> apiOptions,
-    ILogger<PerformanceDataClient> logger) : IPerformanceDataClient
+    IOptions<EmailMarketingApi> apiOptions) : IPerformanceDataClient
 {
     private readonly int _pageSize = apiOptions.Value.PageSize;
 
@@ -174,7 +172,6 @@ public sealed class PerformanceDataClient(
 
         var nextEndpoint = AddPaging(initialEndpoint, 0);
         var skip = 0;
-        var pageNumber = 0;
         var isFirstPageInRequest = true;
         var serverPaging = false;
         var seenEndpoints = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -203,13 +200,6 @@ public sealed class PerformanceDataClient(
             {
                 throw new JsonException("The e-shot API response did not contain a value array.");
             }
-
-            pageNumber++;
-            logger.LogDebug(
-                "Retrieved API page {PageNumber} containing {RecordCount} {RecordType} records.",
-                pageNumber,
-                page.Value.Count,
-                typeof(T).Name);
 
             yield return page.Value;
 
