@@ -16,7 +16,7 @@ public sealed class PerformanceDataClient(
 {
     private readonly int _pageSize = apiOptions.Value.PageSize;
     private readonly int _importWindowDays = apiOptions.Value.ImportWindowDays;
-    private readonly int? _sendRetrievalDaysBeforeNow = apiOptions.Value.SendRetrievalDaysBeforeNow;
+    private readonly int? _sendRetrievalLookbackDays = apiOptions.Value.SendRetrievalLookbackDays;
 
     public IAsyncEnumerable<SendEligibilityRecord> GetSendsAsync(IReadOnlyCollection<int>? subAccountIds = null, CancellationToken cancellationToken = default, ConcurrentDictionary<string, long?>? oDataCounts = null)
     {
@@ -29,9 +29,9 @@ public sealed class PerformanceDataClient(
             $"SendCompletedDate le {nowUtc.AddDays(-_importWindowDays).ToODataDateString()}"
         };
 
-        if (_sendRetrievalDaysBeforeNow.HasValue)
+        if (_sendRetrievalLookbackDays.HasValue)
         {
-            filters.Add($"SendCompletedDate ge {nowUtc.AddDays(-_sendRetrievalDaysBeforeNow.Value).ToODataDateString()}");
+            filters.Add($"SendCompletedDate ge {nowUtc.AddDays(-_sendRetrievalLookbackDays.Value).ToODataDateString()}");
         }
 
         if (subAccountIds is { Count: > 0 })
