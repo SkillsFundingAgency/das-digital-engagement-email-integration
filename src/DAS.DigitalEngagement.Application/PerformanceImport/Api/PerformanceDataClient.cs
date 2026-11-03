@@ -2,6 +2,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Collections.Concurrent;
+using DAS.DigitalEngagement.Application.Extensions;
 using DAS.DigitalEngagement.Application.Services.Interfaces;
 using DAS.DigitalEngagement.Models.PerformanceImport;
 using DAS.DigitalEngagement.Models.Infrastructure;
@@ -14,10 +15,24 @@ public sealed class PerformanceDataClient(
     IOptions<EmailMarketingApi> apiOptions) : IPerformanceDataClient
 {
     private readonly int _pageSize = apiOptions.Value.PageSize;
+    private readonly int _importWindowDays = apiOptions.Value.ImportWindowDays;
+    private readonly int? _sendRetrievalDaysBeforeNow = apiOptions.Value.SendRetrievalDaysBeforeNow;
 
     public IAsyncEnumerable<SendEligibilityRecord> GetSendsAsync(IReadOnlyCollection<int>? subAccountIds = null, CancellationToken cancellationToken = default, ConcurrentDictionary<string, long?>? oDataCounts = null)
     {
-        var filters = new List<string> { "IsArchived eq false" };
+        var nowUtc = new DateTimeOffset(
+            DateTimeExtensions.UtcNow.Date,
+            TimeSpan.Zero);
+        var filters = new List<string>
+        {
+            "IsArchived eq false",
+            $"SendCompletedDate le {nowUtc.AddDays(-_importWindowDays).ToODataDateString()}"
+        };
+
+        if (_sendRetrievalDaysBeforeNow.HasValue)
+        {
+            filters.Add($"SendCompletedDate ge {nowUtc.AddDays(-_sendRetrievalDaysBeforeNow.Value).ToODataDateString()}");
+        }
 
         if (subAccountIds is { Count: > 0 })
         {
@@ -282,4 +297,5 @@ public sealed class PerformanceDataClient(
         PropertyNameCaseInsensitive = true,
         NumberHandling = JsonNumberHandling.AllowReadingFromString
     };
+
 }

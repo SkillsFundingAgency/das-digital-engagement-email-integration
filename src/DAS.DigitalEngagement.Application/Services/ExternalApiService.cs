@@ -19,6 +19,7 @@ namespace DAS.DigitalEngagement.Application.Services
         private readonly int _apiRetryCount;
         private readonly ILogger<ExternalApiService> _logger;
         private readonly ResiliencePipeline<HttpResponseMessage> _getRetryPipeline;
+        private static readonly ResiliencePropertyKey<string> RequestUrlKey = new("RequestUrl");
 
         public ExternalApiService(
             HttpClient httpClient,
@@ -55,7 +56,8 @@ namespace DAS.DigitalEngagement.Application.Services
                         if (args.Outcome.Result is { } response)
                         {
                             _logger.LogWarning(
-                                "GET request returned transient status {StatusCode} on attempt {AttemptCount}; retrying.",
+                                "GET request to {RequestUrl} returned transient status {StatusCode} on attempt {AttemptCount}; retrying.",
+                                args.Context.Properties.GetValue(RequestUrlKey, string.Empty),
                                 response.StatusCode,
                                 args.AttemptNumber + 1);
                             response.Dispose();
@@ -64,7 +66,8 @@ namespace DAS.DigitalEngagement.Application.Services
                         {
                             _logger.LogWarning(
                                 args.Outcome.Exception,
-                                "GET request failed on attempt {AttemptCount}; retrying.",
+                                "GET request to {RequestUrl} failed on attempt {AttemptCount}; retrying.",
+                                args.Context.Properties.GetValue(RequestUrlKey, string.Empty),
                                 args.AttemptNumber + 1);
                         }
 
@@ -82,16 +85,18 @@ namespace DAS.DigitalEngagement.Application.Services
             _logger.LogDebug("Making GET request to {RequestUrl}", requestUrl);
 
             HttpResponseMessage response;
+            var resilienceContext = ResilienceContextPool.Shared.Get(cancellationToken);
+            resilienceContext.Properties.Set(RequestUrlKey, requestUrl);
             try
             {
                 response = await _getRetryPipeline.ExecuteAsync(
-                    async token =>
+                    async context =>
                     {
                         using var request = new HttpRequestMessage(HttpMethod.Get, requestUrl);
                         request.Headers.Authorization = new AuthenticationHeaderValue("Token", _apiKey);
-                        return await _httpClient.SendAsync(request, token);
+                        return await _httpClient.SendAsync(request, context.CancellationToken);
                     },
-                    cancellationToken);
+                    resilienceContext);
             }
             catch (Exception exception) when (
                 exception is HttpRequestException ||
@@ -100,6 +105,10 @@ namespace DAS.DigitalEngagement.Application.Services
                 throw new HttpRequestException(
                     $"GET request to '{requestUrl}' failed after {_apiRetryCount + 1} attempts.",
                     exception);
+            }
+            finally
+            {
+                ResilienceContextPool.Shared.Return(resilienceContext);
             }
 
             using (response)

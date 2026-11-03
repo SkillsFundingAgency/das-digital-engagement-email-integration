@@ -64,7 +64,7 @@ public class SendEligibilityServiceTests
     }
 
     [Test]
-    public async Task GetEligibleSendRecordsAsync_FiltersOutRecentAndCompletedSends()
+    public async Task GetEligibleSendRecordsAsync_FiltersOutCompletedSends()
     {
         var service = CreateSut(null);
         var sends = new List<SendEligibilityRecord>
@@ -85,7 +85,7 @@ public class SendEligibilityServiceTests
 
         var result = await service.GetEligibleSendRecordsAsync();
 
-        Assert.That(result.Select(x => x.Id), Is.EqualTo(new[] { 1L }));
+        Assert.That(result.Select(x => x.Id), Is.EqualTo(new[] { 1L, 3L }));
     }
 
     [Test]

@@ -90,6 +90,8 @@ namespace DAS.DigitalEngagement.EmailIntegration.Validators
                 failures.Add("EmailMarketingApi.SendContactFilterBatchSize: required and must be greater than zero.");
             if (emailMarketingApi.SqlWriteBatchSize <= 0)
                 failures.Add("EmailMarketingApi.SqlWriteBatchSize: required and must be greater than zero.");
+            if (emailMarketingApi.SendRetrievalDaysBeforeNow is <= 0)
+                failures.Add("EmailMarketingApi.SendRetrievalDaysBeforeNow: when configured, value must be greater than zero.");
         }
 
         private void ValidateSubAccountIds(int[]? subAccountIds, List<string> failures)
