@@ -263,7 +263,6 @@ public class ApplicationConfigurationValidatorTests
             ],
             GovNotifyConfiguration = new GovNotifyConfiguration
             {
-                ApiKey = "notify-key",
                 MonitoringReportTemplateId = "template",
                 RecipientEmailAddresses = []
             }
