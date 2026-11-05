@@ -1,7 +1,9 @@
-﻿namespace DAS.DigitalEngagement.Application.Handlers.CampaignToStaging
+﻿using DAS.DigitalEngagement.Models.PerformanceImport;
+
+namespace DAS.DigitalEngagement.Application.Handlers.CampaignToStaging
 {
     public interface IImportCampaignStagingHandler
     {
-        Task Handle(CancellationToken cancellationToken = default);
+        Task<PerformanceImportReportSummary> Handle(CancellationToken cancellationToken = default);
     }
 }

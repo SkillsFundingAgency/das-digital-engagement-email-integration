@@ -1,6 +1,9 @@
 using DAS.DigitalEngagement.Application.Handlers.CampaignToStaging;
+using DAS.DigitalEngagement.Application.PerformanceImport.Handlers;
+using DAS.DigitalEngagement.Application.Services.Interfaces;
 using DAS.DigitalEngagement.EmailIntegration.Functions;
 using DAS.DigitalEngagement.Models.Infrastructure;
+using DAS.DigitalEngagement.Models.PerformanceImport;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -15,6 +18,8 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Functions;
 public class PerformanceDataImporterTests
 {
     private Mock<IImportCampaignStagingHandler> _importCampaignStagingHandlerMock = null!;
+    private Mock<IPerformanceImportReportService> _performanceImportReportServiceMock = null!;
+    private Mock<IReportService> _reportServiceMock = null!;
     private Mock<ILogger<PerformanceDataImporter>> _loggerMock = null!;
     private ApplicationConfiguration _configuration = null!;
     private PerformanceDataImporter _sut = null!;
@@ -23,6 +28,8 @@ public class PerformanceDataImporterTests
     public void SetUp()
     {
         _importCampaignStagingHandlerMock = new Mock<IImportCampaignStagingHandler>();
+        _performanceImportReportServiceMock = new Mock<IPerformanceImportReportService>();
+        _reportServiceMock = new Mock<IReportService>();
         _loggerMock = new Mock<ILogger<PerformanceDataImporter>>();
         _configuration = new ApplicationConfiguration
         {
@@ -47,9 +54,27 @@ public class PerformanceDataImporterTests
             }
         };
 
+        _importCampaignStagingHandlerMock
+            .Setup(x => x.Handle(It.IsAny<CancellationToken>()))
+            .Returns(Task.FromResult(new PerformanceImportReportSummary
+            {
+                StartedAtUtc = DateTimeOffset.UtcNow.AddMinutes(-1),
+                EndedAtUtc = DateTimeOffset.UtcNow,
+                Status = PerformanceImportStatus.Completed,
+                EligibleSends = 1
+            }));
+        _performanceImportReportServiceMock
+            .Setup(x => x.CreatePerformanceImportReport(It.IsAny<PerformanceImportReportSummary>()))
+            .Returns("report-content");
+        _reportServiceMock
+            .Setup(x => x.SaveReportToBlobInternalAsync(It.IsAny<string>(), It.IsAny<string>()))
+            .ReturnsAsync("https://example.test/report.txt");
+
         _sut = new PerformanceDataImporter(
             _importCampaignStagingHandlerMock.Object,
             _configuration,
+            _performanceImportReportServiceMock.Object,
+            _reportServiceMock.Object,
             _loggerMock.Object);
     }
 
@@ -64,6 +89,11 @@ public class PerformanceDataImporterTests
 
         // Assert
         _importCampaignStagingHandlerMock.Verify(x => x.Handle(CancellationToken.None), Times.Once);
+        _performanceImportReportServiceMock.Verify(x => x.CreatePerformanceImportReport(It.IsAny<PerformanceImportReportSummary>()), Times.Once);
+        _reportServiceMock.Verify(x => x.SaveReportToBlobInternalAsync(
+                "report-content",
+                It.Is<string>(name => name.StartsWith("Performance-Import/Import-"))),
+            Times.Once);
         _loggerMock.Verify(
             x => x.Log(
                 LogLevel.Information,
@@ -115,6 +145,10 @@ public class PerformanceDataImporterTests
         Assert.That(exception!.Message, Does.StartWith("Performance data import failed after "));
         Assert.That(exception.InnerException, Is.SameAs(innerException));
         _importCampaignStagingHandlerMock.Verify(x => x.Handle(CancellationToken.None), Times.Once);
+        _reportServiceMock.Verify(x => x.SaveReportToBlobInternalAsync(
+                It.Is<string>(report => report.Contains("Performance Data Import failed")),
+                It.Is<string>(name => name.StartsWith("Performance-Import/Import-"))),
+            Times.Once);
         _loggerMock.Verify(
             x => x.Log(
                 LogLevel.Information,
@@ -130,6 +164,42 @@ public class PerformanceDataImporterTests
                 It.Is<It.IsAnyType>((state, _) => state.ToString()!.Contains("Performance data import using API base URL https://api.test.com")),
                 It.IsAny<Exception?>(),
                 It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
+    }
+
+    [Test]
+    public async Task Run_WhenImportFailsWithSummary_SavesStructuredFailureReport()
+    {
+        var timerInfo = new TimerInfo();
+        var summary = new PerformanceImportReportSummary
+        {
+            Status = PerformanceImportStatus.Partial,
+            EligibleSends = 2,
+            FailureCount = 1,
+            StartedAtUtc = DateTimeOffset.UtcNow.AddMinutes(-1),
+            EndedAtUtc = DateTimeOffset.UtcNow,
+            Messages = ["Outer batch 1 had 1 failed groups."]
+        };
+
+        _importCampaignStagingHandlerMock
+            .Setup(x => x.Handle(It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new PerformanceImportFailedException(
+                summary,
+                "failure",
+                new AggregateException(new InvalidOperationException("test"))));
+
+        _performanceImportReportServiceMock
+            .Setup(x => x.CreatePerformanceImportReport(summary))
+            .Returns("structured-failure-report");
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => _sut.Run(timerInfo, CancellationToken.None));
+
+        Assert.That(exception, Is.Not.Null);
+        Assert.That(exception!.InnerException, Is.TypeOf<PerformanceImportFailedException>());
+        _performanceImportReportServiceMock.Verify(x => x.CreatePerformanceImportReport(summary), Times.Once);
+        _reportServiceMock.Verify(x => x.SaveReportToBlobInternalAsync(
+                "structured-failure-report",
+                It.Is<string>(name => name.StartsWith("Performance-Import/Import-"))),
             Times.Once);
     }
 }

@@ -1,4 +1,5 @@
 ﻿using DAS.DigitalEngagement.Application.PerformanceImport.Services;
+using DAS.DigitalEngagement.Models.PerformanceImport;
 using Microsoft.Extensions.Logging;
 
 namespace DAS.DigitalEngagement.Application.Handlers.CampaignToStaging
@@ -8,7 +9,7 @@ namespace DAS.DigitalEngagement.Application.Handlers.CampaignToStaging
         IPerformanceImportService performanceImportService,
         ILogger<ImportCampaignStagingHandler> logger) : IImportCampaignStagingHandler
     {
-        public async Task Handle(CancellationToken cancellationToken = default)
+        public async Task<PerformanceImportReportSummary> Handle(CancellationToken cancellationToken = default)
         {
             logger.LogInformation("Performance import handler started.");
 
@@ -18,15 +19,23 @@ namespace DAS.DigitalEngagement.Application.Handlers.CampaignToStaging
             if (eligibleSends.Count == 0)
             {
                 logger.LogInformation("No eligible sends found; performance import will finish without processing.");
-                return;
+                return new PerformanceImportReportSummary
+                {
+                    StartedAtUtc = DateTimeOffset.UtcNow,
+                    EndedAtUtc = DateTimeOffset.UtcNow,
+                    Status = PerformanceImportStatus.Completed,
+                    EligibleSends = 0,
+                    Messages = ["No eligible sends found; nothing imported."]
+                };
             }
 
-            await performanceImportService.ImportAsync(
+            var summary = await performanceImportService.ImportAsync(
                 eligibleSends,
                 DateTimeOffset.UtcNow,
                 cancellationToken);
 
             logger.LogInformation("Performance import handler completed for {EligibleSendCount} sends.", eligibleSends.Count);
+            return summary;
           
         }
     }

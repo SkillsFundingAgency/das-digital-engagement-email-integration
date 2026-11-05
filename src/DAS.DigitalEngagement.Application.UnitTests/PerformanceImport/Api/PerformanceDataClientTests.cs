@@ -39,29 +39,31 @@ public class PerformanceDataClientTests
     public async Task GetSendsAsync_ReturnsRecords_AndUsesDefaultEndpoint_WhenSubAccountIdsAreNull()
     {
         var client = CreateClient();
-        SetupPagedResponse("Sends?$select=ID,SendCompletedDate&$orderby=ID&$top=2&$skip=0", new
+        SetupPagedResponse("Sends?$select=ID,SendCompletedDate&$orderby=ID&$count=true&$top=2&$skip=0", new Dictionary<string, object?>
         {
-            value = new[]
-            {
-                new { ID = 10L, SendCompletedDate = "2025-01-01T10:00:00Z" },
-                new { ID = 11L, SendCompletedDate = "2025-01-02T10:00:00Z" }
+            { "@odata.count", 100 },
+            { "value", new[]
+                {
+                    new { ID = 10L, SendCompletedDate = "2025-01-01T10:00:00Z" },
+                    new { ID = 11L, SendCompletedDate = "2025-01-02T10:00:00Z" }
+                }
             }
         });
-        SetupPagedResponse("Sends?$select=ID,SendCompletedDate&$orderby=ID&$top=2&$skip=2", new Dictionary<string, object?> { { "value", Array.Empty<object>() } });
+        SetupPagedResponse("Sends?$select=ID,SendCompletedDate&$orderby=ID&$count=true&$top=2&$skip=2", new Dictionary<string, object?> { { "@odata.count", 100 }, { "value", Array.Empty<object>() } });
 
         var result = await EnumerateAsync(client.GetSendsAsync());
 
         Assert.That(result, Has.Count.EqualTo(2));
         Assert.That(result[0].Id, Is.EqualTo(10));
         Assert.That(result[1].Id, Is.EqualTo(11));
-        VerifyRequestedEndpoint("Sends?$select=ID,SendCompletedDate&$orderby=ID&$top=2&$skip=0", Times.Once());
+        VerifyRequestedEndpoint("Sends?$select=ID,SendCompletedDate&$orderby=ID&$count=true&$top=2&$skip=0", Times.Once());
     }
 
     [Test]
     public async Task GetSendsAsync_DeduplicatesSubAccountIds_AndEncodesFilter()
     {
         var client = CreateClient();
-        var endpoint = "Sends?$select=ID,SendCompletedDate&$orderby=ID&$filter=SubAccountID%20in%20%281%2C2%29&$top=2&$skip=0";
+        var endpoint = "Sends?$select=ID,SendCompletedDate&$orderby=ID&$count=true&$filter=SubAccountID%20in%20%281%2C2%29&$top=2&$skip=0";
         SetupPagedResponse(endpoint, new { value = Array.Empty<object>() });
 
         var result = await EnumerateAsync(client.GetSendsAsync([1, 2, 2]));
@@ -104,7 +106,7 @@ public class PerformanceDataClientTests
     public async Task GetSendsByIdsAsync_UsesOrderedEndpoint()
     {
         var client = CreateClient();
-        var endpoint = "Sends?$filter=ID in (5,9)&$orderby=ID&$top=2&$skip=0";
+        var endpoint = "Sends?$filter=ID in (5,9)&$orderby=ID&$count=true&$top=2&$skip=0";
         SetupPagedResponse(endpoint, new
         {
             value = new[]
@@ -154,7 +156,7 @@ public class PerformanceDataClientTests
     public async Task GetCampaignsAsync_UsesDistinctIdsAndMapsValues()
     {
         var client = CreateClient();
-        var endpoint = "Campaigns?$filter=ID in (7,8)&$orderby=ID&$top=2&$skip=0";
+        var endpoint = "Campaigns?$filter=ID in (7,8)&$orderby=ID&$count=true&$top=2&$skip=0";
         SetupPagedResponse(endpoint, new
         {
             value = new[]
@@ -187,7 +189,7 @@ public class PerformanceDataClientTests
     public async Task GetSendContactPagesAsync_ReturnsPages()
     {
         var client = CreateClient();
-        var endpoint = "SendContacts?$filter=SendID%20in%20%281%2C2%29&$orderby=ID&$top=2&$skip=0";
+        var endpoint = "SendContacts?$filter=SendID%20in%20%281%2C2%29&$orderby=ID&$count=true&$top=2&$skip=0";
         SetupPagedResponse(endpoint, new
         {
             value = new[]
@@ -230,7 +232,7 @@ public class PerformanceDataClientTests
     public async Task GetLinksAsync_UsesExpectedEndpoint()
     {
         var client = CreateClient();
-        var endpoint = "Links?$filter=SendID%20in%20%2812%2C13%29&$orderby=ID&$top=2&$skip=0";
+        var endpoint = "Links?$filter=SendID%20in%20%2812%2C13%29&$orderby=ID&$count=true&$top=2&$skip=0";
         SetupPagedResponse(endpoint, new
         {
             value = new[]
@@ -262,7 +264,7 @@ public class PerformanceDataClientTests
     public async Task GetDisplayedContactsAsync_UsesExpectedEndpoint()
     {
         var client = CreateClient();
-        var endpoint = "DisplayedContacts?$filter=SendID%20in%20%2821%29&$orderby=ID&$top=2&$skip=0";
+        var endpoint = "DisplayedContacts?$filter=SendID%20in%20%2821%29&$orderby=ID&$count=true&$top=2&$skip=0";
         SetupPagedResponse(endpoint, new { value = new[] { new { ID = 1L, SendContactID = 21L } } });
 
         var result = await EnumerateAsync(client.GetDisplayedContactsAsync([21]));
@@ -287,7 +289,7 @@ public class PerformanceDataClientTests
     public async Task GetClickedContactsAsync_UsesExpectedEndpoint()
     {
         var client = CreateClient();
-        var endpoint = "ClickedContacts?$filter=SendID%20in%20%2822%29&$orderby=ID&$top=2&$skip=0";
+        var endpoint = "ClickedContacts?$filter=SendID%20in%20%2822%29&$orderby=ID&$count=true&$top=2&$skip=0";
         SetupPagedResponse(endpoint, new { value = new[] { new { ID = 1L, SendContactID = 22L } } });
 
         var result = await EnumerateAsync(client.GetClickedContactsAsync([22]));
@@ -312,7 +314,7 @@ public class PerformanceDataClientTests
     public async Task GetBouncedContactsAsync_UsesExpectedEndpoint()
     {
         var client = CreateClient();
-        var endpoint = "BouncedContacts?$filter=SendID%20in%20%2823%29&$orderby=ID&$top=2&$skip=0";
+        var endpoint = "BouncedContacts?$filter=SendID%20in%20%2823%29&$orderby=ID&$count=true&$top=2&$skip=0";
         SetupPagedResponse(endpoint, new { value = new[] { new { ID = 1L, SendContactID = 23L } } });
 
         var result = await EnumerateAsync(client.GetBouncedContactsAsync([23]));
@@ -326,7 +328,7 @@ public class PerformanceDataClientTests
     public async Task GetUnsubscribedContactsAsync_UsesExpectedEndpoint()
     {
         var client = CreateClient();
-        var endpoint = "UnsubscribedContacts?$filter=SendID%20in%20%2824%29&$orderby=ID&$top=2&$skip=0";
+        var endpoint = "UnsubscribedContacts?$filter=SendID%20in%20%2824%29&$orderby=ID&$count=true&$top=2&$skip=0";
         SetupPagedResponse(endpoint, new { value = new[] { new { ID = 1L, SendContactID = 24L } } });
 
         var result = await EnumerateAsync(client.GetUnsubscribedContactsAsync([24]));
@@ -340,7 +342,7 @@ public class PerformanceDataClientTests
     public async Task GetUserAgentsAsync_UsesExpectedEndpoint()
     {
         var client = CreateClient();
-        var endpoint = "UserAgents?$filter=SendID%20in%20%2825%29&$orderby=ID&$top=2&$skip=0";
+        var endpoint = "UserAgents?$filter=SendID%20in%20%2825%29&$orderby=ID&$count=true&$top=2&$skip=0";
         SetupPagedResponse(endpoint, new { value = new[] { new { ID = 1L, SendContactID = 25L } } });
 
         var result = await EnumerateAsync(client.GetUserAgentsAsync([25]));

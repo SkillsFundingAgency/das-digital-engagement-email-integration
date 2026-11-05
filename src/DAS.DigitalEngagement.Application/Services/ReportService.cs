@@ -7,6 +7,9 @@ using Azure.Storage.Blobs;
 
 namespace DAS.DigitalEngagement.Application.Services
 {
+    // TODO: Move report generation logic into a separate class.
+    // Keep blob storage operations in this class and rename it to BlobReportStorageService.
+    // Remove email notification code.
     public class ReportService : IReportService
     {
         private readonly string _container = "email-integration-to-marketing-tool";

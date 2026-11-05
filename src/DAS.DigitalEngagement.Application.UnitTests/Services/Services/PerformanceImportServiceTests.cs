@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
@@ -51,11 +52,13 @@ public class PerformanceImportServiceTests
     {
         var sut = CreateSut();
 
-        await sut.ImportAsync(Array.Empty<SendEligibilityRecord>(), DateTimeOffset.UtcNow);
+        var summary = await sut.ImportAsync(Array.Empty<SendEligibilityRecord>(), DateTimeOffset.UtcNow);
 
         _dataClientMock.VerifyNoOtherCalls();
         _dataWriterMock.VerifyNoOtherCalls();
         _bulkInserterMock.VerifyNoOtherCalls();
+        Assert.That(summary, Is.Not.Null);
+        Assert.That(summary!.EligibleSends, Is.EqualTo(0));
     }
 
     [Test]
@@ -68,45 +71,45 @@ public class PerformanceImportServiceTests
             new SendEligibilityRecord { Id = 2 }
         };
 
-        _dataClientMock.Setup(x => x.GetSendsByIdsAsync(It.IsAny<IReadOnlyCollection<long>>(), It.IsAny<CancellationToken>()))
+        _dataClientMock.Setup(x => x.GetSendsByIdsAsync(It.IsAny<IReadOnlyCollection<long>>(), It.IsAny<CancellationToken>(), It.IsAny<ConcurrentDictionary<string, long?>?>()))
             .Returns(ToAsyncEnumerable(new[]
             {
                 new Send { Id = 1, CampaignId = 10 },
                 new Send { Id = 2, CampaignId = 11 }
             }));
 
-        _dataClientMock.Setup(x => x.GetCampaignsAsync(It.IsAny<IReadOnlyCollection<long>>(), It.IsAny<CancellationToken>()))
+        _dataClientMock.Setup(x => x.GetCampaignsAsync(It.IsAny<IReadOnlyCollection<long>>(), It.IsAny<CancellationToken>(), It.IsAny<ConcurrentDictionary<string, long?>?>()))
             .Returns(ToAsyncEnumerable(new[]
             {
                 new Campaign { Id = 10 },
                 new Campaign { Id = 11 }
             }));
 
-        _dataClientMock.Setup(x => x.GetLinksAsync(It.IsAny<IReadOnlyCollection<long>>(), It.IsAny<CancellationToken>()))
+        _dataClientMock.Setup(x => x.GetLinksAsync(It.IsAny<IReadOnlyCollection<long>>(), It.IsAny<CancellationToken>(), It.IsAny<ConcurrentDictionary<string, long?>?>()))
             .Returns(ToAsyncEnumerable(new[] { new LinkApiRecord { Id = 100, SendId = 1 } }));
 
-        _dataClientMock.Setup(x => x.GetSendContactPagesAsync(It.IsAny<IReadOnlyCollection<long>>(), It.IsAny<CancellationToken>()))
+        _dataClientMock.Setup(x => x.GetSendContactPagesAsync(It.IsAny<IReadOnlyCollection<long>>(), It.IsAny<CancellationToken>(), It.IsAny<ConcurrentDictionary<string, long?>?>()))
             .Returns(ToPageEnumerable([new[] { new SendContactApiRecord { Id = 1, ContactId = 100, SendId = 1 } } ]));
 
-        _dataClientMock.Setup(x => x.GetContactsAsync(It.IsAny<IReadOnlyCollection<long>>(), It.IsAny<CancellationToken>()))
+        _dataClientMock.Setup(x => x.GetContactsAsync(It.IsAny<IReadOnlyCollection<long>>(), It.IsAny<CancellationToken>(), It.IsAny<ConcurrentDictionary<string, long?>?>()))
             .Returns(ToAsyncEnumerable(new[] { new ContactApiRecord { Id = 100 } }));
 
-        _dataClientMock.Setup(x => x.GetUserAgentsAsync(It.IsAny<IReadOnlyCollection<long>>(), It.IsAny<CancellationToken>()))
+        _dataClientMock.Setup(x => x.GetUserAgentsAsync(It.IsAny<IReadOnlyCollection<long>>(), It.IsAny<CancellationToken>(), It.IsAny<ConcurrentDictionary<string, long?>?>()))
             .Returns(ToAsyncEnumerable(new[] { new UserAgentApiRecord { Id = 1, SendContactId = 1 } }));
 
-        _dataClientMock.Setup(x => x.GetDisplayedContactsAsync(It.IsAny<IReadOnlyCollection<long>>(), It.IsAny<CancellationToken>()))
+        _dataClientMock.Setup(x => x.GetDisplayedContactsAsync(It.IsAny<IReadOnlyCollection<long>>(), It.IsAny<CancellationToken>(), It.IsAny<ConcurrentDictionary<string, long?>?>()))
             .Returns(ToAsyncEnumerable(new[] { new DisplayedContactApiRecord { Id = 1, SendContactId = 1 } }));
 
-        _dataClientMock.Setup(x => x.GetClickedContactsAsync(It.IsAny<IReadOnlyCollection<long>>(), It.IsAny<CancellationToken>()))
+        _dataClientMock.Setup(x => x.GetClickedContactsAsync(It.IsAny<IReadOnlyCollection<long>>(), It.IsAny<CancellationToken>(), It.IsAny<ConcurrentDictionary<string, long?>?>()))
             .Returns(ToAsyncEnumerable(new[] { new ClickedContactApiRecord { Id = 1, SendContactId = 1 } }));
 
-        _dataClientMock.Setup(x => x.GetBouncedContactsAsync(It.IsAny<IReadOnlyCollection<long>>(), It.IsAny<CancellationToken>()))
+        _dataClientMock.Setup(x => x.GetBouncedContactsAsync(It.IsAny<IReadOnlyCollection<long>>(), It.IsAny<CancellationToken>(), It.IsAny<ConcurrentDictionary<string, long?>?>()))
             .Returns(ToAsyncEnumerable(new[] { new BouncedContactApiRecord { Id = 1, SendContactId = 1 } }));
 
-        _dataClientMock.Setup(x => x.GetUnsubscribedContactsAsync(It.IsAny<IReadOnlyCollection<long>>(), It.IsAny<CancellationToken>()))
+        _dataClientMock.Setup(x => x.GetUnsubscribedContactsAsync(It.IsAny<IReadOnlyCollection<long>>(), It.IsAny<CancellationToken>(), It.IsAny<ConcurrentDictionary<string, long?>?>()))
             .Returns(ToAsyncEnumerable(new[] { new UnsubscribedContactApiRecord { Id = 1, SendContactId = 1 } }));
 
-        await sut.ImportAsync(eligibleSends, DateTimeOffset.UtcNow);
+        var summary = await sut.ImportAsync(eligibleSends, DateTimeOffset.UtcNow);
 
         _dataWriterMock.Verify(x => x.WriteImportCompletionsAsync(
             It.Is<IReadOnlyCollection<Send>>(s => s.Count == 2),
@@ -115,6 +118,16 @@ public class PerformanceImportServiceTests
             It.IsAny<CancellationToken>()), Times.AtLeastOnce);
         _dataWriterMock.Verify(x => x.WriteSendContactsAsync(It.IsAny<IReadOnlyCollection<SendContactApiRecord>>(), It.IsAny<CancellationToken>()), Times.AtLeastOnce);
         _dataWriterMock.Verify(x => x.WriteLinksAsync(It.IsAny<IReadOnlyCollection<LinkApiRecord>>(), It.IsAny<CancellationToken>()), Times.AtLeastOnce);
+
+        Assert.That(summary, Is.Not.Null);
+        Assert.Multiple(() =>
+        {
+            Assert.That(summary!.EligibleSends, Is.EqualTo(2));
+            Assert.That(summary.ImportedSendRecords, Is.EqualTo(2));
+            Assert.That(summary.ImportedCampaignRecords, Is.EqualTo(2));
+            Assert.That(summary.ImportedSendContactRecords, Is.EqualTo(1));
+            Assert.That(summary.ImportedContactRecords, Is.EqualTo(1));
+        });
     }
 
     private PerformanceImportService CreateSut()
