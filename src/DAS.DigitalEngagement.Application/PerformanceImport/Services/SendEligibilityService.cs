@@ -14,7 +14,6 @@ public sealed class SendEligibilityService(
     ILogger<SendEligibilityService> logger,
     IOptions<EmailMarketingApi> apiConfig) : ISendEligibilityService
 {
-    private readonly int _importWindowDays = apiConfig.Value.ImportWindowDays;
     private readonly IReadOnlyCollection<int>? _subAccountIds = apiConfig.Value.SubAccountIds is { Length: > 0 }
         ? apiConfig.Value.SubAccountIds
         : null;
@@ -42,17 +41,14 @@ public sealed class SendEligibilityService(
             .Select(item => (long)item.SendId)
             .ToHashSet();
 
-        var cutoff = DateTimeOffset.UtcNow.AddDays(-_importWindowDays);
         var eligibleSends = sends
-            .Where(send => send.SendCompletedDate <= cutoff)
             .Where(send => !completedSendIds.Contains(send.Id))
             .ToList();
 
         logger.LogInformation(
-            "Eligibility evaluation completed. Metadata entries: {MetadataCount}, completed sends: {CompletedSendCount}, cutoff: {Cutoff}, eligible sends: {EligibleSendCount}.",
+            "Eligibility evaluation completed. Metadata entries: {MetadataCount}, completed sends: {CompletedSendCount}, eligible sends: {EligibleSendCount}.",
             metadata.Count(),
             completedSendIds.Count,
-            cutoff,
             eligibleSends.Count);
 
         return eligibleSends;

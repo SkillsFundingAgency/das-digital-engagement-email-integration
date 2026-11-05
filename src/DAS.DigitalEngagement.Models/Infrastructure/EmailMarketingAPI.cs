@@ -15,5 +15,6 @@ public class EmailMarketingApi
     public int MaxConcurrentEventImports { get; set; } = 5; // Maximum concurrent event import operations per SendContacts batch
     public int SqlWriteBatchSize { get; set; } = 5000; // Maximum rows written to SQL in one batch
     public int ImportWindowDays { get; set; } = 7; // Minimum age in days for Sends to be imported; only import Sends completed at least this many days ago
+    public int? SendRetrievalLookbackDays { get; set; } // Optional API retrieval lookback in days; null retrieves full history
     public int[]? SubAccountIds { get; set; }
 }
