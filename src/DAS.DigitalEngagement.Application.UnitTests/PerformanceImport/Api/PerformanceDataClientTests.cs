@@ -75,6 +75,44 @@ public class PerformanceDataClientTests
     }
 
     [Test]
+    public async Task GetSendsAsync_WhenLookbackConfigured_AddsLowerDateFilter()
+    {
+        _options = Options.Create(new EmailMarketingApi
+        {
+            ApiBaseUrl = "https://api.test.com",
+            ApiKey = "test-key",
+            ApiRetryCount = 3,
+            ChunkSizeKB = 1024,
+            PageSize = 2,
+            ImportWindowDays = 7,
+            SendRetrievalLookbackDays = 30
+        });
+
+        var client = CreateClient();
+        var nowUtc = new DateTimeOffset(DateTimeExtensions.UtcNow.Date, TimeSpan.Zero);
+        var filter = $"IsArchived eq false and SendCompletedDate le {nowUtc.AddDays(-7).ToODataDateString()} and SendCompletedDate ge {nowUtc.AddDays(-30).ToODataDateString()}";
+        var endpoint = $"Sends?$select=ID,SendCompletedDate&$orderby=ID&$count=true&$filter={Uri.EscapeDataString(filter)}&$top=2&$skip=0";
+        SetupPagedResponse(endpoint, new { value = Array.Empty<object>() });
+
+        var result = await EnumerateAsync(client.GetSendsAsync());
+
+        Assert.That(result, Is.Empty);
+        VerifyRequestedEndpoint(endpoint, Times.Once());
+    }
+
+    [Test]
+    public async Task GetSendsAsync_WhenLookbackIsNotConfigured_OmitsLowerDateFilter()
+    {
+        var client = CreateClient();
+        var endpoint = $"Sends?$select=ID,SendCompletedDate&$orderby=ID&$count=true&$filter={Uri.EscapeDataString($"IsArchived eq false and SendCompletedDate le {new DateTimeOffset(DateTimeExtensions.UtcNow.Date, TimeSpan.Zero).AddDays(-7).ToODataDateString()}")}&$top=2&$skip=0";
+        SetupPagedResponse(endpoint, new { value = Array.Empty<object>() });
+
+        await EnumerateAsync(client.GetSendsAsync());
+
+        VerifyRequestedEndpoint(endpoint, Times.Once());
+    }
+
+    [Test]
     public async Task GetSendContactPagesAsync_ReturnsEmpty_WhenNoIdsProvided()
     {
         var client = CreateClient();
