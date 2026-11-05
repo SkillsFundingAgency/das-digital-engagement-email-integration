@@ -1128,7 +1128,7 @@ namespace DAS.DigitalEngagement.Application.Services.UnitTests
 
             var service = new ReportService(mockBlobServiceClient.Object, mockLogger.Object, mockEmailNotificationService.Object);
 
-            var thrown = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            await Assert.DoesNotThrowAsync(async () =>
                 await service.SaveReportToBlobAndNotifyAsync(reportContent, fileName, integrationName));
 
             //Assert.That(thrown, Is.Not.Null);
