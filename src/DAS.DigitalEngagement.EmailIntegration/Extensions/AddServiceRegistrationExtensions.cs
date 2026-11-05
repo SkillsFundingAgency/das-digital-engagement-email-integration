@@ -48,9 +48,11 @@ namespace DAS.DigitalEngagement.EmailIntegration.Extensions
                 var connectionString = configuration.GetSection("ConnectionString")["CampaignsDatabase"]
                     ?? throw new ConfigurationErrorsException("CampaignsDatabase connection string is not configured");
 
-                var tokenCredential = sp.GetService<TokenCredential>();
+                //var tokenCredential = sp.GetService<TokenCredential>();
 
-                return new SqlConnectionFactory(connectionString, tokenCredential);
+                //return new SqlConnectionFactory(connectionString, tokenCredential);
+
+                return new SqlConnectionFactory(connectionString);
             });
            
 
@@ -68,16 +70,9 @@ namespace DAS.DigitalEngagement.EmailIntegration.Extensions
             services.AddTransient<ICsvService, CsvService>();
             services.AddTransient<IReportService, ReportService>();
             services.AddTransient<IPerformanceImportReportService, PerformanceImportReportService>();
-            services.AddTransient<INotificationClientWrapper>(sp =>
-            {
-                var configuration = sp.GetRequiredService<IConfiguration>();
-                var apiKey = configuration["GovNotifyConfiguration:ApiKey"];
-                if (string.IsNullOrWhiteSpace(apiKey))
-                {
-                    throw new ConfigurationErrorsException("GovNotify:ApiKey is not configured or is empty.");
-                }
-                return new NotificationClientWrapper(apiKey);
-            });
+
+            services.AddNServiceBus(configuration);
+            services.AddTransient<INotificationService, NotificationService>();
 
             services.AddSingleton(provider => new BlobServiceClient(azureBlobStorage));
 
