@@ -61,9 +61,7 @@ public sealed class SendEligibilityService(
     public async Task<IEnumerable<CampaignImportMetadata>> GetAllCampaignImportMetadataAsync(
         CancellationToken cancellationToken = default)
     {
-        var metadata = await campaignImportMetadataRepository.GetAllAsync(cancellationToken);
-        logger.LogInformation("Retrieved {Count} campaign import metadata entries", metadata.Count());
-        return metadata;
+        return await campaignImportMetadataRepository.GetAllAsync(cancellationToken);
     }
 
 }
