@@ -5,6 +5,7 @@ namespace DAS.DigitalEngagement.Models.PerformanceImport;
 public sealed class UserAgentApiRecord
 {
     [JsonPropertyName("ID")] public long Id { get; init; }
+    [JsonPropertyName("SubaccountID")] public long? SubaccountId { get; init; }
     [JsonPropertyName("SendContactID")] public long SendContactId { get; init; }
     [JsonPropertyName("DisplayDate")] public DateTimeOffset? DisplayDate { get; init; }
     [JsonPropertyName("IPAddress")] public string? IpAddress { get; init; }

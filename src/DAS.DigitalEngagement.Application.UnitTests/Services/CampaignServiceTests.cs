@@ -623,7 +623,7 @@ namespace DAS.DigitalEngagement.Application.UnitTests.Services
                 ""value"": [
                     {
                         ""ID"": 1,
-                        ""UnsubscribedDate"": ""2024-01-01T13:00:00Z"",
+                        ""UnsubscribeDate"": ""2024-01-01T13:00:00Z"",
                         ""SendID"": 1,
                         ""CampaignID"": 456,
                         ""IsGlobalUnsubscribe"": true,
@@ -656,7 +656,7 @@ namespace DAS.DigitalEngagement.Application.UnitTests.Services
                 ""value"": [" + string.Join(",", Enumerable.Range(0, PageSize).Select(i => $@"
                     {{
                         ""ID"": {i},
-                        ""UnsubscribedDate"": ""2024-01-01T13:00:00Z"",
+                        ""UnsubscribeDate"": ""2024-01-01T13:00:00Z"",
                         ""SendID"": 1
                     }}")) + @"]
             }";
@@ -665,7 +665,7 @@ namespace DAS.DigitalEngagement.Application.UnitTests.Services
                 ""value"": [
                     {
                         ""ID"": 100,
-                        ""UnsubscribedDate"": ""2024-01-01T13:00:00Z"",
+                        ""UnsubscribeDate"": ""2024-01-01T13:00:00Z"",
                         ""SendID"": 1
                     }
                 ]

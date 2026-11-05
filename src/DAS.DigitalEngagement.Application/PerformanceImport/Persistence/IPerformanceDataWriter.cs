@@ -4,6 +4,8 @@ namespace DAS.DigitalEngagement.Application.PerformanceImport.Persistence;
 
 public interface IPerformanceDataWriter
 {
+    Task WriteSendsAsync(IReadOnlyCollection<Send> records, CancellationToken cancellationToken = default);
+    Task WriteCampaignsAsync(IReadOnlyCollection<Campaign> records, CancellationToken cancellationToken = default);
     Task WriteContactsAsync(IReadOnlyCollection<ContactApiRecord> records, CancellationToken cancellationToken = default);
     Task WriteSendContactsAsync(IReadOnlyCollection<SendContactApiRecord> records, CancellationToken cancellationToken = default);
     Task WriteLinksAsync(IReadOnlyCollection<LinkApiRecord> records, CancellationToken cancellationToken = default);

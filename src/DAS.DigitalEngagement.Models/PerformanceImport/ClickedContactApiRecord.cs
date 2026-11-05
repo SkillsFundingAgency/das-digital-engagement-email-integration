@@ -5,6 +5,7 @@ namespace DAS.DigitalEngagement.Models.PerformanceImport;
 public sealed class ClickedContactApiRecord
 {
     [JsonPropertyName("ID")] public long Id { get; init; }
+    [JsonPropertyName("SubaccountID")] public long? SubaccountId { get; init; }
     [JsonPropertyName("ClickDate")] public DateTimeOffset? ClickDate { get; init; }
     [JsonPropertyName("LinkID")] public long? LinkId { get; init; }
     [JsonPropertyName("SendContactID")] public long SendContactId { get; init; }

@@ -3,7 +3,6 @@ using DAS.DigitalEngagement.Application.PerformanceImport.Persistence;
 using DAS.DigitalEngagement.CampaignInterest.Data.Service;
 using DAS.DigitalEngagement.Models.PerformanceImport;
 using DAS.DigitalEngagement.Models.Infrastructure;
-using DAS.DigitalEngagement.Application.PerformanceImport.Mappers;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Logging;
 using System.Diagnostics;
@@ -62,35 +61,53 @@ public sealed class PerformanceImportService(
         {
             batchNumber++;
             var sendIds = eligibleSendBatch.Select(send => send.Id).ToArray();
-            logger.LogInformation(
-                "Processing performance import batch {BatchNumber} of {BatchCount} with {SendCount} sends.",
-                batchNumber,
-                totalBatchCount,
-                sendIds.Length);
-
-            var sends = await GetSendsByIdsAsync(sendIds, cancellationToken);
-
-            var campaignIds = sends
-                .Where(send => send.CampaignId.HasValue)
-                .Select(send => send.CampaignId!.Value)
-                .Distinct()
-                .Where(importedCampaignIds.Add)
-                .ToArray();
-            var campaigns = (await GetCampaignsByIdsAsync(campaignIds, cancellationToken)).ToList();
-
-            logger.LogInformation(
-                "Batch {BatchNumber} loaded {SendCount} sends and {CampaignCount} new campaigns.",
-                batchNumber,
-                sends.Count,
-                campaigns.Count);
-
-            // Write campaigns and sends before their dependent performance records.
-            await WriteCampaignsAsync(campaigns, cancellationToken);
-            await WriteSendsAsync(sends, cancellationToken);
 
             try
             {
+                logger.LogInformation(
+                    "Processing performance import batch {BatchNumber} of {BatchCount} with {SendCount} sends.",
+                    batchNumber,
+                    totalBatchCount,
+                    sendIds.Length);
+
+                var sends = await ToListAsync(
+                    dataClient.GetSendsByIdsAsync(sendIds, cancellationToken),
+                    cancellationToken);
+
+                var candidateCampaignIds = sends
+                    .Where(send => send.CampaignId.HasValue)
+                    .Select(send => send.CampaignId!.Value)
+                    .Distinct()
+                    .ToArray();
+                var campaignIds = candidateCampaignIds
+                    .Where(campaignId => !importedCampaignIds.Contains(campaignId))
+                    .ToArray();
+                var campaigns = await ToListAsync(
+                    dataClient.GetCampaignsAsync(campaignIds, cancellationToken),
+                    cancellationToken);
+
+                logger.LogInformation(
+                    "Batch {BatchNumber} loaded {SendCount} sends and {CampaignCount} new campaigns.",
+                    batchNumber,
+                    sends.Count,
+                    campaigns.Count);
+
+                // Write campaigns and sends before their dependent performance records.
+                await WriteCampaignsAsync(campaigns, cancellationToken);
+                await WriteSendsAsync(sends, cancellationToken);
+
+                importedCampaignIds.UnionWith(campaignIds);
+
                 await ImportSendPerformanceBatchAsync(sends, importStart, cancellationToken);
+
+                logger.LogInformation(
+                    "Completed performance import batch {BatchNumber} of {BatchCount}.",
+                    batchNumber,
+                    totalBatchCount);
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
             }
             catch (AggregateException aggregate)
             {
@@ -103,8 +120,6 @@ public sealed class PerformanceImportService(
                 outerFailedBatches.Add(ex);
                 logger.LogWarning(ex, "Send performance import failed for outer batch {BatchNumber}; continuing with next batch.", batchNumber);
             }
-
-            logger.LogInformation("Completed performance import batch {BatchNumber} of {BatchCount}.", batchNumber, totalBatchCount);
         }
         if (outerFailedBatches.Count > 0)
         {
@@ -125,14 +140,13 @@ public sealed class PerformanceImportService(
         DateTimeOffset importStart,
         CancellationToken cancellationToken)
     {
-        var totalPageCount = 0;
         var totalSendContactCount = 0;
         var totalContactRecordCount = 0;
         var batchNumber = 0;
         var failedBatches = new List<Exception>();
 
-        // SendContacts can be high volume, with each API page returning up to the configured page size.
-        // Keep each Send ID group bounded, record completion only after all its pages and event data are written.
+        // Keep each Send ID group bounded, record completion only after its send contacts, contacts,
+        // and downstream interaction data have been written.
         // A failed group is logged without preventing later groups from running.
         foreach (var sendBatch in sends.Chunk(_sendContactFilterBatchSize))
         {
@@ -140,7 +154,6 @@ public sealed class PerformanceImportService(
             try
             {
                 var result = await ImportSendContactGroupAsync(sendBatch, batchNumber, importStart, cancellationToken);
-                totalPageCount += result.PageCount;
                 totalSendContactCount += result.SendContactCount;
                 totalContactRecordCount += result.ContactCount;
             }
@@ -151,9 +164,8 @@ public sealed class PerformanceImportService(
         }
 
         logger.LogInformation(
-            "Processed {SendContactCount} send contacts across {PageCount} pages for {SendCount} sends and wrote {ContactCount} contacts.",
+            "Processed {SendContactCount} send contacts for {SendCount} sends and wrote {ContactCount} contacts.",
             totalSendContactCount,
-            totalPageCount,
             sends.Count,
             totalContactRecordCount);
 
@@ -165,131 +177,45 @@ public sealed class PerformanceImportService(
         }
     }
 
-    private async Task<(int PageCount, int SendContactCount, int ContactCount)> ImportSendContactGroupAsync(
+    private async Task<(int SendContactCount, int ContactCount)> ImportSendContactGroupAsync(
         Send[] sendBatch,
         int batchNumber,
         DateTimeOffset importStart,
         CancellationToken cancellationToken)
     {
-        var batchSendIds = sendBatch.Select(send => send.Id).ToArray();
+        var sendIds = sendBatch.Select(send => send.Id).ToArray();
 
-        // Write links before click events that may reference them.
-        var linkCount = await WriteApiRecordsAsync(
-            dataClient.GetLinksAsync(batchSendIds, cancellationToken),
-            (records, token) => dataWriter.WriteLinksAsync(records, token),
-            _sqlWriteBatchSize,
-            cancellationToken);
-
-        var pageCount = 0;
         var sendContactCount = 0;
         var contactCount = 0;
-        await foreach (var sendContactPage in dataClient.GetSendContactPagesAsync(batchSendIds, cancellationToken)
+
+        await foreach (var sendContactPage in dataClient.GetSendContactPagesAsync(sendIds, cancellationToken)
             .WithCancellation(cancellationToken))
         {
-            pageCount++;
-            var pageResult = await ImportSendContactPageAsync(sendContactPage, cancellationToken);
-            sendContactCount += pageResult.SendContactCount;
-            contactCount += pageResult.ContactCount;
+            await WriteSendContactsAsync(sendContactPage, cancellationToken);
 
-            logger.LogInformation(
-                "Completed SendContacts page {PageNumber} for batch {BatchNumber} ({SendCount} sends): {SendContactCount} send contacts, {ContactCount} contacts.",
-                pageCount,
-                batchNumber,
-                sendBatch.Length,
-                pageResult.SendContactCount,
-                pageResult.ContactCount);
+            sendContactCount += sendContactPage.Count;
+            contactCount += await ImportContactDataAsync(sendContactPage, cancellationToken);
         }
 
-        // Write completion metadata only after all pages and event datasets have been processed.
+        await ImportSendInteractionDataAsync(sendIds, batchNumber, cancellationToken);
+
+        // Write completion metadata only after the send contacts, contacts, and interaction datasets have been processed.
         var importCompleteness = sendBatch.ToDictionary(s => s.Id, s => true);
         await dataWriter.WriteImportCompletionsAsync(sendBatch, importStart, importCompleteness, cancellationToken);
 
         logger.LogInformation(
-            "Completed SendContacts batch {BatchNumber} for {SendCount} sends: {PageCount} pages, {SendContactCount} send contacts, {ContactCount} contacts, {LinkCount} links.",
+            "Completed SendContacts batch {BatchNumber} for {SendCount} sends: {SendContactCount} send contacts, {ContactCount} contacts.",
             batchNumber,
             sendBatch.Length,
-            pageCount,
             sendContactCount,
-            contactCount,
-            linkCount);
+            contactCount);
 
-        return (pageCount, sendContactCount, contactCount);
+        return (sendContactCount, contactCount);
     }
 
-    private async Task<(int ContactCount, int SendContactCount)> ImportSendContactPageAsync(
-        IReadOnlyCollection<SendContactApiRecord> sendContactPage,
-        CancellationToken cancellationToken)
-    {
-        var contactIds = sendContactPage.Select(record => record.ContactId).Distinct().ToArray();
-        var returnedContactIds = new HashSet<long>();
-        var contactCount = 0;
-
-        // Fetch distinct contacts in API-sized groups. Check the DB first and only request missing IDs from the API.
-        foreach (var contactIdBatch in contactIds.Chunk(_apiFilterBatchSize))
-        {
-            // Check which IDs already exist in our staging table to avoid unnecessary API calls.
-            var existingIds = await bulkInserter.QueryExistingIdsAsync(ImportTableNames.Contacts, contactIdBatch, cancellationToken);
-            foreach (var id in existingIds)
-            {
-                returnedContactIds.Add(id);
-            }
-
-            var missingIds = contactIdBatch.Where(id => !existingIds.Contains(id)).ToArray();
-            if (missingIds.Length == 0)
-            {
-                continue;
-            }
-
-            contactCount += await WriteApiRecordsAsync(
-                dataClient.GetContactsAsync(missingIds, cancellationToken),
-                async (records, token) =>
-                {
-                    foreach (var contact in records)
-                    {
-                        returnedContactIds.Add(contact.Id);
-                    }
-
-                    await dataWriter.WriteContactsAsync(records, token);
-                },
-                _sqlWriteBatchSize,
-                cancellationToken);
-        }
-
-        var validSendContactPage = sendContactPage;
-        var sendContactIds = validSendContactPage.Select(record => record.Id).Distinct().ToArray();
-
-        // Write SendContacts before processing event datasets that reference these IDs.
-        await dataWriter.WriteSendContactsAsync(validSendContactPage, cancellationToken);
-        foreach (var sendContactIdBatch in sendContactIds.Chunk(_apiFilterBatchSize))
-        {
-            await ProcessSendContactBatchAsync(sendContactIdBatch, cancellationToken);
-        }
-
-        return (contactCount, validSendContactPage.Count);
-    }
-
-    private InvalidOperationException LogSendContactGroupFailure(
+    private async Task ImportSendInteractionDataAsync(
+        long[] sendIds,
         int batchNumber,
-        Send[] sendBatch,
-        Exception exception)
-    {
-        // Log the Send IDs in this failed group and continue; report failures together after all groups run.
-        var sendIdList = string.Join(",", sendBatch.Select(send => send.Id));
-        logger.LogError(
-            exception,
-            "Performance import failed for SendContacts batch {BatchNumber} containing {SendCount} Sends (IDs: {SendIds}). Error: {ErrorMessage}. Continuing with the next batch.",
-            batchNumber,
-            sendBatch.Length,
-            sendIdList,
-            exception.Message);
-
-        return new InvalidOperationException(
-            $"SendContacts batch {batchNumber} failed for Send IDs [{sendIdList}]: {exception.Message}",
-            exception);
-    }
-
-    private async Task ProcessSendContactBatchAsync(
-        long[] sendContactIds,
         CancellationToken cancellationToken)
     {
         // These IDs are already within the API filter limit; stream event results into SQL-sized writes.
@@ -315,61 +241,129 @@ public sealed class PerformanceImportService(
         {
             RunBoundedAsync(
                 () => WriteApiRecordsAsync(
-                    dataClient.GetUserAgentsAsync(sendContactIds, cancellationToken),
+                    dataClient.GetLinksAsync(sendIds, cancellationToken),
+                    (records, token) => dataWriter.WriteLinksAsync(records, token),
+                    _sqlWriteBatchSize,
+                    cancellationToken),
+                count => logger.LogInformation(
+                    "Processed send batch {BatchNumber} of {SendCount}: wrote {LinkCount} links.",
+                    batchNumber,
+                    sendIds.Length,
+                    count)),
+
+            RunBoundedAsync(
+                () => WriteApiRecordsAsync(
+                    dataClient.GetUserAgentsAsync(sendIds, cancellationToken),
                     (records, token) => dataWriter.WriteUserAgentsAsync(records, token),
                     _sqlWriteBatchSize,
                     cancellationToken),
                 count => logger.LogInformation(
-                    "Processed send-contact batch of {SendContactCount}: wrote {UserAgentCount} user agents.",
-                    sendContactIds.Length,
+                    "Processed send batch {BatchNumber} of {SendCount}: wrote {UserAgentCount} user agents.",
+                    batchNumber,
+                    sendIds.Length,
                     count)),
 
             RunBoundedAsync(
                 () => WriteApiRecordsAsync(
-                    dataClient.GetDisplayedContactsAsync(sendContactIds, cancellationToken),
+                    dataClient.GetDisplayedContactsAsync(sendIds, cancellationToken),
                     (records, token) => dataWriter.WriteDisplayedContactsAsync(records, token),
                     _sqlWriteBatchSize,
                     cancellationToken),
                 count => logger.LogInformation(
-                    "Processed send-contact batch of {SendContactCount}: wrote {DisplayedContactCount} displayed contacts.",
-                    sendContactIds.Length,
+                    "Processed send batch {BatchNumber} of {SendCount}: wrote {DisplayedContactCount} displayed contacts.",
+                    batchNumber,
+                    sendIds.Length,
                     count)),
 
             RunBoundedAsync(
                 () => WriteApiRecordsAsync(
-                    dataClient.GetClickedContactsAsync(sendContactIds, cancellationToken),
+                    dataClient.GetClickedContactsAsync(sendIds, cancellationToken),
                     (records, token) => dataWriter.WriteClickedContactsAsync(records, token),
                     _sqlWriteBatchSize,
                     cancellationToken),
                 count => logger.LogInformation(
-                    "Processed send-contact batch of {SendContactCount}: wrote {ClickedContactCount} clicked contacts.",
-                    sendContactIds.Length,
+                    "Processed send batch {BatchNumber} of {SendCount}: wrote {ClickedContactCount} clicked contacts.",
+                    batchNumber,
+                    sendIds.Length,
                     count)),
 
             RunBoundedAsync(
                 () => WriteApiRecordsAsync(
-                    dataClient.GetBouncedContactsAsync(sendContactIds, cancellationToken),
+                    dataClient.GetBouncedContactsAsync(sendIds, cancellationToken),
                     (records, token) => dataWriter.WriteBouncedContactsAsync(records, token),
                     _sqlWriteBatchSize,
                     cancellationToken),
                 count => logger.LogInformation(
-                    "Processed send-contact batch of {SendContactCount}: wrote {BouncedContactCount} bounced contacts.",
-                    sendContactIds.Length,
+                    "Processed send batch {BatchNumber} of {SendCount}: wrote {BouncedContactCount} bounced contacts.",
+                    batchNumber,
+                    sendIds.Length,
                     count)),
 
             RunBoundedAsync(
                 () => WriteApiRecordsAsync(
-                    dataClient.GetUnsubscribedContactsAsync(sendContactIds, cancellationToken),
+                    dataClient.GetUnsubscribedContactsAsync(sendIds, cancellationToken),
                     (records, token) => dataWriter.WriteUnsubscribedContactsAsync(records, token),
                     _sqlWriteBatchSize,
                     cancellationToken),
                 count => logger.LogInformation(
-                    "Processed send-contact batch of {SendContactCount}: wrote {UnsubscribedContactCount} unsubscribed contacts.",
-                    sendContactIds.Length,
+                    "Processed send batch {BatchNumber} of {SendCount}: wrote {UnsubscribedContactCount} unsubscribed contacts.",
+                    batchNumber,
+                    sendIds.Length,
                     count))
         };
 
         await Task.WhenAll(tasks);
+    }
+
+    private async Task<int> ImportContactDataAsync(
+        IReadOnlyCollection<SendContactApiRecord> sendContacts,
+        CancellationToken cancellationToken)
+    {
+        var contactIds = sendContacts.Select(record => record.ContactId).Distinct().ToArray();
+        var contactCount = 0;
+
+        // Fetch distinct contacts in API-sized groups. Check the DB first and only request missing IDs from the API.
+        foreach (var contactIdBatch in contactIds.Chunk(_apiFilterBatchSize))
+        {
+            // Check which IDs already exist in our staging table to avoid unnecessary API calls.
+            var existingIds = await bulkInserter.QueryExistingIdsAsync(ImportTableNames.Contacts, contactIdBatch, cancellationToken);
+            var missingIds = contactIdBatch.Where(id => !existingIds.Contains(id)).ToArray();
+            if (missingIds.Length == 0)
+            {
+                continue;
+            }
+
+            contactCount += await WriteApiRecordsAsync(
+                dataClient.GetContactsAsync(missingIds, cancellationToken),
+                async (records, token) =>
+                {
+                    await dataWriter.WriteContactsAsync(records, token);
+                },
+                _sqlWriteBatchSize,
+                cancellationToken);
+        }
+
+        return contactCount;
+    }
+
+    private InvalidOperationException LogSendContactGroupFailure(
+        int batchNumber,
+        Send[] sendBatch,
+        Exception exception)
+    {
+        // Log the Send IDs in this failed group and continue; report failures together after all groups run.
+        var sendIdList = string.Join(",", sendBatch.Select(send => send.Id));
+        logger.LogError(
+            exception,
+            "Performance import failed for SendContacts batch {BatchNumber} containing {SendCount} Sends (IDs: {SendIds}). Error: {ErrorMessage}. Continuing with the next batch.",
+            batchNumber,
+            sendBatch.Length,
+            sendIdList,
+            exception.Message);
+
+        return new InvalidOperationException(
+            $"SendContacts batch {batchNumber} failed for Send IDs [{sendIdList}]: {exception.Message}",
+            exception);
     }
 
     private static async Task<int> WriteApiRecordsAsync<T>(
@@ -404,57 +398,27 @@ public sealed class PerformanceImportService(
         return totalCount;
     }
 
-    private async Task<IReadOnlyCollection<Send>> GetSendsByIdsAsync(
-        IReadOnlyCollection<long> sendIds,
-        CancellationToken cancellationToken)
-    {
-        // Split lookup IDs so each filtered API request stays within its configured limit.
-        var sends = new List<Send>();
-        foreach (var sendBatch in sendIds.Chunk(_apiFilterBatchSize))
-        {
-            sends.AddRange(await ToListAsync(
-                dataClient.GetSendsByIdsAsync(sendBatch, cancellationToken),
-                cancellationToken));
-        }
-
-        return sends;
-    }
-
-    private async Task<IReadOnlyCollection<Campaign>> GetCampaignsByIdsAsync(
-        IReadOnlyCollection<long> campaignIds,
-        CancellationToken cancellationToken)
-    {
-        // Split lookup IDs so each filtered API request stays within its configured limit.
-        var campaigns = new List<Campaign>();
-
-        foreach (var campaignBatch in campaignIds.Chunk(_apiFilterBatchSize))
-        {
-            campaigns.AddRange(await ToListAsync(
-                dataClient.GetCampaignsAsync(campaignBatch, cancellationToken),
-                cancellationToken));
-        }
-
-        return campaigns;
-    }
-
     private async Task WriteSendsAsync(
         IReadOnlyCollection<Send> sends,
         CancellationToken cancellationToken)
     {
-        // Build and write one SQL-sized DataTable at a time to bound staging memory.
         cancellationToken.ThrowIfCancellationRequested();
 
         foreach (var sendBatch in sends.Chunk(_sqlWriteBatchSize))
         {
-            var sendTable = SendCampaignDataTableMapper.CreateSends(sendBatch);
-            if (sendTable.Rows.Count > 0)
-            {
-                await bulkInserter.BulkInsertIgnoringDuplicatesAsync(
-                    ImportTableNames.Sends,
-                    sendTable,
-                    batchSize: _sqlWriteBatchSize,
-                    cancellationToken: cancellationToken);
-            }
+            await dataWriter.WriteSendsAsync(sendBatch, cancellationToken);
+        }
+    }
+
+    private async Task WriteSendContactsAsync(
+        IReadOnlyCollection<SendContactApiRecord> sendContacts,
+        CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        foreach (var sendContactBatch in sendContacts.Chunk(_sqlWriteBatchSize))
+        {
+            await dataWriter.WriteSendContactsAsync(sendContactBatch, cancellationToken);
         }
     }
 
@@ -462,20 +426,11 @@ public sealed class PerformanceImportService(
         IReadOnlyCollection<Campaign> campaigns,
         CancellationToken cancellationToken)
     {
-        // Build and write one SQL-sized DataTable at a time to bound staging memory.
         cancellationToken.ThrowIfCancellationRequested();
 
         foreach (var campaignBatch in campaigns.Chunk(_sqlWriteBatchSize))
         {
-            var campaignTable = SendCampaignDataTableMapper.CreateCampaigns(campaignBatch);
-            if (campaignTable.Rows.Count > 0)
-            {
-                await bulkInserter.BulkInsertIgnoringDuplicatesAsync(
-                    ImportTableNames.Campaigns,
-                    campaignTable,
-                    batchSize: _sqlWriteBatchSize,
-                    cancellationToken: cancellationToken);
-            }
+            await dataWriter.WriteCampaignsAsync(campaignBatch, cancellationToken);
         }
     }
 

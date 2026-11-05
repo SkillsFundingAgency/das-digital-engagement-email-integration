@@ -39,9 +39,19 @@ public static class SendCampaignDataTableMapper
         public const string IsSetup = "IsSetup";
         public const string FirstSendDate = "FirstSendDate";
         public const string LastSendDate = "LastSendDate";
+        public const string CronExpression = "CronExpression";
+        public const string StartDate = "StartDate";
+        public const string EndDate = "EndDate";
+        public const string NextDueDate = "NextDueDate";
+        public const string LastRunDate = "LastRunDate";
+        public const string StatusChangedBy = "StatusChangedBy";
+        public const string StatusChangedByUserId = "StatusChangedByUserID";
+        public const string StatusChangedDate = "StatusChangedDate";
         public const string TotalSent = "TotalSent";
         public const string CanBeModified = "CanBeModified";
         public const string CanBeReported = "CanBeReported";
+        public const string IsActive = "IsActive";
+        public const string HasSpecifiedDates = "HasSpecifiedDates";
         public const string FromEmail = "FromEmail";
         public const string FromName = "FromName";
         public const string ReplyEmail = "ReplyEmail";
@@ -136,9 +146,19 @@ public static class SendCampaignDataTableMapper
             (Columns.Status, typeof(string)),
             (Columns.FirstSendDate, typeof(DateTime)),
             (Columns.LastSendDate, typeof(DateTime)),
+            (Columns.CronExpression, typeof(string)),
+            (Columns.StartDate, typeof(DateTime)),
+            (Columns.EndDate, typeof(DateTime)),
+            (Columns.NextDueDate, typeof(DateTime)),
+            (Columns.LastRunDate, typeof(DateTime)),
+            (Columns.StatusChangedBy, typeof(string)),
+            (Columns.StatusChangedByUserId, typeof(int)),
+            (Columns.StatusChangedDate, typeof(DateTime)),
             (Columns.TotalSent, typeof(int)),
             (Columns.CanBeModified, typeof(bool)),
             (Columns.CanBeReported, typeof(bool)),
+            (Columns.IsActive, typeof(bool)),
+            (Columns.HasSpecifiedDates, typeof(bool)),
             (Columns.SendDate, typeof(DateTime)),
             (Columns.FromEmail, typeof(string)),
             (Columns.FromName, typeof(string)),
@@ -165,9 +185,19 @@ public static class SendCampaignDataTableMapper
             Set(row, Columns.Status, campaign.Status);
             Set(row, Columns.FirstSendDate, ToDateTime(campaign.FirstSendDate));
             Set(row, Columns.LastSendDate, ToDateTime(campaign.LastSendDate));
+            Set(row, Columns.CronExpression, campaign.CronExpression);
+            Set(row, Columns.StartDate, ToDateTime(campaign.StartDate));
+            Set(row, Columns.EndDate, ToDateTime(campaign.EndDate));
+            Set(row, Columns.NextDueDate, ToDateTime(campaign.NextDueDate));
+            Set(row, Columns.LastRunDate, ToDateTime(campaign.LastRunDate));
+            Set(row, Columns.StatusChangedBy, campaign.StatusChangedBy);
+            Set(row, Columns.StatusChangedByUserId, ToInt32(campaign.StatusChangedByUserId));
+            Set(row, Columns.StatusChangedDate, ToDateTime(campaign.StatusChangedDate));
             Set(row, Columns.TotalSent, ToInt32(campaign.TotalSent));
             Set(row, Columns.CanBeModified, campaign.CanBeModified);
             Set(row, Columns.CanBeReported, campaign.CanBeReported);
+            Set(row, Columns.IsActive, campaign.IsActive);
+            Set(row, Columns.HasSpecifiedDates, campaign.HasSpecifiedDates);
             Set(row, Columns.SendDate, ToDateTime(campaign.SendDate));
             Set(row, Columns.FromEmail, campaign.FromEmail);
             Set(row, Columns.FromName, campaign.FromName);
