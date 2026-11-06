@@ -54,6 +54,17 @@ namespace DAS.DigitalEngagement.Application.Services
             return await response.Content.ReadAsStringAsync();
         }
 
+        public async Task<string> GetCsvAsync(string endpoint)
+        {
+            using var request = new HttpRequestMessage(HttpMethod.Get, $"{_apiUrl}/{endpoint}");
+            request.Headers.Authorization = new AuthenticationHeaderValue("Token", _apiKey);
+            request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("text/csv"));
+
+            using var response = await _httpClient.SendAsync(request);
+            response.EnsureSuccessStatusCode();
+            return await response.Content.ReadAsStringAsync();
+        }
+
         public async Task<BatchResultDetail> PostDataAsync(string endpoint, string csvBodyString)
         {
             var result = new BatchResultDetail

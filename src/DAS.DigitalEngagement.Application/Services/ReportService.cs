@@ -121,6 +121,21 @@ namespace DAS.DigitalEngagement.Application.Services
                     
                     if (!string.IsNullOrEmpty(batch.Error))
                         sb.AppendLine($"    Error: {batch.Error}");
+
+                    if (!string.IsNullOrEmpty(batch.RejectedRowsRetrievalError))
+                        sb.AppendLine($"    Rejected Rows Retrieval Error: {batch.RejectedRowsRetrievalError}");
+                    if (batch.RejectedRows.Count > 0)
+                    {
+                        sb.AppendLine($"    Rejected Rows ({batch.RejectedRows.Count}):");
+                        foreach (var row in batch.RejectedRows)
+                        {
+                            sb.AppendLine("      Rejected entry:");
+                            foreach (var column in row)
+                            {
+                                sb.AppendLine($"        {column.Key}: {column.Value}");
+                            }
+                        }
+                    }
                     
                     sb.AppendLine();
                 }
