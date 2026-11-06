@@ -48,11 +48,10 @@ namespace DAS.DigitalEngagement.EmailIntegration.Extensions
                 var connectionString = configuration.GetSection("ConnectionString")["CampaignsDatabase"]
                     ?? throw new ConfigurationErrorsException("CampaignsDatabase connection string is not configured");
 
-                //var tokenCredential = sp.GetService<TokenCredential>();
+                var tokenCredential = sp.GetService<TokenCredential>();
 
-                //return new SqlConnectionFactory(connectionString, tokenCredential);
+                return new SqlConnectionFactory(connectionString, tokenCredential);
 
-                return new SqlConnectionFactory(connectionString);
             });
            
 
