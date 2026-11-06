@@ -12,6 +12,40 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Services
     {
         private CsvService _service;
 
+        [Test]
+        public void ParseRejectedRows_PreservesDynamicColumnsAndQuotedValues()
+        {
+            var rows = new CsvService().ParseRejectedRows("\uFEFFEmail,Custom Field,Reason\r\nrejected@example.com,\"Smith, Jane\",\"Invalid \"\"value\"\"\r\ntry again\"\r\n");
+
+            Assert.That(rows, Has.Count.EqualTo(1));
+            Assert.That(rows[0]["Email"], Is.EqualTo("rejected@example.com"));
+            Assert.That(rows[0]["Custom Field"], Is.EqualTo("Smith, Jane"));
+            Assert.That(rows[0]["Reason"], Is.EqualTo("Invalid \"value\"\r\ntry again"));
+        }
+
+        [TestCase("")]
+        [TestCase(" \r\n")]
+        [TestCase("Email,Custom Field\r\n")]
+        public void ParseRejectedRows_WithoutRecords_ReturnsEmptyList(string csvText)
+        {
+            Assert.That(new CsvService().ParseRejectedRows(csvText), Is.Empty);
+        }
+
+        [Test]
+        public void ParseRejectedRows_DoesNotInventReasonColumns()
+        {
+            var rows = new CsvService().ParseRejectedRows("Email,Other\r\nrejected@example.com,value\r\n");
+
+            Assert.That(rows[0].Keys, Is.EquivalentTo(new[] { "Email", "Other" }));
+        }
+
+        [Test]
+        public void ParseRejectedRows_MalformedCsv_Throws()
+        {
+            Assert.Catch<CsvHelper.CsvHelperException>(() =>
+                new CsvService().ParseRejectedRows("Email,Reason\r\nrejected@example.com,\"unclosed"));
+        }
+
         [SetUp]
         public void SetUp()
         {
