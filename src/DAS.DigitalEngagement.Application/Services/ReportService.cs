@@ -113,9 +113,6 @@ namespace DAS.DigitalEngagement.Application.Services
                     sb.AppendLine($"    Records Failed: {batch.RecordsFailed}");
                     sb.AppendLine($"    Is Partially Imported: {batch.IsPartiallyImported}");
                     
-                    if (!string.IsNullOrEmpty(batch.TokenFromEshot))
-                        sb.AppendLine($"    Token: {batch.TokenFromEshot}");
-                    
                     if (!string.IsNullOrEmpty(batch.AdditionalInfo))
                         sb.AppendLine($"    Additional Info: {batch.AdditionalInfo}");
                     

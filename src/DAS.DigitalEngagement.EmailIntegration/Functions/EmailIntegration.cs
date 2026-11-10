@@ -30,8 +30,7 @@ public class EmailIntegration
         // 0 0 22 * * * Everyday at 10pm
         _logger.LogInformation("Timer trigger function executed at: {ExecutionTime}", DateTime.Now);
         _logger.LogInformation(
-            "Connection string: {ConnectionString}, API Base URL: {ApiBaseUrl}",
-            _configuration.ConnectionString.DataMart,
+            "Email marketing API configuration loaded. API Base URL: {ApiBaseUrl}",
             _configuration.EmailMarketingApi?.ApiBaseUrl
         );
 

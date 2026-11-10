@@ -38,7 +38,7 @@ namespace DAS.DigitalEngagement.Application.Services
         public async Task<string> GetDataAsync(string endpoint)
         {
             var requestUrl = $"{_apiUrl}/{endpoint}";
-            _logger.LogInformation("Making GET request to {RequestUrl}", requestUrl);
+            _logger.LogInformation("Making GET request to the external email marketing API");
 
             var request = new HttpRequestMessage(HttpMethod.Get, requestUrl);
             request.Headers.Authorization = new AuthenticationHeaderValue("Token", _apiKey);
@@ -47,7 +47,7 @@ namespace DAS.DigitalEngagement.Application.Services
 
             if (!response.IsSuccessStatusCode)
             {
-                _logger.LogError("Failed to retrieve data from {RequestUrl}. Status Code: {StatusCode}", requestUrl, response.StatusCode);
+                _logger.LogError("Failed to retrieve data from the external email marketing API. Status Code: {StatusCode}", response.StatusCode);
                 response.EnsureSuccessStatusCode();
             }
 
@@ -63,7 +63,7 @@ namespace DAS.DigitalEngagement.Application.Services
             };
 
             var requestUrl = $"{_apiUrl}/{endpoint}";
-            _logger.LogInformation("Making POST request to {RequestUrl}", requestUrl);
+            _logger.LogInformation("Making POST request to the external email marketing API");
 
             var request = new HttpRequestMessage(HttpMethod.Post, requestUrl);
             request.Headers.Authorization = new AuthenticationHeaderValue("Token", _apiKey);
@@ -82,8 +82,7 @@ namespace DAS.DigitalEngagement.Application.Services
                 if (!response.IsSuccessStatusCode)
                 {
                     _logger.LogError(
-                        "Failed to post data to {RequestUrl}. Status Code: {StatusCode}",
-                        requestUrl,
+                        "Failed to post data to the external email marketing API. Status Code: {StatusCode}",
                         response.StatusCode);
                     result.Status = BatchStatus.Failed;
                     result.Error = $"Failed to post data to {requestUrl}. Status Code: {response.StatusCode}";
@@ -94,13 +93,13 @@ namespace DAS.DigitalEngagement.Application.Services
                 result.TokenFromEshot = content;
                 result.Status = BatchStatus.Completed;
 
-                _logger.LogInformation("Received response: {Content}", content);
+                _logger.LogInformation("Received successful response from the external email marketing API");
             }
             catch (Exception ex)
             {
                 result.Status = BatchStatus.Failed;
                 result.Error = $"Failed to post data to {requestUrl}. Error: {ex.Message}";
-                _logger.LogError(ex, "Exception occurred while posting data to {RequestUrl}", requestUrl);
+                _logger.LogError(ex, "Exception occurred while posting data to the external email marketing API");
             }
 
             return result;
