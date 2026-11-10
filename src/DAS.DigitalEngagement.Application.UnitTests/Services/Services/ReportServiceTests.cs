@@ -324,10 +324,10 @@ namespace DAS.DigitalEngagement.Application.Services.UnitTests
             Assert.That(result, Does.Contain("BatchId: batch-001"));
             Assert.That(result, Does.Contain("Status: Completed"));
             Assert.That(result, Does.Contain("Records Processed: 50"));
-            Assert.That(result, Does.Contain("Token: token-123"));
+            Assert.That(result, Does.Not.Contain("Token: token-123"));
             Assert.That(result, Does.Contain("Batch 2:"));
             Assert.That(result, Does.Contain("BatchId: batch-002"));
-            Assert.That(result, Does.Contain("Token: token-456"));
+            Assert.That(result, Does.Not.Contain("Token: token-456"));
             Assert.That(result, Does.Contain("Messages:"));
             Assert.That(result, Does.Contain("- Import started"));
             Assert.That(result, Does.Contain("- Import completed successfully"));
@@ -467,7 +467,7 @@ namespace DAS.DigitalEngagement.Application.Services.UnitTests
         }
 
         [Test]
-        public void CreateImportSummaryReport_WithNullError_ExcludesErrorFromReport()
+        public void CreateImportSummaryReport_WithNullError_ExcludesErrorAndTokenFromReport()
         {
             var summary = new ImportSummaryResult
             {
@@ -492,7 +492,7 @@ namespace DAS.DigitalEngagement.Application.Services.UnitTests
             var result = _reportService.CreateImportSummaryReport(summary);
 
             Assert.That(result, Does.Not.Contain("Error:"));
-            Assert.That(result, Does.Contain("Token: token-789"));
+            Assert.That(result, Does.Not.Contain("Token: token-789"));
         }
 
         [Test]
@@ -524,7 +524,7 @@ namespace DAS.DigitalEngagement.Application.Services.UnitTests
         }
 
         [Test]
-        public void CreateImportSummaryReport_WithTokenAndError_IncludesBothInReport()
+        public void CreateImportSummaryReport_WithTokenAndError_ExcludesTokenAndIncludesError()
         {
             var summary = new ImportSummaryResult
             {
@@ -548,7 +548,7 @@ namespace DAS.DigitalEngagement.Application.Services.UnitTests
 
             var result = _reportService.CreateImportSummaryReport(summary);
 
-            Assert.That(result, Does.Contain("Token: token-error"));
+            Assert.That(result, Does.Not.Contain("Token: token-error"));
             Assert.That(result, Does.Contain("Error: API connection timeout"));
         }
 
