@@ -81,8 +81,7 @@ public class EmailNotificationService : IEmailNotificationService
         if (!MailAddress.TryCreate(trimmedRecipient, out _))
         {
             _logger.LogWarning(
-                "Invalid email address '{EmailAddress}' configured for integration {IntegrationName}. Skipping.",
-                trimmedRecipient,
+                "Invalid recipient email configured for integration {IntegrationName}. Skipping.",
                 integrationName);
             return false;
         }
@@ -95,16 +94,15 @@ public class EmailNotificationService : IEmailNotificationService
         catch (Exception ex)
         {
             _logger.LogWarning(ex,
-                "Domain lookup failed validating email '{EmailAddress}' for integration {IntegrationName}. Skipping.",
-                trimmedRecipient, integrationName);
+                "Domain lookup failed validating configured recipient for integration {IntegrationName}. Skipping.",
+                integrationName);
             return false;
         }
 
         if (!domainValid)
         {
             _logger.LogWarning(
-                "Email domain appears invalid for '{EmailAddress}' for integration {IntegrationName}. Skipping.",
-                trimmedRecipient,
+                "Email domain appears invalid for configured recipient for integration {IntegrationName}. Skipping.",
                 integrationName);
             return false;
         }
@@ -114,8 +112,8 @@ public class EmailNotificationService : IEmailNotificationService
             var tokens = personalisation.ToDictionary(p => p.Key, p => (string)(p.Value?.ToString() ?? string.Empty));
 
             _logger.LogInformation(
-                "Sending monitoring report email to {EmailAddress} for integration {IntegrationName} using template {TemplateId}",
-                trimmedRecipient, integrationName, _configuration.MonitoringReportTemplateId);
+                "Sending monitoring report email for integration {IntegrationName} using template {TemplateId}",
+                integrationName, _configuration.MonitoringReportTemplateId);
 
             var emailCommand = new SendEmailCommand(
                 templateId: _configuration.MonitoringReportTemplateId,
@@ -125,16 +123,16 @@ public class EmailNotificationService : IEmailNotificationService
             await _notificationService.Send(emailCommand);
 
             _logger.LogInformation(
-                "Monitoring report email sent to {EmailAddress} for integration {IntegrationName}",
-                trimmedRecipient, integrationName);
+                "Monitoring report email sent for integration {IntegrationName}",
+                integrationName);
 
             return true;
         }
         catch (Exception ex)
         {
             _logger.LogError(ex,
-                "Failed to send monitoring report email to {EmailAddress} for integration {IntegrationName}",
-                trimmedRecipient, integrationName);
+                "Failed to send monitoring report email for integration {IntegrationName}",
+                integrationName);
             return false;
         }
     }

@@ -157,8 +157,8 @@ public class EmailNotificationServiceTests
             x => x.Log(
                 LogLevel.Information,
                 It.IsAny<EventId>(),
-                It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("Monitoring report email sent to") &&
-                                          v.ToString().Contains("test@example.com")),
+                It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("Monitoring report email sent for integration") &&
+                                          !v.ToString().Contains("test@example.com")),
                 It.IsAny<Exception>(),
                 It.IsAny<Func<It.IsAnyType, Exception, string>>()),
             Times.Once);
@@ -446,7 +446,7 @@ public class EmailNotificationServiceTests
     }
 
     [Test]
-    public async Task SendMonitoringReportAsync_LogsRecipientEmailInSuccessMessage()
+    public async Task SendMonitoringReportAsync_DoesNotLogRecipientEmailInSuccessMessage()
     {
         // Arrange
         var recipientEmail = "specific@example.com";
@@ -470,7 +470,9 @@ public class EmailNotificationServiceTests
             x => x.Log(
                 LogLevel.Information,
                 It.IsAny<EventId>(),
-                It.Is<It.IsAnyType>((v, t) => v.ToString().Contains(recipientEmail)),
+                It.Is<It.IsAnyType>((v, t) =>
+                    v.ToString().Contains("Monitoring report email sent for integration") &&
+                    !v.ToString().Contains(recipientEmail)),
                 It.IsAny<Exception>(),
                 It.IsAny<Func<It.IsAnyType, Exception, string>>()),
             Times.AtLeastOnce);
@@ -510,12 +512,14 @@ public class EmailNotificationServiceTests
         Assert.That(attemptedEmails, Does.Contain("valid2@example.com"));
         Assert.That(attemptedEmails, Does.Not.Contain("invalid-email"));
 
-        // Assert - a warning was logged containing the invalid email address
+        // Assert - a warning was logged without exposing the invalid email address
         _mockLogger.Verify(
             x => x.Log(
                 LogLevel.Warning,
                 It.IsAny<EventId>(),
-                It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("invalid-email")),
+                It.Is<It.IsAnyType>((v, t) =>
+                    v.ToString().Contains("Invalid recipient email configured for integration") &&
+                    !v.ToString().Contains("invalid-email")),
                 It.IsAny<Exception>(),
                 It.IsAny<Func<It.IsAnyType, Exception, string>>()),
             Times.AtLeastOnce);
@@ -569,12 +573,14 @@ public class EmailNotificationServiceTests
         // Act
         await service.SendMonitoringReportAsync("IntegrationDomainThrow", "Report Content", "https://blob.url", CancellationToken.None);
 
-        // Assert - domain lookup exception logged as a warning and contains the email
+        // Assert - domain lookup exception logged as a warning without exposing the email
         _mockLogger.Verify(
             x => x.Log(
                 LogLevel.Warning,
                 It.IsAny<EventId>(),
-                It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("Domain lookup failed validating email") && v.ToString().Contains("test@example.com")),
+                It.Is<It.IsAnyType>((v, t) =>
+                    v.ToString().Contains("Domain lookup failed validating configured recipient") &&
+                    !v.ToString().Contains("test@example.com")),
                 dnsEx,
                 It.IsAny<Func<It.IsAnyType, Exception, string>>()),
             Times.Once);
@@ -620,12 +626,14 @@ public class EmailNotificationServiceTests
         // Act
         await service.SendMonitoringReportAsync("IntegrationDomainInvalid", "Report Content", "https://blob.url", CancellationToken.None);
 
-        // Assert - invalid domain warning logged and contains the email
+        // Assert - invalid domain warning logged without exposing the email
         _mockLogger.Verify(
             x => x.Log(
                 LogLevel.Warning,
                 It.IsAny<EventId>(),
-                It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("Email domain appears invalid for") && v.ToString().Contains("test@example.com")),
+                It.Is<It.IsAnyType>((v, t) =>
+                    v.ToString().Contains("Email domain appears invalid for configured recipient") &&
+                    !v.ToString().Contains("test@example.com")),
                 It.IsAny<Exception>(),
                 It.IsAny<Func<It.IsAnyType, Exception, string>>()),
             Times.Once);
