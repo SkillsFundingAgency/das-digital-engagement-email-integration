@@ -84,7 +84,9 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Functions
                 x => x.Log(
                     LogLevel.Information,
                     It.IsAny<EventId>(),
-                    It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("Connection string: TestConnectionString")),
+                    It.Is<It.IsAnyType>((v, t) =>
+                        v.ToString().Contains("Email marketing API configuration loaded") &&
+                        !v.ToString().Contains("TestConnectionString")),
                     null,
                     It.IsAny<Func<It.IsAnyType, Exception, string>>()),
                 Times.Once);
