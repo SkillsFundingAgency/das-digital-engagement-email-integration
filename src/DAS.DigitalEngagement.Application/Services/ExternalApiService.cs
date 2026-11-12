@@ -104,8 +104,7 @@ namespace DAS.DigitalEngagement.Application.Services
                 exception is TaskCanceledException && !cancellationToken.IsCancellationRequested)
             {
                 throw new HttpRequestException(
-                    $"GET request to endpoint '{requestEndpoint}' failed after {_apiRetryCount + 1} attempts.",
-                    exception);
+                    $"GET request to '{requestUrl}' failed after {_apiRetryCount + 1} attempts.",exception);
             }
             finally
             {
@@ -117,8 +116,8 @@ namespace DAS.DigitalEngagement.Application.Services
                 if (!response.IsSuccessStatusCode)
                 {
                     _logger.LogError(
-                        "Failed to retrieve data from endpoint {Endpoint} after {AttemptCount} attempts. Status Code: {StatusCode}",
-                        requestEndpoint,
+                        "Failed to retrieve data from {RequestUrl} after {AttemptCount} attempts. Status Code: {StatusCode}",
+                        requestUrl,
                         _apiRetryCount + 1,
                         response.StatusCode);
                     response.EnsureSuccessStatusCode();
@@ -172,11 +171,11 @@ namespace DAS.DigitalEngagement.Application.Services
                 if (!response.IsSuccessStatusCode)
                 {
                     _logger.LogError(
-                        "Failed to post data to endpoint {Endpoint}. Status Code: {StatusCode}",
-                        requestEndpoint,
+                        "Failed to post data to {RequestUrl}. Status Code: {StatusCode}",
+                        requestUrl,
                         response.StatusCode);
                     result.Status = BatchStatus.Failed;
-                    result.Error = $"Failed to post data to endpoint '{requestEndpoint}'. Status Code: {response.StatusCode}";
+                    result.Error = $"Failed to post data to {requestUrl}. Status Code: {response.StatusCode}";
                     response.EnsureSuccessStatusCode();
                 }
 
@@ -189,11 +188,8 @@ namespace DAS.DigitalEngagement.Application.Services
             catch (Exception ex)
             {
                 result.Status = BatchStatus.Failed;
-                if (string.IsNullOrWhiteSpace(result.Error))
-                {
-                    result.Error = $"Failed to post data to endpoint '{requestEndpoint}'.";
-                }
-                _logger.LogError(ex, "Exception occurred while posting data to endpoint {Endpoint}", requestEndpoint);
+                result.Error = $"Failed to post data to {requestUrl}. Error: {ex.Message}";
+                _logger.LogError(ex, "Exception occurred while posting data to {RequestUrl}", requestUrl);
             }
 
             return result;

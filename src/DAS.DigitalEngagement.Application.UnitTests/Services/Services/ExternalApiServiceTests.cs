@@ -197,8 +197,8 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Services
             var result = await service.PostDataAsync("endpoint", "csv,data");
 
             Assert.That(result.Status, Is.EqualTo(BatchStatus.Failed));
-            Assert.That(result.Error, Does.Contain("Failed to post data to"));
-            Assert.That(result.Error, Does.Contain("Status Code: BadRequest"));
+            Assert.That(result.Error, Does.StartWith("Failed to post data to https://api.test.com/endpoint. Error: "));
+            Assert.That(result.Error, Does.Contain("400"));
         }
 
         [Test]
@@ -216,7 +216,7 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Services
             var result = await service.PostDataAsync("endpoint", "csv,data");
 
             Assert.That(result.Status, Is.EqualTo(BatchStatus.Failed));
-            Assert.That(result.Error, Does.Contain("Failed to post data to endpoint 'endpoint'"));
+            Assert.That(result.Error, Is.EqualTo("Failed to post data to https://api.test.com/endpoint. Error: network error"));
         }   
     }
 }
