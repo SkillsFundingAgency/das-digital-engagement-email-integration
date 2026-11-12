@@ -1,19 +1,15 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
 using Azure;
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
-using DAS.DigitalEngagement.Application.Services;
-using DAS.DigitalEngagement.Application.Services.Interfaces;
 using DAS.DigitalEngagement.Models.Import;
 using Microsoft.Extensions.Logging;
 using Moq;
-using NUnit.Framework;
 
 namespace DAS.DigitalEngagement.Application.Services.UnitTests
 {
@@ -25,35 +21,30 @@ namespace DAS.DigitalEngagement.Application.Services.UnitTests
         {
             var mockBlobServiceClient = new Mock<BlobServiceClient>();
             var mockLogger = new Mock<ILogger<ReportService>>();
-            var mockEmailNotificationService = new Mock<IEmailNotificationService>();
 
-            Assert.DoesNotThrow(() => new ReportService(mockBlobServiceClient.Object, mockLogger.Object, mockEmailNotificationService.Object));
+            Assert.DoesNotThrow(() => new ReportService(mockBlobServiceClient.Object, mockLogger.Object));
         }
 
         [Test]
         public void Constructor_WithNullBlobServiceClient_DoesNotThrow()
         {
             var mockLogger = new Mock<ILogger<ReportService>>();
-            var mockEmailNotificationService = new Mock<IEmailNotificationService>();
 
-            Assert.DoesNotThrow(() => new ReportService(null, mockLogger.Object, mockEmailNotificationService.Object));
+            Assert.DoesNotThrow(() => new ReportService(null, mockLogger.Object));
         }
 
         [Test]
         public void Constructor_WithNullLogger_DoesNotThrow()
         {
             var mockBlobServiceClient = new Mock<BlobServiceClient>();
-            var mockEmailNotificationService = new Mock<IEmailNotificationService>();
 
-            Assert.DoesNotThrow(() => new ReportService(mockBlobServiceClient.Object, null, mockEmailNotificationService.Object));
+            Assert.DoesNotThrow(() => new ReportService(mockBlobServiceClient.Object, null));
         }
 
         [Test]
         public void Constructor_WithBothParametersNull_DoesNotThrow()
         {
-            var mockEmailNotificationService = new Mock<IEmailNotificationService>();
-
-            Assert.DoesNotThrow(() => new ReportService(null, null, mockEmailNotificationService.Object));
+            Assert.DoesNotThrow(() => new ReportService(null, null));
         }
 
         [Test]
@@ -66,7 +57,6 @@ namespace DAS.DigitalEngagement.Application.Services.UnitTests
 
             var mockBlobServiceClient = new Mock<BlobServiceClient>();
             var mockLogger = new Mock<ILogger<ReportService>>();
-            var mockEmailNotificationService = new Mock<IEmailNotificationService>();
             var mockBlobContainerClient = new Mock<BlobContainerClient>();
             var mockBlobClient = new Mock<BlobClient>();
 
@@ -90,7 +80,7 @@ namespace DAS.DigitalEngagement.Application.Services.UnitTests
                 .Setup(x => x.UploadAsync(It.IsAny<Stream>(), It.IsAny<bool>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(Mock.Of<Response<BlobContentInfo>>());
 
-            var service = new ReportService(mockBlobServiceClient.Object, mockLogger.Object, mockEmailNotificationService.Object);
+            var service = new ReportService(mockBlobServiceClient.Object, mockLogger.Object);
 
             var result = await service.SaveReportToBlobInternalAsync(reportContent, fileName);
 
@@ -110,7 +100,6 @@ namespace DAS.DigitalEngagement.Application.Services.UnitTests
 
             var mockBlobServiceClient = new Mock<BlobServiceClient>();
             var mockLogger = new Mock<ILogger<ReportService>>();
-            var mockEmailNotificationService = new Mock<IEmailNotificationService>();
             var mockBlobContainerClient = new Mock<BlobContainerClient>();
             var mockBlobClient = new Mock<BlobClient>();
 
@@ -134,7 +123,7 @@ namespace DAS.DigitalEngagement.Application.Services.UnitTests
                 .Setup(x => x.UploadAsync(It.IsAny<Stream>(), It.IsAny<bool>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(Mock.Of<Response<BlobContentInfo>>());
 
-            var service = new ReportService(mockBlobServiceClient.Object, mockLogger.Object, mockEmailNotificationService.Object);
+            var service = new ReportService(mockBlobServiceClient.Object, mockLogger.Object);
 
             await service.SaveReportToBlobInternalAsync(reportContent, fileName);
 
@@ -150,7 +139,6 @@ namespace DAS.DigitalEngagement.Application.Services.UnitTests
 
             var mockBlobServiceClient = new Mock<BlobServiceClient>();
             var mockLogger = new Mock<ILogger<ReportService>>();
-            var mockEmailNotificationService = new Mock<IEmailNotificationService>();
             var mockBlobContainerClient = new Mock<BlobContainerClient>();
 
             mockBlobServiceClient
@@ -163,8 +151,7 @@ namespace DAS.DigitalEngagement.Application.Services.UnitTests
 
             var service = new ReportService(
                 mockBlobServiceClient.Object,
-                mockLogger.Object,
-                mockEmailNotificationService.Object);
+                mockLogger.Object);
 
             var thrownException = await Assert.ThrowsAsync<InvalidOperationException>(
                 async () => await service.SaveReportToBlobInternalAsync(reportContent, fileName));
@@ -198,7 +185,6 @@ namespace DAS.DigitalEngagement.Application.Services.UnitTests
 
             var mockBlobServiceClient = new Mock<BlobServiceClient>();
             var mockLogger = new Mock<ILogger<ReportService>>();
-            var mockEmailNotificationService = new Mock<IEmailNotificationService>();
             var mockBlobContainerClient = new Mock<BlobContainerClient>();
             var mockBlobClient = new Mock<BlobClient>();
 
@@ -222,7 +208,7 @@ namespace DAS.DigitalEngagement.Application.Services.UnitTests
                 .Setup(x => x.UploadAsync(It.IsAny<Stream>(), It.IsAny<bool>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(Mock.Of<Response<BlobContentInfo>>());
 
-            var service = new ReportService(mockBlobServiceClient.Object, mockLogger.Object, mockEmailNotificationService.Object);
+            var service = new ReportService(mockBlobServiceClient.Object, mockLogger.Object);
 
             await service.SaveReportToBlobInternalAsync(reportContent, fileName);
 
@@ -238,7 +224,6 @@ namespace DAS.DigitalEngagement.Application.Services.UnitTests
 
             var mockBlobServiceClient = new Mock<BlobServiceClient>();
             var mockLogger = new Mock<ILogger<ReportService>>();
-            var mockEmailNotificationService = new Mock<IEmailNotificationService>();
             var mockBlobContainerClient = new Mock<BlobContainerClient>();
             var mockBlobClient = new Mock<BlobClient>();
 
@@ -262,7 +247,7 @@ namespace DAS.DigitalEngagement.Application.Services.UnitTests
                 .Setup(x => x.UploadAsync(It.IsAny<Stream>(), It.IsAny<bool>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(Mock.Of<Response<BlobContentInfo>>());
 
-            var service = new ReportService(mockBlobServiceClient.Object, mockLogger.Object, mockEmailNotificationService.Object);
+            var service = new ReportService(mockBlobServiceClient.Object, mockLogger.Object);
 
             await service.SaveReportToBlobInternalAsync(reportContent, fileName);
 
@@ -277,8 +262,7 @@ namespace DAS.DigitalEngagement.Application.Services.UnitTests
         {
             _blobServiceClientMock = new Mock<Azure.Storage.Blobs.BlobServiceClient>();
             _loggerMock = new Mock<ILogger<ReportService>>();
-            var mockEmailNotificationService = new Mock<IEmailNotificationService>();
-            _reportService = new ReportService(_blobServiceClientMock.Object, _loggerMock.Object, mockEmailNotificationService.Object);
+            _reportService = new ReportService(_blobServiceClientMock.Object, _loggerMock.Object);
         }
 
         [Test]
@@ -856,15 +840,13 @@ namespace DAS.DigitalEngagement.Application.Services.UnitTests
         }
 
         [Test]
-        public async Task SaveReportToBlobAndNotifyAsync_SavesReportAndSendsEmail()
+        public async Task SaveReportToBlobAsync_SavesReport()
         {
             var reportContent = "Test report content";
             var fileName = "test-report";
-            var integrationName = "Email Integration";
 
             var mockBlobServiceClient = new Mock<BlobServiceClient>();
             var mockLogger = new Mock<ILogger<ReportService>>();
-            var mockEmailNotificationService = new Mock<IEmailNotificationService>();
             var mockBlobContainerClient = new Mock<BlobContainerClient>();
             var mockBlobClient = new Mock<BlobClient>();
 
@@ -888,20 +870,11 @@ namespace DAS.DigitalEngagement.Application.Services.UnitTests
                 .Setup(x => x.UploadAsync(It.IsAny<Stream>(), It.IsAny<bool>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(Mock.Of<Response<BlobContentInfo>>());
 
-            var service = new ReportService(mockBlobServiceClient.Object, mockLogger.Object, mockEmailNotificationService.Object);
+            var service = new ReportService(mockBlobServiceClient.Object, mockLogger.Object);
 
-            await service.SaveReportToBlobAndNotifyAsync(reportContent, fileName, integrationName);
+            await service.SaveReportToBlobAsync(reportContent, fileName);
 
             mockBlobClient.Verify(x => x.UploadAsync(It.IsAny<Stream>(), true, It.IsAny<CancellationToken>()), Times.Once);
-
-            // temporarily disabled the monitoring emails and created a ticket to determine whether they are required.
-            //mockEmailNotificationService.Verify(
-            //    x => x.SendMonitoringReportAsync(
-            //        integrationName,
-            //        reportContent,
-            //        It.Is<string>(url => url.Contains("test-report.report.txt")),
-            //        It.IsAny<CancellationToken>()),
-            //    Times.Once);
         }
 
         [Test]
@@ -972,9 +945,8 @@ namespace DAS.DigitalEngagement.Application.Services.UnitTests
         {
             var blobClientMock = new Mock<BlobServiceClient>();
             var loggerMock = new Mock<ILogger<ReportService>>();
-            var emailMock = new Mock<IEmailNotificationService>();
 
-            return new ReportService(blobClientMock.Object, loggerMock.Object, emailMock.Object);
+            return new ReportService(blobClientMock.Object, loggerMock.Object);
         }
 
         [Test]
@@ -1046,7 +1018,6 @@ namespace DAS.DigitalEngagement.Application.Services.UnitTests
 
             var mockBlobServiceClient = new Mock<BlobServiceClient>();
             var mockLogger = new Mock<ILogger<ReportService>>();
-            var mockEmailNotificationService = new Mock<IEmailNotificationService>();
             var mockBlobContainerClient = new Mock<BlobContainerClient>();
             var mockBlobClient = new Mock<BlobClient>();
 
@@ -1066,7 +1037,7 @@ namespace DAS.DigitalEngagement.Application.Services.UnitTests
                 .Setup(x => x.UploadAsync(It.IsAny<Stream>(), It.IsAny<bool>(), It.IsAny<CancellationToken>()))
                 .ThrowsAsync(expectedException);
 
-            var service = new ReportService(mockBlobServiceClient.Object, mockLogger.Object, mockEmailNotificationService.Object);
+            var service = new ReportService(mockBlobServiceClient.Object, mockLogger.Object);
 
             var thrown = await Assert.ThrowsAsync<InvalidOperationException>(async () => await service.SaveReportToBlobInternalAsync(reportContent, fileName));
             Assert.That(thrown, Is.Not.Null);
@@ -1083,74 +1054,5 @@ namespace DAS.DigitalEngagement.Application.Services.UnitTests
                 Times.Once);
         }
 
-        // temporarily disabled the monitoring emails and created a ticket to determine whether they are required.
-        [Test]
-        public async Task SaveReportToBlobAndNotifyAsync_WhenEmailNotificationThrows_LogsErrorAndRethrows()
-        {
-            var reportContent = "Test report content";
-            var fileName = "test-report";
-            var integrationName = "Email Integration Fail";
-
-            var mockBlobServiceClient = new Mock<BlobServiceClient>();
-            var mockLogger = new Mock<ILogger<ReportService>>();
-            var mockEmailNotificationService = new Mock<IEmailNotificationService>();
-            var mockBlobContainerClient = new Mock<BlobContainerClient>();
-            var mockBlobClient = new Mock<BlobClient>();
-
-            mockBlobServiceClient
-                .Setup(x => x.GetBlobContainerClient(It.IsAny<string>()))
-                .Returns(mockBlobContainerClient.Object);
-
-            mockBlobContainerClient
-                .Setup(x => x.CreateIfNotExistsAsync(It.IsAny<PublicAccessType>(), It.IsAny<System.Collections.Generic.IDictionary<string, string>>(), It.IsAny<BlobContainerEncryptionScopeOptions>(), It.IsAny<CancellationToken>()))
-                .ReturnsAsync(Mock.Of<Response<BlobContainerInfo>>());
-
-            mockBlobContainerClient
-                .Setup(x => x.GetBlobClient(It.IsAny<string>()))
-                .Returns(mockBlobClient.Object);
-
-            mockBlobClient
-                .Setup(x => x.Uri)
-                .Returns(new Uri("https://test.blob.core.windows.net/container/Report/test-report.report.txt"));
-
-            mockBlobClient
-                .Setup(x => x.UploadAsync(It.IsAny<Stream>(), It.IsAny<bool>(), It.IsAny<CancellationToken>()))
-                .ReturnsAsync(Mock.Of<Response<BlobContentInfo>>());
-
-            // var notifyException = new Exception("notify failed");
-            // mockEmailNotificationService
-            //     .Setup(x => x.SendMonitoringReportAsync(
-            //         It.IsAny<string>(),
-            //         It.IsAny<string>(),
-            //         It.IsAny<string>(),
-            //         It.IsAny<CancellationToken>()))
-            //     .ThrowsAsync(notifyException);
-
-            var service = new ReportService(mockBlobServiceClient.Object, mockLogger.Object, mockEmailNotificationService.Object);
-
-            await Assert.DoesNotThrowAsync(async () =>
-                await service.SaveReportToBlobAndNotifyAsync(reportContent, fileName, integrationName));
-
-            //Assert.That(thrown, Is.Not.Null);
-            //Assert.That(thrown!.Message, Is.EqualTo($"Failed to send email notification for integration '{integrationName}'."));
-            //Assert.That(thrown.InnerException, Is.EqualTo(notifyException));
-
-            mockBlobClient.Verify(x => x.UploadAsync(It.IsAny<Stream>(), true, It.IsAny<CancellationToken>()), Times.Once);
-
-            //mockEmailNotificationService.Verify(x => x.SendMonitoringReportAsync(
-            //    integrationName,
-            //    reportContent,
-            //    It.Is<string>(s => s.Contains("test-report.report.txt")),
-            //    It.IsAny<CancellationToken>()), Times.Once);
-
-            // mockLogger.Verify(
-            //     x => x.Log(
-            //         LogLevel.Error,
-            //         It.IsAny<EventId>(),
-            //         It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("Failed to send email notification for integration")),
-            //         It.Is<Exception>(ex => ex == notifyException),
-            //         It.IsAny<Func<It.IsAnyType, Exception, string>>()),
-            //     Times.Once);
-        }
     }
 }
