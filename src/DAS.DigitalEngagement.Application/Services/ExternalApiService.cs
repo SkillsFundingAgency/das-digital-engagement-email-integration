@@ -1,4 +1,4 @@
-﻿﻿using DAS.DigitalEngagement.Application.Services.Interfaces;
+﻿using DAS.DigitalEngagement.Application.Services.Interfaces;
 using DAS.DigitalEngagement.Models.Import;
 using DAS.DigitalEngagement.Models.Infrastructure;
 using Microsoft.Extensions.Logging;
@@ -104,7 +104,7 @@ namespace DAS.DigitalEngagement.Application.Services
                 exception is TaskCanceledException && !cancellationToken.IsCancellationRequested)
             {
                 throw new HttpRequestException(
-                    $"GET request to '{requestUrl}' failed after {_apiRetryCount + 1} attempts.",exception);
+                    $"GET request to '{requestUrl}' failed after {_apiRetryCount + 1} attempts.", exception);
             }
             finally
             {
