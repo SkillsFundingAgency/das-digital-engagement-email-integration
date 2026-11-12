@@ -133,7 +133,7 @@ namespace DAS.DigitalEngagement.Application.Services
                 return;
             }
 
-            _logger.LogInformation("Batch {BatchId}: Verifying import with token: {Token}", batchIndex, importResult.TokenFromEshot);
+            _logger.LogInformation("Batch {BatchId}: Verifying import with the token received from the external API", batchIndex);
 
             int maxRetries = _emailMarketingApi.ApiRetryCount > 0 
                 ? _emailMarketingApi.ApiRetryCount 
@@ -214,8 +214,8 @@ namespace DAS.DigitalEngagement.Application.Services
 
         private VerificationResult HandleMissingNode(BatchResultDetail importResult, int batchIndex, int attempt, int maxRetries)
         {
-            _logger.LogWarning("Batch {BatchId}: Attempt {Attempt}/{MaxRetries} - No data found for token {Token}", 
-                batchIndex, attempt, maxRetries, importResult.TokenFromEshot);
+            _logger.LogWarning("Batch {BatchId}: Attempt {Attempt}/{MaxRetries} - No data found for the import token", 
+                batchIndex, attempt, maxRetries);
             
             if (attempt < maxRetries)
             {

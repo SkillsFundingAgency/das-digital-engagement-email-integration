@@ -16,7 +16,7 @@ public class PerformanceDataImporter(
 {
     [Function("PerformanceDataImporter")]
     public async Task Run(
-        [TimerTrigger("%PerformanceDataImportSchedule%", RunOnStartup = true)] TimerInfo myTimer,
+        [TimerTrigger("%PerformanceDataImportSchedule%")] TimerInfo myTimer,
         CancellationToken cancellationToken)
     {
         var startedAt = DateTimeOffset.UtcNow;

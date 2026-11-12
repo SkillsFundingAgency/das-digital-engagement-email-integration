@@ -47,11 +47,6 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Functions
                         FieldMapping = "TestFieldMapping",
                         TemplatedUploadId = TemplatedUploadIds
                     }
-                },
-                GovNotifyConfiguration = new GovNotifyConfiguration
-                {
-                    MonitoringReportTemplateId = "TestTemplateId",
-                    RecipientEmailAddresses = new List<string> { "test@example.com" }
                 }
             };
             _sut = new Integration.EmailIntegration(_loggerMock.Object, _importDataMartHandlerMock.Object, _configuration, _reportServiceMock.Object);
@@ -84,7 +79,9 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Functions
                 x => x.Log(
                     LogLevel.Information,
                     It.IsAny<EventId>(),
-                    It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("Connection string: TestConnectionString")),
+                    It.Is<It.IsAnyType>((v, t) =>
+                        v.ToString().Contains("Email marketing API configuration loaded") &&
+                        !v.ToString().Contains("TestConnectionString")),
                     null,
                     It.IsAny<Func<It.IsAnyType, Exception, string>>()),
                 Times.Once);
@@ -139,7 +136,7 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Functions
         }
 
         [Test]
-        public async Task RunAsync_CallsSaveReportToBlobAndNotifyAsync_OnSuccess()
+        public async Task RunAsync_CallsSaveReportToBlobAsync_OnSuccess()
         {
             // Arrange
             var timerInfo = new TimerInfo();
@@ -167,15 +164,14 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Functions
 
             // Assert
             _reportServiceMock.Verify(
-                r => r.SaveReportToBlobAndNotifyAsync(
+                r => r.SaveReportToBlobAsync(
                     expectedReport,
-                    It.Is<string>(s => s.StartsWith("Data-Mart/Lead/Import-")),
-                    "Email Integration"),
+                    It.Is<string>(s => s.StartsWith("Data-Mart/Lead/Import-"))),
                 Times.Once);
         }
 
         [Test]
-        public async Task RunAsync_CallsSaveReportToBlobAndNotifyAsync_OnFailure()
+        public async Task RunAsync_CallsSaveReportToBlobAsync_OnFailure()
         {
             // Arrange
             var timerInfo = new TimerInfo();
@@ -190,10 +186,9 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Functions
 
             // Assert
             _reportServiceMock.Verify(
-                r => r.SaveReportToBlobAndNotifyAsync(
+                r => r.SaveReportToBlobAsync(
                     It.Is<string>(s => s.Contains("Unable to import custom object Lead")),
-                    It.Is<string>(s => s.StartsWith("Data-Mart/Lead/Import-")),
-                    "Email Integration - Failed"),
+                    It.Is<string>(s => s.StartsWith("Data-Mart/Lead/Import-"))),
                 Times.Once);
         }
     }

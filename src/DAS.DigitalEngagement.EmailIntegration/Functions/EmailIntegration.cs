@@ -30,14 +30,12 @@ public class EmailIntegration
         // 0 0 22 * * * Everyday at 10pm
         _logger.LogInformation("Timer trigger function executed at: {ExecutionTime}", DateTime.Now);
         _logger.LogInformation(
-            "Connection string: {ConnectionString}, API Base URL: {ApiBaseUrl}",
-            _configuration.ConnectionString.DataMart,
+            "Email marketing API configuration loaded. API Base URL: {ApiBaseUrl}",
             _configuration.EmailMarketingApi?.ApiBaseUrl
         );
 
         var reportFilename = $"Data-Mart/Lead/Import-{DateTime.UtcNow.ToString("s", System.Globalization.CultureInfo.InvariantCulture)}";
         string report;
-        string integrationName = "Email Integration";
 
         try
         {
@@ -47,16 +45,14 @@ public class EmailIntegration
             _logger.LogInformation("Import Summary: {ImportSummary}", importSummary.ToString());
             _logger.LogInformation("Email Integration Job completed successfully");
 
-            // Save report to blob and send email notification
-            await _reportService.SaveReportToBlobAndNotifyAsync(report, reportFilename, integrationName);
+            await _reportService.SaveReportToBlobAsync(report, reportFilename);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Email Integration Job failed with an exception");
             report = $"Unable to import custom object Lead: {ex}";
 
-            // Save error report to blob and send email notification
-            await _reportService.SaveReportToBlobAndNotifyAsync(report, reportFilename, $"{integrationName} - Failed");
+            await _reportService.SaveReportToBlobAsync(report, reportFilename);
         }
     }
 }
