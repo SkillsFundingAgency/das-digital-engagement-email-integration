@@ -11,7 +11,9 @@ public class PerformanceDataImporter(
     ApplicationConfiguration configuration,
     ILogger<PerformanceDataImporter> logger)
 {
-    [Function("PerformanceDataImporter")]
+    // Temporarily disabled for the initial release, which includes contact imports only.
+    // Restore the Function attribute when performance data imports are ready for release.
+    // [Function("PerformanceDataImporter")]
     public async Task Run([TimerTrigger("%PerformanceDataImportSchedule%")] TimerInfo myTimer)
     {
         logger.LogInformation("Performance Data Importer started at: {DateTime}", DateTime.Now);
