@@ -6,6 +6,32 @@ namespace DAS.DigitalEngagement.Application.Services
 {
     public class CsvService : ICsvService
     {
+        public List<Dictionary<string, string>> ParseRejectedRows(string csvText)
+        {
+            var rows = new List<Dictionary<string, string>>();
+            if (string.IsNullOrWhiteSpace(csvText)) return rows;
+
+            using var reader = new StringReader(csvText.TrimStart('\uFEFF'));
+            using var csv = new CsvReader(reader, new CsvHelper.Configuration.CsvConfiguration(CultureInfo.InvariantCulture)
+            {
+                ExceptionMessagesContainRawData = false,
+                DetectColumnCountChanges = true
+            });
+            if (!csv.Read()) return rows;
+            csv.ReadHeader();
+            var headers = csv.HeaderRecord!;
+            while (csv.Read())
+            {
+                var row = new Dictionary<string, string>();
+                for (int columnIndex = 0; columnIndex < headers.Length; columnIndex++)
+                {
+                    row.Add(headers[columnIndex], csv.GetField(columnIndex) ?? string.Empty);
+                }
+                rows.Add(row);
+            }
+            return rows;
+        }
+
         public int GetByteCount<T>(IList<T> leads)
         {
             var csvString = ToCsv(leads);

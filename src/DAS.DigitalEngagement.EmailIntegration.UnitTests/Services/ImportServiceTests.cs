@@ -28,6 +28,89 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Services
         private EmailMarketingApi _emailMarketingApi;
         private static readonly int[] TemplatedUploadIds = new[] { 100,200 };
 
+        [TestCase("Error", false, 1, true)]
+        [TestCase("Completed", true, 1, true)]
+        [TestCase("Completed", false, 1, false)]
+        public async Task ImportEmployeeRegistration_RetrievesRejectedRowsOnlyWhenRequired(string status, bool partial, int imported, bool shouldRetrieve)
+        {
+            ConfigureRejectedRowsImport(status, partial, imported);
+            const string csvText = "Email,Custom\r\nrejected@example.com,\"quoted, value\"\r\n";
+            _externalApiServiceMock.Setup(api => api.GetCsvAsync("ContactImports/InvalidRows?token=token%2B%2F%3D%20value"))
+                .ReturnsAsync(csvText);
+
+            var summary = await _sut.ImportEmployeeRegistration(new List<string> { "lead" });
+            var batch = summary.BatchResults.Single();
+
+            _externalApiServiceMock.Verify(api => api.GetCsvAsync(It.IsAny<string>()), shouldRetrieve ? Times.Once() : Times.Never());
+            Assert.That(batch.RejectedRowsRetrievalError, Is.Null);
+            Assert.That(batch.RejectedRows, Has.Count.EqualTo(shouldRetrieve ? 1 : 0));
+            if (shouldRetrieve)
+            {
+                Assert.That(batch.RejectedRows[0]["Email"], Is.EqualTo("rejected@example.com"));
+                Assert.That(batch.RejectedRows[0]["Custom"], Is.EqualTo("quoted, value"));
+            }
+        }
+
+        [TestCase("")]
+        [TestCase(" \r\n")]
+        [TestCase("Email,Reason\r\n")]
+        public async Task ImportEmployeeRegistration_EmptyRejectedRows_PreservesBatch(string csvText)
+        {
+            ConfigureRejectedRowsImport("Error", true, 1);
+            _externalApiServiceMock.Setup(api => api.GetCsvAsync(It.IsAny<string>())).ReturnsAsync(csvText);
+
+            var summary = await _sut.ImportEmployeeRegistration(new List<string> { "lead" });
+            var batch = summary.BatchResults.Single();
+
+            Assert.That(batch.Status, Is.EqualTo(BatchStatus.Completed));
+            Assert.That(batch.RejectedRows, Is.Empty);
+            Assert.That(batch.RejectedRowsRetrievalError, Is.Null);
+        }
+
+        [TestCase(false)]
+        [TestCase(true)]
+        public async Task ImportEmployeeRegistration_RejectedRowsFailure_DoesNotChangeBatchOrRetryVerification(bool parsingFailure)
+        {
+            ConfigureRejectedRowsImport("Error", true, 1);
+            const string malformedCsv = "Email,Reason\r\nrejected@example.com,\"unclosed";
+            var download = _externalApiServiceMock.Setup(api => api.GetCsvAsync(It.IsAny<string>()));
+            if (parsingFailure) download.ReturnsAsync(malformedCsv);
+            else download.ThrowsAsync(new InvalidOperationException("private contact data"));
+
+            var summary = await _sut.ImportEmployeeRegistration(new List<string> { "lead" });
+            var batch = summary.BatchResults.Single();
+
+            Assert.That(batch.Status, Is.EqualTo(BatchStatus.Completed));
+            Assert.That(batch.Error, Is.Null);
+            Assert.That(batch.RecordsProcessed, Is.EqualTo(1));
+            Assert.That(batch.RejectedRowsRetrievalError, Does.StartWith("Failed to retrieve or parse rejected rows"));
+            Assert.That(batch.RejectedRowsRetrievalError, Does.Not.Contain("private contact data"));
+            Assert.That(batch.RejectedRows, Is.Empty);
+            _externalApiServiceMock.Verify(api => api.GetDataAsync(It.IsAny<string>()), Times.Once);
+            _loggerMock.Verify(logger => logger.Log(
+                It.IsAny<LogLevel>(), It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((state, type) => state.ToString().Contains("rejected@example.com") || state.ToString().Contains("private contact data")),
+                It.IsAny<Exception>(), It.IsAny<Func<It.IsAnyType, Exception, string>>()), Times.Never);
+        }
+
+        private void ConfigureRejectedRowsImport(string status, bool partial, int imported)
+        {
+            _settings[0].TemplatedUploadId = new[] { 100 };
+            _chunkingServiceMock.Setup(service => service.GetChunks(It.IsAny<long>(), It.IsAny<IList<string>>()))
+                .Returns(new List<IList<string>> { new List<string> { "lead" } });
+            _payloadMapperMock.Setup(mapper => mapper.MapToPayload(It.IsAny<IList<string>>(), "Lead"))
+                .Returns(new List<ExpandoObject>());
+            _csvServiceMock.Setup(service => service.ParseRejectedRows(It.IsAny<string>()))
+                .Returns((string csvText) => new CsvService().ParseRejectedRows(csvText));
+            _externalApiServiceMock.Setup(api => api.PostDataAsync(It.IsAny<string>(), It.IsAny<string>()))
+                .ReturnsAsync(new BatchResultDetail { Status = BatchStatus.InProgress, TokenFromEshot = "{\"Token\":\"token+/= value\"}" });
+            var response = System.Text.Json.JsonSerializer.Serialize(new
+            {
+                value = new[] { new { ImportStatus = status, ContactsReceived = 1, ContactsImported = imported, IsPartiallyImport = partial } }
+            });
+            _externalApiServiceMock.Setup(api => api.GetDataAsync(It.IsAny<string>())).ReturnsAsync(response);
+        }
+
         [SetUp]
         public void Setup()
         {
