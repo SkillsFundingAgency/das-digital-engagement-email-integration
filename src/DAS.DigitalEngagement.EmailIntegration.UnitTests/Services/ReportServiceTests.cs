@@ -21,6 +21,97 @@ namespace DAS.DigitalEngagement.Application.Services.UnitTests
     public class ReportServiceTests
     {
         [Test]
+        public async Task SaveReportWithRejectedRows_IncludesCsvDetailsInReportWithoutSavingCsv()
+        {
+            const string originalCsv = "Row,Field,Type,Error,Value\r\n89,Firstname,Text,Invalid characters,https://example.com\r\n89,Lastname,Text,Invalid characters,\"Smith, Jane\"\r\n176,Email,Text,The email address entered is not in a valid format,invalid-email\r\n";
+            var blobService = new Mock<BlobServiceClient>();
+            var container = new Mock<BlobContainerClient>();
+            var savedFiles = new Dictionary<string, string>();
+            var requestedPaths = new List<string>();
+            blobService.Setup(service => service.GetBlobContainerClient(It.IsAny<string>())).Returns(container.Object);
+            container.Setup(client => client.CreateIfNotExistsAsync(It.IsAny<PublicAccessType>(), It.IsAny<IDictionary<string, string>>(), It.IsAny<BlobContainerEncryptionScopeOptions>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(Mock.Of<Response<BlobContainerInfo>>());
+            container.Setup(client => client.GetBlobClient(It.IsAny<string>())).Returns((string path) =>
+            {
+                requestedPaths.Add(path);
+                var blob = new Mock<BlobClient>();
+                blob.SetupGet(client => client.Uri).Returns(new Uri($"https://test.blob.core.windows.net/container/{path}"));
+                blob.Setup(client => client.UploadAsync(It.IsAny<Stream>(), It.IsAny<bool>(), It.IsAny<CancellationToken>()))
+                    .Returns((Stream stream, bool overwrite, CancellationToken cancellationToken) =>
+                    {
+                        using var reader = new StreamReader(stream, leaveOpen: true);
+                        savedFiles.Add(path, reader.ReadToEnd());
+                        Assert.That(overwrite, Is.EqualTo(path.EndsWith(".report.txt")));
+                        return Task.FromResult(Mock.Of<Response<BlobContentInfo>>());
+                    });
+                return blob.Object;
+            });
+            var summary = new ImportSummaryResult
+            {
+                BatchResults = new List<BatchResultDetail>
+                {
+                    new BatchResultDetail
+                    {
+                        BatchId = "Template 100 - Batch: 1", Status = BatchStatus.Completed,
+                        RejectedRows = new CsvService().ParseRejectedRows(originalCsv)
+                    },
+                    new BatchResultDetail
+                    {
+                        BatchId = "Template 200 - Batch: 2", Status = BatchStatus.Failed,
+                        RejectedRowsRetrievalError = "Failed to parse rejected rows."
+                    }
+                }
+            };
+            var logger = new Mock<ILogger<ReportService>>();
+            var service = new ReportService(blobService.Object, logger.Object, Mock.Of<IEmailNotificationService>());
+
+            var reportContent = service.CreateImportSummaryReport(summary);
+            await service.SaveReportToBlobAndNotifyAsync(reportContent, "imports/run", "Email Integration");
+
+            Assert.That(requestedPaths, Is.EqualTo(new[] { "Report/imports/run.report.txt" }));
+            var report = savedFiles["Report/imports/run.report.txt"];
+            Assert.That(report, Does.Contain("Rejected Rows (3):"));
+            Assert.That(report, Does.Contain("Row: 89").And.Contain("Field: Firstname").And.Contain("Field: Lastname"));
+            Assert.That(report, Does.Contain("Type: Text").And.Contain("Error: Invalid characters").And.Contain("Value: Smith, Jane"));
+            Assert.That(report, Does.Contain("Row: 176").And.Contain("Field: Email").And.Contain("Value: invalid-email"));
+            Assert.That(report, Does.Contain("Value: https://example.com"));
+            Assert.That(report, Does.Contain("Error: The email address entered is not in a valid format"));
+            Assert.That(report, Does.Contain("Rejected Rows Retrieval Error: Failed to parse rejected rows."));
+            logger.Verify(log => log.Log(It.IsAny<LogLevel>(), It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((state, type) => state.ToString().Contains("invalid-email") || state.ToString().Contains("Smith, Jane")),
+                It.IsAny<Exception>(), It.IsAny<Func<It.IsAnyType, Exception, string>>()), Times.Never);
+        }
+
+        [TestCase(null)]
+        [TestCase("")]
+        [TestCase(" \r\n")]
+        public async Task SaveReportWithRejectedRows_EmptyCsv_SavesOnlyReport(string csvText)
+        {
+            var blobService = new Mock<BlobServiceClient>();
+            var container = new Mock<BlobContainerClient>();
+            var blob = new Mock<BlobClient>();
+            blobService.Setup(service => service.GetBlobContainerClient(It.IsAny<string>())).Returns(container.Object);
+            container.Setup(client => client.GetBlobClient("Report/run.report.txt")).Returns(blob.Object);
+            blob.SetupGet(client => client.Uri).Returns(new Uri("https://test.blob.core.windows.net/container/Report/run.report.txt"));
+            blob.Setup(client => client.UploadAsync(It.IsAny<Stream>(), true, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(Mock.Of<Response<BlobContentInfo>>());
+            var summary = new ImportSummaryResult
+            {
+                BatchResults = new List<BatchResultDetail>
+                {
+                    new BatchResultDetail { Status = BatchStatus.Completed, RejectedRows = new CsvService().ParseRejectedRows(csvText) }
+                }
+            };
+            var service = new ReportService(blobService.Object, Mock.Of<ILogger<ReportService>>(), Mock.Of<IEmailNotificationService>());
+
+            var reportContent = service.CreateImportSummaryReport(summary);
+            await service.SaveReportToBlobAndNotifyAsync(reportContent, "run", "Email Integration");
+
+            container.Verify(client => client.GetBlobClient(It.IsAny<string>()), Times.Once);
+            blob.Verify(client => client.UploadAsync(It.IsAny<Stream>(), true, It.IsAny<CancellationToken>()), Times.Once);
+        }
+
+        [Test]
         public void Constructor_WithValidDependencies_DoesNotThrow()
         {
             var mockBlobServiceClient = new Mock<BlobServiceClient>();

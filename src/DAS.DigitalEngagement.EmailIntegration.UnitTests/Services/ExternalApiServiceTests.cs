@@ -21,6 +21,33 @@ namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.Services
         private Mock<ILogger<ExternalApiService>> _loggerMock;
         private IOptions<EmailMarketingApi> _options;
 
+        [TestCase(HttpStatusCode.OK)]
+        [TestCase(HttpStatusCode.NoContent)]
+        [TestCase(HttpStatusCode.BadRequest)]
+        public async Task GetCsvAsync_UsesExistingAuthenticationAndCsvAcceptHeader(HttpStatusCode status)
+        {
+            const string csvText = "Email\r\nrejected@example.com\r\n";
+            _httpMessageHandlerMock.Protected()
+                .Setup<Task<HttpResponseMessage>>("SendAsync",
+                    ItExpr.Is<HttpRequestMessage>(request =>
+                        request.Method == HttpMethod.Get &&
+                        request.RequestUri.ToString() == "https://api.test.com/ContactImports/InvalidRows?token=abc" &&
+                        request.Headers.Authorization.Scheme == "Token" &&
+                        request.Headers.Authorization.Parameter == "test-api-key" &&
+                        request.Headers.Accept.ToString() == "text/csv"),
+                    ItExpr.IsAny<CancellationToken>())
+                .ReturnsAsync(new HttpResponseMessage(status)
+                {
+                    Content = new StringContent(status == HttpStatusCode.NoContent ? string.Empty : csvText)
+                });
+            var service = new ExternalApiService(_httpClient, _options, _loggerMock.Object);
+
+            if (status == HttpStatusCode.BadRequest)
+                Assert.ThrowsAsync<HttpRequestException>(() => service.GetCsvAsync("ContactImports/InvalidRows?token=abc"));
+            else
+                Assert.That(await service.GetCsvAsync("ContactImports/InvalidRows?token=abc"), Is.EqualTo(status == HttpStatusCode.NoContent ? string.Empty : csvText));
+        }
+
         [SetUp]
         public void SetUp()
         {

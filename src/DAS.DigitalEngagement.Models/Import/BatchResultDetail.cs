@@ -11,5 +11,7 @@ namespace DAS.DigitalEngagement.Models.Import
         public string? TokenFromEshot { get; set; }
         public string? Error { get; set; }
         public string? AdditionalInfo { get; set; }
+        public List<Dictionary<string, string>> RejectedRows { get; set; } = new();
+        public string? RejectedRowsRetrievalError { get; set; }
     }
 }

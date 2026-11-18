@@ -194,6 +194,11 @@ namespace DAS.DigitalEngagement.Application.Services
                 PopulateImportResult(importResult, node);
                 SetFinalStatus(importResult, batchIndex, importStatus ?? string.Empty);
 
+                if (importStatus == "Error" || importResult.IsPartiallyImported || importResult.RecordsFailed > 0)
+                {
+                    await RetrieveRejectedRows(importResult, batchIndex);
+                }
+
                 return VerificationResult.Success;
             }
             catch (Exception ex)
@@ -209,6 +214,24 @@ namespace DAS.DigitalEngagement.Application.Services
                 }
 
                 return VerificationResult.Retry;
+            }
+        }
+
+        private async Task RetrieveRejectedRows(BatchResultDetail importResult, int batchIndex)
+        {
+            try
+            {
+                var token = Uri.EscapeDataString(importResult.TokenFromEshot!);
+                var csvText = await _externalApiService.GetCsvAsync($"ContactImports/InvalidRows?token={token}");
+                if (!string.IsNullOrWhiteSpace(csvText))
+                {
+                    importResult.RejectedRows = _csvService.ParseRejectedRows(csvText);
+                }
+            }
+            catch (Exception ex)
+            {
+                importResult.RejectedRowsRetrievalError = $"Failed to retrieve or parse rejected rows ({ex.GetType().Name}).";
+                _logger.LogWarning("Batch {BatchId}: Failed to retrieve or parse rejected rows ({ErrorType})", batchIndex, ex.GetType().Name);
             }
         }
 
