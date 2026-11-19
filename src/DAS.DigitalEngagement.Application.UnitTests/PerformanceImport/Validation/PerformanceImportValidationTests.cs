@@ -2,7 +2,7 @@ using System;
 using System.Data;
 using DAS.DigitalEngagement.Application.PerformanceImport.Validation;
 
-namespace DAS.DigitalEngagement.EmailIntegration.UnitTests.PerformanceImport.Validation;
+namespace DAS.DigitalEngagement.Application.UnitTests.PerformanceImport.Validation;
 
 [TestFixture]
 public class PerformanceImportValidationTests
@@ -15,6 +15,9 @@ public class PerformanceImportValidationTests
     [TestCase("Name", "Smith &amp; Sons")]
     [TestCase("Name", "Family 👨‍👩‍👧")]
     [TestCase("Name", "javascript: is a language")]
+    [TestCase("Name", "Customer \u202Bשלום\u202C (ID 42)")]
+    [TestCase("Name", "Customer \u2067مرحبا\u2069 (ID 42)")]
+    [TestCase("Name", "\u2066abc\u2069 \u2068xyz\u2069 \u202Aabc\u202C")]
     [TestCase("URL", "https://example.com/?online=true&source=portal")]
     public void ValidateTable_WhenValueIsLegitimate_DoesNotThrow(string columnName, string value)
     {
@@ -26,7 +29,11 @@ public class PerformanceImportValidationTests
     [TestCase("Name", "&amp;lt;script&amp;gt;alert(1)", "HTML markup")]
     [TestCase("Name", "<![CDATA[x]]>", "HTML markup")]
     [TestCase("URL", " JavaScript:alert(1)", "URL schemes")]
+    [TestCase("URL", "java\tscript:alert(1)", "URL schemes")]
+    [TestCase("URL", "javascript\n:alert(1)", "URL schemes")]
+    [TestCase("URL", "\r\nj\na\rv\ta&#x0A;script:alert(1)", "URL schemes")]
     [TestCase("Name", "RTL \u202Egpj.exe", "control characters")]
+    [TestCase("Name", "LTR \u202Dabc", "control characters")]
     [TestCase("Name", "C1 \u009B control", "control characters")]
     public void ValidateTable_WhenValueIsUnsafe_Throws(string columnName, string value, string expectedReason)
     {

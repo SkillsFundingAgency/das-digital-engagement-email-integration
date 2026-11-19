@@ -19,8 +19,7 @@ public static class PerformanceImportValidation
         "samp|script|section|select|set|slot|small|source|span|strike|strong|style|sub|summary|sup|svg|" +
         "table|tbody|td|template|textarea|tfoot|th|thead|time|title|tr|track|tt|u|ul|use|var|video|wbr|xml|xmp";
 
-    // As in browsers, '<' must be immediately followed by the tag name, so "a < b > c",
-    // "<postmaster>" and "<FirstName>" are plain text, while "<svg/onload=...>" is markup.
+    // Detect common markup while allowing values like "<FirstName>".
     private static readonly Regex HtmlMarkupPattern = new(
         $@"</?(?:{HtmlElementNames})(?=[\s/>])[^<>]*>" +
         @"|<[a-z][a-z0-9-]*(?:[\s/][^<>]*?)?[\s/""']on[a-z]+\s*=[^<>]*>" +
@@ -48,7 +47,7 @@ public static class PerformanceImportValidation
             {
                 if (row[column] is string text)
                 {
-                    ValidateString(tableName, column.ColumnName, text);
+                    ValidateString(tableName, column.ColumnName, text, row);
                 }
             }
         }
@@ -57,7 +56,8 @@ public static class PerformanceImportValidation
     private static void ValidateString(
         string tableName,
         string columnName,
-        string value)
+        string value,
+        DataRow row)
     {
         if (string.IsNullOrEmpty(value))
         {
@@ -72,6 +72,7 @@ public static class PerformanceImportValidation
             throw ValidationFailure(
                 tableName,
                 columnName,
+                row,
                 "unexpected control characters are not allowed");
         }
 
@@ -83,13 +84,14 @@ public static class PerformanceImportValidation
             containsHtml = HtmlMarkupPattern.IsMatch(decoded);
             containsUnsafeUrlScheme =
                 string.Equals(columnName, UrlColumnName, StringComparison.OrdinalIgnoreCase) &&
-                UnsafeUrlSchemePattern.IsMatch(decoded);
+                UnsafeUrlSchemePattern.IsMatch(RemoveUrlIgnoredCharacters(decoded));
         }
         catch (RegexMatchTimeoutException)
         {
             throw ValidationFailure(
                 tableName,
                 columnName,
+                row,
                 "text validation exceeded the allowed time");
         }
 
@@ -98,6 +100,7 @@ public static class PerformanceImportValidation
             throw ValidationFailure(
                 tableName,
                 columnName,
+                row,
                 "HTML markup is not allowed in plain-text fields");
         }
 
@@ -106,6 +109,7 @@ public static class PerformanceImportValidation
             throw ValidationFailure(
                 tableName,
                 columnName,
+                row,
                 "script or data URL schemes are not allowed");
         }
     }
@@ -126,6 +130,14 @@ public static class PerformanceImportValidation
         }
 
         return current;
+    }
+
+    // URL parsers strip tabs and line breaks anywhere, so "java\tscript:" is still "javascript:".
+    private static string RemoveUrlIgnoredCharacters(string value)
+    {
+        return value.IndexOfAny(['\t', '\n', '\r']) < 0
+            ? value
+            : value.Replace("\t", string.Empty).Replace("\n", string.Empty).Replace("\r", string.Empty);
     }
 
     private static bool ContainsDisallowedCharacter(string value)
@@ -156,21 +168,26 @@ public static class PerformanceImportValidation
 
     private static bool IsDisallowedControlCharacter(char character)
     {
-        // Allow tab, LF and CR. Reject other C0 controls, DEL, C1 controls and
-        // bidi override/isolate characters. Zero-width joiners are allowed for emoji.
+        // Allow tabs and line breaks. Block selected control characters.
         return (character < ' ' && character is not '\t' and not '\n' and not '\r')
                || character is >= '\u007F' and <= '\u009F'
-               || character is >= '\u202A' and <= '\u202E'
-               || character is >= '\u2066' and <= '\u2069';
+               || character is '\u202D' or '\u202E';
     }
 
     private static InvalidOperationException ValidationFailure(
         string tableName,
         string columnName,
+        DataRow row,
         string reason)
     {
+        var ids = string.Join(
+            ", ",
+            new[] { "ID", "SendID", "CampaignID", "ContactID" }
+                .Where(id => row.Table.Columns.Contains(id) && row[id] is not DBNull)
+                .Select(id => $"{id}={row[id]}"));
+
         return new InvalidOperationException(
             $"Performance import validation failed for " +
-            $"{tableName}.{columnName}: {reason}.");
+            $"{tableName}.{columnName} [{ids}]: {reason}.");
     }
 }
