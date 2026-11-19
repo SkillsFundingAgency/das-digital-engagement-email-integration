@@ -86,6 +86,86 @@ public class PerformanceDataWriterTests
     }
 
     [Test]
+    public async Task WriteLinksAsync_WhenFriendlyNameContainsHtmlMarkup_ThrowsValidationException()
+    {
+        var sut = CreateSut();
+        var records = new List<LinkApiRecord>
+        {
+            new()
+            {
+                Id = 1,
+                SendId = 10,
+                Url = "https://example.com",
+                FriendlyName = "<script>alert('x')</script>"
+            }
+        };
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => sut.WriteLinksAsync(records));
+
+        Assert.That(exception, Is.Not.Null);
+        Assert.That(exception.Message, Does.Contain("FriendlyName"));
+        Assert.That(exception.Message, Does.Contain("HTML markup is not allowed in plain-text fields"));
+        _bulkInserterMock.Verify(x => x.BulkInsertIgnoringDuplicatesAsync(
+            It.IsAny<string>(),
+            It.IsAny<DataTable>(),
+            It.IsAny<int>(),
+            It.IsAny<int>(),
+            It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Test]
+    public async Task WriteCampaignsAsync_WhenNameContainsControlCharacter_ThrowsValidationException()
+    {
+        var sut = CreateSut();
+        var records = new List<Campaign>
+        {
+            new()
+            {
+                Id = 20,
+                Name = "Bad\u0001Name",
+                Status = "Active"
+            }
+        };
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => sut.WriteCampaignsAsync(records));
+
+        Assert.That(exception, Is.Not.Null);
+        Assert.That(exception.Message, Does.Contain("Name"));
+        Assert.That(exception.Message, Does.Contain("control characters"));
+        _bulkInserterMock.Verify(x => x.BulkInsertIgnoringDuplicatesAsync(
+            It.IsAny<string>(),
+            It.IsAny<DataTable>(),
+            It.IsAny<int>(),
+            It.IsAny<int>(),
+            It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Test]
+    public async Task WriteLinksAsync_WhenUrlContainsOnlineQueryParameter_AllowsValidUrl()
+    {
+        var sut = CreateSut();
+        var records = new List<LinkApiRecord>
+        {
+            new()
+            {
+                Id = 1,
+                SendId = 10,
+                Url = "https://example.com/?online=true&source=portal",
+                FriendlyName = "Example portal"
+            }
+        };
+
+        await sut.WriteLinksAsync(records);
+
+        _bulkInserterMock.Verify(x => x.BulkInsertIgnoringDuplicatesAsync(
+            "import.Links",
+            It.Is<DataTable>(t => t.Rows.Count == 1 && t.Rows[0]["URL"].Equals("https://example.com/?online=true&source=portal")),
+            records.Count,
+            300,
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Test]
     public async Task WriteContactsAsync_WritesContactsTableUsingIgnoreDuplicates()
     {
         var sut = CreateSut();

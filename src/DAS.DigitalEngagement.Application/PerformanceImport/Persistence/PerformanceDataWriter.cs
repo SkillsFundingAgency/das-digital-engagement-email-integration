@@ -1,5 +1,6 @@
 ﻿using System.Data;
 using DAS.DigitalEngagement.Application.PerformanceImport.Mappers;
+using DAS.DigitalEngagement.Application.PerformanceImport.Validation;
 using DAS.DigitalEngagement.CampaignInterest.Data.Service;
 using DAS.DigitalEngagement.Models.PerformanceImport;
 
@@ -51,6 +52,8 @@ public sealed class PerformanceDataWriter(
         {
             return;
         }
+
+        PerformanceImportValidation.ValidateTable(table, tableName);
 
         var insertTask = ignoreDuplicates
             ? bulkInserter.BulkInsertIgnoringDuplicatesAsync(
