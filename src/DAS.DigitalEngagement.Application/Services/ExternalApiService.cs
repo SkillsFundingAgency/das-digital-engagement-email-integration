@@ -19,7 +19,7 @@ namespace DAS.DigitalEngagement.Application.Services
         private readonly int _apiRetryCount;
         private readonly ILogger<ExternalApiService> _logger;
         private readonly ResiliencePipeline<HttpResponseMessage> _getRetryPipeline;
-        private static readonly ResiliencePropertyKey<string> RequestUrlKey = new("RequestUrl");
+        private static readonly ResiliencePropertyKey<string> RequestEndpointKey = new("RequestEndpoint");
 
         public ExternalApiService(
             HttpClient httpClient,
@@ -56,8 +56,8 @@ namespace DAS.DigitalEngagement.Application.Services
                         if (args.Outcome.Result is { } response)
                         {
                             _logger.LogWarning(
-                                "GET request to {RequestUrl} returned transient status {StatusCode} on attempt {AttemptCount}; retrying.",
-                                args.Context.Properties.GetValue(RequestUrlKey, string.Empty),
+                                "GET request to endpoint {Endpoint} returned transient status {StatusCode} on attempt {AttemptCount}; retrying.",
+                                args.Context.Properties.GetValue(RequestEndpointKey, string.Empty),
                                 response.StatusCode,
                                 args.AttemptNumber + 1);
                             response.Dispose();
@@ -66,8 +66,8 @@ namespace DAS.DigitalEngagement.Application.Services
                         {
                             _logger.LogWarning(
                                 args.Outcome.Exception,
-                                "GET request to {RequestUrl} failed on attempt {AttemptCount}; retrying.",
-                                args.Context.Properties.GetValue(RequestUrlKey, string.Empty),
+                                "GET request to endpoint {Endpoint} failed on attempt {AttemptCount}; retrying.",
+                                args.Context.Properties.GetValue(RequestEndpointKey, string.Empty),
                                 args.AttemptNumber + 1);
                         }
 
@@ -82,11 +82,12 @@ namespace DAS.DigitalEngagement.Application.Services
         public async Task<string> GetDataAsync(string endpoint, CancellationToken cancellationToken)
         {
             var requestUrl = $"{_apiUrl}/{endpoint}";
-            _logger.LogDebug("Making GET request to {RequestUrl}", requestUrl);
+            var requestEndpoint = GetEndpointForLog(endpoint);
+            _logger.LogDebug("Making GET request to endpoint {Endpoint}", requestEndpoint);
 
             HttpResponseMessage response;
             var resilienceContext = ResilienceContextPool.Shared.Get(cancellationToken);
-            resilienceContext.Properties.Set(RequestUrlKey, requestUrl);
+            resilienceContext.Properties.Set(RequestEndpointKey, requestEndpoint);
             try
             {
                 response = await _getRetryPipeline.ExecuteAsync(
@@ -103,8 +104,7 @@ namespace DAS.DigitalEngagement.Application.Services
                 exception is TaskCanceledException && !cancellationToken.IsCancellationRequested)
             {
                 throw new HttpRequestException(
-                    $"GET request to '{requestUrl}' failed after {_apiRetryCount + 1} attempts.",
-                    exception);
+                    $"GET request to '{requestUrl}' failed after {_apiRetryCount + 1} attempts.", exception);
             }
             finally
             {
@@ -131,6 +131,17 @@ namespace DAS.DigitalEngagement.Application.Services
             statusCode is HttpStatusCode.RequestTimeout or HttpStatusCode.TooManyRequests ||
             (int)statusCode >= 500;
 
+        private static string GetEndpointForLog(string endpointOrUrl)
+        {
+            if (Uri.TryCreate(endpointOrUrl, UriKind.Absolute, out var absoluteUri))
+            {
+                return absoluteUri.AbsolutePath.Trim('/');
+            }
+
+            var pathOnly = endpointOrUrl.Split('?', 2)[0];
+            return pathOnly.Trim('/');
+        }
+
         public async Task<BatchResultDetail> PostDataAsync(string endpoint, string csvBodyString)
         {
             var result = new BatchResultDetail
@@ -140,7 +151,8 @@ namespace DAS.DigitalEngagement.Application.Services
             };
 
             var requestUrl = $"{_apiUrl}/{endpoint}";
-            _logger.LogInformation("Making POST request to {RequestUrl}", requestUrl);
+            var requestEndpoint = GetEndpointForLog(endpoint);
+            _logger.LogInformation("Making POST request to endpoint {Endpoint}", requestEndpoint);
 
             var request = new HttpRequestMessage(HttpMethod.Post, requestUrl);
             request.Headers.Authorization = new AuthenticationHeaderValue("Token", _apiKey);
@@ -171,7 +183,7 @@ namespace DAS.DigitalEngagement.Application.Services
                 result.TokenFromEshot = content;
                 result.Status = BatchStatus.Completed;
 
-                _logger.LogInformation("Received response: {Content}", content);
+                _logger.LogInformation("POST request to endpoint {Endpoint} completed successfully with response length {ResponseLength}", requestEndpoint, content.Length);
             }
             catch (Exception ex)
             {

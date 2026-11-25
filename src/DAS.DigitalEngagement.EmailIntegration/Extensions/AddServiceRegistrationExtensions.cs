@@ -11,10 +11,8 @@ using DAS.DigitalEngagement.Application.PerformanceImport.Services;
 using DAS.DigitalEngagement.Application.Services.Interfaces;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using DAS.DigitalEngagement.Models.Infrastructure;
 using System.Configuration;
 using System.Diagnostics.CodeAnalysis;
-using Microsoft.Extensions.Options;
 using DAS.DigitalEngagement.Application.Handlers.CampaignToStaging;
 using DAS.DigitalEngagement.CampaignInterest.Data.Repositories;
 using DAS.DigitalEngagement.CampaignInterest.Data.Service;
@@ -34,7 +32,6 @@ namespace DAS.DigitalEngagement.EmailIntegration.Extensions
             services.AddTransient<IImportDataMartHandler, ImportDataMartHandler>();
             services.AddTransient<IImportService, ImportService>();
             services.AddTransient<IPayLoadMapper, PayLoadMapper>();
-            services.AddTransient<IEmailDomainChecker, EmailDomainChecker>();
 
             services.AddTransient<IImportCampaignStagingHandler, ImportCampaignStagingHandler>();
             services.AddTransient<ISendEligibilityService, SendEligibilityService>();
@@ -48,11 +45,10 @@ namespace DAS.DigitalEngagement.EmailIntegration.Extensions
                 var connectionString = configuration.GetSection("ConnectionString")["CampaignsDatabase"]
                     ?? throw new ConfigurationErrorsException("CampaignsDatabase connection string is not configured");
 
-                //var tokenCredential = sp.GetService<TokenCredential>();
+                var tokenCredential = sp.GetService<TokenCredential>();
 
-                //return new SqlConnectionFactory(connectionString, tokenCredential);
+                return new SqlConnectionFactory(connectionString, tokenCredential);
 
-                return new SqlConnectionFactory(connectionString);
             });
            
 
@@ -71,17 +67,7 @@ namespace DAS.DigitalEngagement.EmailIntegration.Extensions
             services.AddTransient<IReportService, ReportService>();
             services.AddTransient<IPerformanceImportReportService, PerformanceImportReportService>();
 
-            services.AddNServiceBus(configuration);
-            services.AddTransient<INotificationService, NotificationService>();
-
             services.AddSingleton(provider => new BlobServiceClient(azureBlobStorage));
-
-            // Add GovNotify configuration
-            services.AddSingleton<GovNotifyConfiguration>(sp => 
-                sp.GetRequiredService<IOptions<GovNotifyConfiguration>>().Value);
-            
-            // Register email notification service
-            services.AddTransient<IEmailNotificationService, EmailNotificationService>();
             
             return services;
         }

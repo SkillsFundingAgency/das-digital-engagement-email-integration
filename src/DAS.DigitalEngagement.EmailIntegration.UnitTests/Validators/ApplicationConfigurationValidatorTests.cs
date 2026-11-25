@@ -260,11 +260,6 @@ public class ApplicationConfigurationValidatorTests
                     FieldMapping = "mapping",
                     TemplatedUploadId = [1]
                 }
-            ],
-            GovNotifyConfiguration = new GovNotifyConfiguration
-            {
-                MonitoringReportTemplateId = "template",
-                RecipientEmailAddresses = []
-            }
+            ]
         };
 }
